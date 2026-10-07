@@ -4,14 +4,15 @@ import {
   CalendarDays,
   FileText,
   Heart,
-  MapPin,
   Package,
   Pencil,
   ShoppingBag,
   Tag,
 } from "lucide-react";
-import ProfileListings from "@/components/profile/ProfileListings";
-import { profile, profileListings } from "@/data/profile";
+import { redirect } from "next/navigation";
+import ProfileListings, { type ProfileListing } from "@/components/profile/ProfileListings";
+import { getCurrentUser } from "@/lib/auth/session";
+import { sql } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Моят профил",
@@ -19,13 +20,7 @@ export const metadata: Metadata = {
 
 const card = "rounded-2xl border border-black/5 bg-white";
 
-const stats = [
-  { label: "Активни обяви", value: profile.stats.active, icon: Package, tone: "bg-brand-rose/10 text-brand-ink" },
-  { label: "Продадени", value: profile.stats.sold, icon: Tag, tone: "bg-brand-rose/10 text-brand-ink" },
-  { label: "Архивирани", value: profile.stats.archived, icon: FileText, tone: "bg-zinc-100 text-brand-ink" },
-  { label: "Любими", value: profile.stats.favorites, icon: Heart, tone: "bg-brand-rose/10 text-brand-rose" },
-  { label: "Покупки", value: profile.stats.purchases, icon: ShoppingBag, tone: "bg-sky-50 text-sky-600" },
-];
+const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "numeric" });
 
 function Avatar({ name, className }: { name: string; className: string }) {
   return (
@@ -38,14 +33,31 @@ function Avatar({ name, className }: { name: string; className: string }) {
   );
 }
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  const [account] = await sql`select created_at from users where id = ${user.id}`;
+  const memberSince = monthAndYear.format(new Date(account.created_at));
+
+  // Listings, favourites and purchases are not stored yet, so a new account starts with none.
+  const listings: ProfileListing[] = [];
+  const counts = { active: 0, sold: 0, archived: 0 };
+  const stats = [
+    { label: "Активни обяви", value: counts.active, icon: Package, tone: "bg-brand-rose/10 text-brand-ink" },
+    { label: "Продадени", value: counts.sold, icon: Tag, tone: "bg-brand-rose/10 text-brand-ink" },
+    { label: "Архивирани", value: counts.archived, icon: FileText, tone: "bg-zinc-100 text-brand-ink" },
+    { label: "Любими", value: 0, icon: Heart, tone: "bg-brand-rose/10 text-brand-rose" },
+    { label: "Покупки", value: 0, icon: ShoppingBag, tone: "bg-sky-50 text-sky-600" },
+  ];
+
   return (
     <div className="space-y-4">
       <section className={`${card} flex flex-col gap-5 p-5 md:flex-row md:items-center`}>
-        <Avatar name={profile.name} className="size-28 text-4xl" />
+        <Avatar name={user.username} className="size-28 text-4xl uppercase" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-2xl font-bold text-brand-ink">{profile.name}</h1>
+            <h1 className="truncate text-2xl font-bold text-brand-ink">{user.username}</h1>
             <button
               type="button"
               aria-label="Редактирай името"
@@ -54,15 +66,11 @@ export default function ProfilePage() {
               <Pencil className="size-4" aria-hidden />
             </button>
           </div>
-          <p className="mt-1 text-sm text-brand-ink/60">@{profile.handle}</p>
+          <p className="mt-1 truncate text-sm text-brand-ink/60">{user.email}</p>
           <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-brand-ink/70">
             <li className="flex items-center gap-1.5">
-              <MapPin className="size-4" aria-hidden />
-              {profile.city}
-            </li>
-            <li className="flex items-center gap-1.5">
               <CalendarDays className="size-4" aria-hidden />
-              Член от {profile.memberSince}
+              Член от {memberSince}
             </li>
           </ul>
           <Link
@@ -85,7 +93,7 @@ export default function ProfilePage() {
               <Pencil className="size-4" aria-hidden />
             </button>
           </div>
-          <p className="mt-2 text-sm leading-6 text-brand-ink/70">{profile.about}</p>
+          <p className="mt-2 text-sm leading-6 text-brand-ink/50">Все още няма описание.</p>
         </div>
       </section>
 
@@ -103,10 +111,7 @@ export default function ProfilePage() {
         ))}
       </ul>
 
-      <ProfileListings
-        listings={profileListings}
-        counts={{ active: profile.stats.active, sold: profile.stats.sold, archived: profile.stats.archived }}
-      />
+      <ProfileListings listings={listings} counts={counts} />
     </div>
   );
 }

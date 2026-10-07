@@ -17,6 +17,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import Combobox from "@/components/Combobox";
+import Select from "@/components/Select";
 import { categories, cities } from "@/data/listingOptions";
 
 const conditions = [
@@ -26,7 +28,8 @@ const conditions = [
 
 const deliveries = [
   { value: "pickup", label: "Лично предаване" },
-  { value: "courier", label: "Спиди / Еконт" },
+  { value: "speedy", label: "Спиди" },
+  { value: "econt", label: "Еконт" },
 ];
 
 const MAX_PHOTOS = 8;
@@ -382,22 +385,13 @@ export default function ListingForm() {
               />
             </SpecRow>
             <SpecRow icon={LayoutGrid} label="Категория" error={errors.category}>
-              <select
+              <Select
                 name="category"
-                aria-label="Категория"
-                defaultValue=""
-                aria-invalid={Boolean(errors.category)}
-                className={`${specInput} cursor-pointer`}
-              >
-                <option value="" disabled>
-                  Избери
-                </option>
-                {categories.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                label="Категория"
+                options={categories}
+                invalid={Boolean(errors.category)}
+                className="h-9 w-44"
+              />
             </SpecRow>
             <SpecRow icon={Sparkles} label="Състояние" error={errors.condition}>
               <Chips label="Състояние" name="condition" type="radio" options={conditions} />
@@ -434,20 +428,15 @@ export default function ListingForm() {
                 className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-brand-ink"
                 aria-hidden
               />
-              <input
+              <Combobox
                 name="city"
-                aria-label="Град"
-                list="listing-cities"
+                label="Град"
+                options={cities}
                 maxLength={50}
                 placeholder="Град"
-                aria-invalid={Boolean(errors.city)}
+                invalid={Boolean(errors.city)}
                 className="h-14 w-full rounded-xl border border-transparent bg-zinc-100 pr-4 pl-11 text-sm font-medium text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500"
               />
-              <datalist id="listing-cities">
-                {cities.map((city) => (
-                  <option key={city} value={city} />
-                ))}
-              </datalist>
             </div>
             <FieldError message={errors.city} />
 

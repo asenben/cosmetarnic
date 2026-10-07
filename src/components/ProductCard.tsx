@@ -11,13 +11,20 @@ const conditions = {
   used: { label: "Използвано", className: "bg-amber-100 text-amber-800" },
 };
 
-const deliveries = {
-  pickup: { label: "Лично предаване", icon: Package },
-  courier: { label: "Доставка с куриер", icon: Truck },
-};
+// The ways a seller can hand over the product, in the order the cards show them.
+const couriers = { speedy: "Спиди", econt: "Еконт" };
+type Delivery = "pickup" | keyof typeof couriers;
 
-// Every card shows the options in this order, whichever way the listing stores them.
-const deliveryOrder = Object.keys(deliveries) as (keyof typeof deliveries)[];
+// One entry for handing over in person and one for shipping, however many couriers are offered.
+function deliveryBadges(delivery: Delivery[]) {
+  const offered = (Object.keys(couriers) as (keyof typeof couriers)[]).filter((key) => delivery.includes(key));
+  return [
+    ...(delivery.includes("pickup") ? [{ key: "pickup", label: "Лично предаване", icon: Package }] : []),
+    ...(offered.length > 0
+      ? [{ key: "courier", label: offered.map((key) => couriers[key]).join(" / "), icon: Truck }]
+      : []),
+  ];
+}
 
 const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
@@ -28,7 +35,7 @@ export type Product = {
   city: string;
   postedAgo: string;
   condition: keyof typeof conditions;
-  delivery?: (keyof typeof deliveries)[];
+  delivery?: Delivery[];
   image?: string;
 };
 
@@ -100,19 +107,16 @@ export default function ProductCard({
             {priceFormat.format(price)}
           </p>
           <ul className="flex items-center gap-1.5 text-brand-ink/50 listview:col-span-2 listview:row-start-4 listview:mt-2 listview:flex-wrap listview:gap-x-4 listview:gap-y-1 listview:border-t listview:border-black/5 listview:pt-3 listview:text-sm listview:text-brand-ink">
-            {deliveryOrder.filter((key) => delivery.includes(key)).map((key) => {
-              const { label, icon: Icon } = deliveries[key];
-              return (
-                <li
-                  key={key}
-                  title={label}
-                  className="listview:flex listview:items-center listview:gap-2 listview:not-first:border-l listview:not-first:border-black/10 listview:not-first:pl-4"
-                >
-                  <Icon className="size-4 listview:size-5" aria-hidden />
-                  <span className="sr-only listview:not-sr-only">{label}</span>
-                </li>
-              );
-            })}
+            {deliveryBadges(delivery).map(({ key, label, icon: Icon }) => (
+              <li
+                key={key}
+                title={label}
+                className="listview:flex listview:items-center listview:gap-2 listview:not-first:border-l listview:not-first:border-black/10 listview:not-first:pl-4"
+              >
+                <Icon className="size-4 listview:size-5" aria-hidden />
+                <span className="sr-only listview:not-sr-only">{label}</span>
+              </li>
+            ))}
           </ul>
         </div>
 

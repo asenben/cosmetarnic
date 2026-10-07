@@ -4,7 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Check, Ellipsis, Eye, MessageCircle } from "lucide-react";
-import type { ProfileListing } from "@/data/profile";
+export type ProfileListing = {
+  id: string;
+  title: string;
+  price: number;
+  views: number;
+  messages: number;
+  status: "active" | "sold" | "archived";
+  image?: string;
+};
 
 type Status = ProfileListing["status"];
 

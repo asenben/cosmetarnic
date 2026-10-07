@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type SubmitEvent } from "react";
-import { CircleCheck, Lock, Mail, User } from "lucide-react";
+import { useState, type ReactNode, type SubmitEvent } from "react";
+import { ArrowRight, CircleCheck, Lock, Mail, Phone, User } from "lucide-react";
 import { AuthField, AuthHeader, AuthSwitch, SocialLogin, submitButton, textLink } from "@/components/auth/AuthParts";
 import type { RegisterErrors, RegisterField } from "@/lib/auth/register";
 
@@ -11,6 +11,18 @@ type RegisterFormProps = {
 };
 
 const GENERIC_ERROR = "Нещо се обърка. Опитай отново след малко.";
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <fieldset className="mt-3 first:mt-0">
+      <legend className="flex w-full items-center gap-3 text-sm font-bold text-brand-ink">
+        {title}
+        <span className="h-px flex-1 bg-black/10" aria-hidden />
+      </legend>
+      <div className="mt-2 space-y-2">{children}</div>
+    </fieldset>
+  );
+}
 
 export default function RegisterForm({ onLogin }: RegisterFormProps) {
   const [errors, setErrors] = useState<RegisterErrors>({});
@@ -38,9 +50,11 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: data.get("username"),
+          full_name: data.get("full_name"),
           email: data.get("email"),
           password: data.get("password"),
           password_confirm: data.get("password_confirm"),
+          phone: data.get("phone"),
           terms: data.get("terms") === "on",
         }),
       });
@@ -96,60 +110,89 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
     <div>
       <AuthHeader title="Регистрация" />
 
-      <form onSubmit={onSubmit} className="mt-3 space-y-2.5">
-        <div>
-          <AuthField
-            label="Потребителско име"
-            icon={User}
-            name="username"
-            autoComplete="username"
-            minLength={3}
-            maxLength={30}
-            aria-invalid={Boolean(errors.username)}
-            onChange={clearError("username")}
-          />
-          {fieldError("username")}
-        </div>
-        <div>
-          <AuthField
-            label="Имейл"
-            icon={Mail}
-            type="email"
-            name="email"
-            autoComplete="email"
-            aria-invalid={Boolean(errors.email)}
-            onChange={clearError("email")}
-          />
-          {fieldError("email")}
-        </div>
-        <div>
-          <AuthField
-            label="Парола"
-            icon={Lock}
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            minLength={8}
-            aria-invalid={Boolean(errors.password)}
-            onChange={clearError("password")}
-          />
-          {fieldError("password")}
-        </div>
-        <div>
-          <AuthField
-            label="Повтори паролата"
-            icon={Lock}
-            type="password"
-            name="password_confirm"
-            autoComplete="new-password"
-            aria-invalid={Boolean(errors.password_confirm)}
-            onChange={clearError("password_confirm")}
-          />
-          {fieldError("password_confirm")}
-        </div>
+      <form onSubmit={onSubmit} className="mt-3">
+        <Section title="Акаунт">
+          <div>
+            <AuthField
+              label="Потребителско име"
+              icon={User}
+              name="username"
+              autoComplete="username"
+              minLength={3}
+              maxLength={30}
+              aria-invalid={Boolean(errors.username)}
+              onChange={clearError("username")}
+            />
+            {fieldError("username")}
+          </div>
+          <div>
+            <AuthField
+              label="Имейл"
+              icon={Mail}
+              type="email"
+              name="email"
+              autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
+              onChange={clearError("email")}
+            />
+            {fieldError("email")}
+          </div>
+          <div>
+            <AuthField
+              label="Парола"
+              icon={Lock}
+              type="password"
+              name="password"
+              autoComplete="new-password"
+              minLength={8}
+              aria-invalid={Boolean(errors.password)}
+              onChange={clearError("password")}
+            />
+            {fieldError("password")}
+          </div>
+          <div>
+            <AuthField
+              label="Повтори паролата"
+              icon={Lock}
+              type="password"
+              name="password_confirm"
+              autoComplete="new-password"
+              aria-invalid={Boolean(errors.password_confirm)}
+              onChange={clearError("password_confirm")}
+            />
+            {fieldError("password_confirm")}
+          </div>
+        </Section>
 
-        <div>
-          <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-4 text-brand-ink/70">
+        <Section title="Лични данни">
+          <div>
+            <AuthField
+              label="Име и фамилия"
+              icon={User}
+              name="full_name"
+              autoComplete="name"
+              maxLength={80}
+              aria-invalid={Boolean(errors.full_name)}
+              onChange={clearError("full_name")}
+            />
+            {fieldError("full_name")}
+          </div>
+          <div>
+            <AuthField
+              label="Телефон"
+              icon={Phone}
+              type="tel"
+              name="phone"
+              autoComplete="tel"
+              aria-invalid={Boolean(errors.phone)}
+              onChange={clearError("phone")}
+            />
+            {fieldError("phone")}
+          </div>
+        </Section>
+
+        <div className="mt-3">
+          <label className="flex cursor-pointer items-center gap-2.5 text-[11px] leading-4 text-brand-ink/70">
             <input
               type="checkbox"
               name="terms"
@@ -172,13 +215,24 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
         </div>
 
         {formError && (
-          <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
             {formError}
           </p>
         )}
 
-        <button type="submit" disabled={pending} className={`${submitButton} disabled:cursor-wait disabled:opacity-70`}>
-          {pending ? "Създаване на профил…" : "Регистрация"}
+        <button
+          type="submit"
+          disabled={pending}
+          className={`${submitButton} mt-3 flex items-center justify-center gap-2 disabled:cursor-wait disabled:opacity-70`}
+        >
+          {pending ? (
+            "Създаване на профил…"
+          ) : (
+            <>
+              Регистрация
+              <ArrowRight className="size-4" aria-hidden />
+            </>
+          )}
         </button>
       </form>
 

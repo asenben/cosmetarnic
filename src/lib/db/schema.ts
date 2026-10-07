@@ -38,4 +38,7 @@ export const schema = [
     expires_at timestamptz not null
   )`,
   `create index if not exists password_resets_user_id_idx on password_resets (user_id)`,
+  // Asked for at sign-up. Nullable only because accounts created before these fields have none.
+  `alter table users add column if not exists full_name text`,
+  `alter table users add column if not exists phone text`,
 ];

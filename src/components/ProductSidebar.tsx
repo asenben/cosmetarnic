@@ -21,7 +21,8 @@ const conditionLabels = { new: "Ново", used: "Използвано" };
 
 const deliveryLabels = {
   pickup: "С лично предаване",
-  courier: "Спиди / Еконт",
+  speedy: "Спиди",
+  econt: "Еконт",
 };
 
 const phoneButton =

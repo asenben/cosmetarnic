@@ -17,13 +17,12 @@ import {
   Tag,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { profile } from "@/data/profile";
 
 const links = [
   { href: "/profile", label: "Моят профил", icon: House },
   { href: "/profile/listings", label: "Моите обяви", icon: Package },
   { href: "/sell", label: "Добави обява", icon: CirclePlus },
-  { href: "/profile/messages", label: "Съобщения", icon: MessageCircle, badge: profile.unreadMessages },
+  { href: "/profile/messages", label: "Съобщения", icon: MessageCircle },
   { href: "/profile/favorites", label: "Любими", icon: Heart },
   { href: "/profile/purchases", label: "Моите покупки", icon: ShoppingBag },
   { href: "/profile/sales", label: "Моите продажби", icon: Tag },
@@ -45,7 +44,7 @@ export default function ProfileSidebar() {
       className="hidden w-60 shrink-0 self-start rounded-2xl border border-black/5 bg-white p-3 lg:block"
     >
       <ul className="space-y-1">
-        {links.map(({ href, label, icon: Icon, badge }) => {
+        {links.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
             <li key={href}>
@@ -58,11 +57,6 @@ export default function ProfileSidebar() {
               >
                 <Icon className="size-5 shrink-0" aria-hidden />
                 <span className="min-w-0 flex-1 truncate">{label}</span>
-                {badge ? (
-                  <span className="flex size-5 items-center justify-center rounded-full bg-brand-rose text-xs font-semibold text-white">
-                    {badge}
-                  </span>
-                ) : null}
               </Link>
             </li>
           );

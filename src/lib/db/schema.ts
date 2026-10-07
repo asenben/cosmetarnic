@@ -56,4 +56,38 @@ export const schema = [
   `alter table sessions add column if not exists id uuid not null default gen_random_uuid()`,
   `create unique index if not exists sessions_id_key on sessions (id)`,
   `alter table sessions add column if not exists user_agent text`,
+  // The listings published through the "Добави обява" form. `description` is HTML that was cleaned
+  // on the way in, and `images` holds file names in the bucket, cover first (see src/lib/listings).
+  `create table if not exists listings (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references users (id) on delete cascade,
+    title text not null,
+    brand text not null,
+    category text not null,
+    condition text not null,
+    price numeric(10, 2) not null,
+    color text,
+    delivery text[] not null,
+    phone text not null,
+    city text not null,
+    description text not null,
+    images text[] not null default '{}',
+    status text not null default 'active',
+    created_at timestamptz not null default now()
+  )`,
+  `create index if not exists listings_created_at_idx on listings (created_at desc)`,
+  `create index if not exists listings_user_id_idx on listings (user_id)`,
+  // Who has opened each listing, one row per device, so a listing's views are counted once per
+  // device however many times it is opened. `viewer` is a hash, not an address (see src/lib/listings).
+  `create table if not exists listing_views (
+    listing_id uuid not null references listings (id) on delete cascade,
+    viewer text not null,
+    created_at timestamptz not null default now(),
+    primary key (listing_id, viewer)
+  )`,
+  // The first version counted every opening of the page in this column; listing_views replaced it.
+  `alter table listings drop column if exists views`,
+  // The number shown on the listing's page as its ID: 1 for the first listing published, 2 for the
+  // next, and so on. A number is never given out again, even after its listing is deleted.
+  `alter table listings add column if not exists number bigint generated always as identity`,
 ];

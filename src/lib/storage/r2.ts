@@ -22,6 +22,15 @@ function objectUrl(key: string) {
   return `${R2_ENDPOINT.replace(/\/$/, "")}/${R2_BUCKET}/${key}`;
 }
 
-export function r2Fetch(key: string, init?: RequestInit) {
-  return getClient().fetch(objectUrl(key), init);
+export async function r2Fetch(key: string, init?: RequestInit) {
+  const signed = await getClient().sign(objectUrl(key), init);
+  // Sent as an address with separate headers and body, not as the signed Request itself: Next.js
+  // wraps fetch on the server, and a Request's body goes through it as a stream of unknown length,
+  // which R2 refuses for larger uploads (411 Length Required).
+  return fetch(signed.url, {
+    method: signed.method,
+    headers: signed.headers,
+    body: init?.body,
+    cache: "no-store",
+  });
 }

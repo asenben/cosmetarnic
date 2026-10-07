@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { SearchX } from "lucide-react";
+import { SearchX, X } from "lucide-react";
 import FiltersSidebar from "@/components/FiltersSidebar";
 import ProductCard, { type Product } from "@/components/ProductCard";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
@@ -20,8 +21,14 @@ function matches(listing: MarketplaceListing, filters: Filters) {
   return true;
 }
 
+type MarketplaceProps = {
+  listings: MarketplaceListing[];
+  // The search the listings were found by, when the visitor came from the search field.
+  search?: string;
+};
+
 // The listings with the filters beside them. `listings` arrive newest first.
-export default function Marketplace({ listings }: { listings: MarketplaceListing[] }) {
+export default function Marketplace({ listings, search = "" }: MarketplaceProps) {
   const [filters, setFilters] = useState(noFilters);
   const [sort, setSort] = useState<SortOrder>("newest");
 
@@ -35,6 +42,19 @@ export default function Marketplace({ listings }: { listings: MarketplaceListing
     <>
       <FiltersSidebar filters={filters} onChange={setFilters} />
       <ProductGrid count={shown.length} sort={sort} onSortChange={setSort}>
+        {search && (
+          <p className="col-span-full flex flex-wrap items-center gap-2 text-sm text-brand-ink/60">
+            Резултати за
+            <Link
+              href="/"
+              aria-label={`Изчисти търсенето „${search}“`}
+              className="flex items-center gap-1.5 rounded-full bg-brand-rose/10 py-1 pr-2 pl-3 font-semibold text-brand-rose transition-colors hover:bg-brand-rose/20"
+            >
+              {search}
+              <X className="size-3.5" aria-hidden />
+            </Link>
+          </p>
+        )}
         {shown.map(({ id, href, image, brand, price, city, postedAgo, condition, delivery }) => (
           <ProductCard
             key={id}
@@ -53,14 +73,20 @@ export default function Marketplace({ listings }: { listings: MarketplaceListing
             <span className="flex size-14 items-center justify-center rounded-full bg-brand-rose/10 text-brand-rose">
               <SearchX className="size-7" aria-hidden />
             </span>
-            Няма обяви, които отговарят на избраните филтри.
-            <button
-              type="button"
-              onClick={() => setFilters(noFilters)}
-              className="cursor-pointer font-semibold text-brand-rose underline underline-offset-4 transition-colors hover:text-brand"
-            >
-              Изчисти филтрите
-            </button>
+            {listings.length === 0 ? (
+              search ? `Няма намерени обяви за „${search}“.` : "Все още няма публикувани обяви."
+            ) : (
+              <>
+                Няма обяви, които отговарят на избраните филтри.
+                <button
+                  type="button"
+                  onClick={() => setFilters(noFilters)}
+                  className="cursor-pointer font-semibold text-brand-rose underline underline-offset-4 transition-colors hover:text-brand"
+                >
+                  Изчисти филтрите
+                </button>
+              </>
+            )}
           </div>
         )}
       </ProductGrid>

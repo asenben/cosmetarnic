@@ -43,7 +43,8 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
     { icon: Palette, label: "Цвят", value: color },
     { icon: CalendarDays, label: "Публикувана", value: postedAgo },
     { icon: Package, label: "Изпращане", value: delivery.map((key) => deliveryLabels[key]).join(" / ") },
-  ];
+    // The colour is optional in the listing form.
+  ].filter(({ value }) => value);
 
   return (
     <aside className="space-y-5">

@@ -1,16 +1,61 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Eye, Flag } from "lucide-react";
 import ProductGallery from "@/components/ProductGallery";
 import ProductSidebar from "@/components/ProductSidebar";
-import { products } from "@/data/products";
+import { categories } from "@/data/listingOptions";
+import type { ProductDetails } from "@/data/products";
+import { avatarUrl } from "@/lib/auth/avatar";
+import { getCurrentUser } from "@/lib/auth/session";
+import { postedAgo, viewerKey, viewListing, type Listing } from "@/lib/listings";
+import { listingImageUrl } from "@/lib/listings/images";
 
 const conditionLabels = { new: "Ново", used: "Използвано" };
 
+const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "numeric" });
+
+// A published listing in the shape the page was built around.
+function toProduct(listing: Listing): ProductDetails {
+  const category = categories.find(({ value }) => value === listing.category);
+  return {
+    id: listing.id,
+    number: listing.number,
+    brand: listing.brand,
+    price: listing.price,
+    city: listing.city,
+    postedAgo: postedAgo(listing.createdAt),
+    condition: listing.condition,
+    delivery: listing.delivery,
+    images: listing.images.map(listingImageUrl),
+    title: listing.title,
+    category: listing.category,
+    categories: ["Красота и козметика", ...(category ? [category.label] : [])],
+    sellerProfile: {
+      name: listing.seller.username,
+      handle: listing.seller.username,
+      memberSince: monthAndYear.format(listing.seller.createdAt).replace(" г.", ""),
+      listings: listing.seller.listings,
+      avatar: avatarUrl(listing.seller.avatar) ?? undefined,
+    },
+    color: listing.color,
+    phone: listing.phone,
+    descriptionHtml: listing.description,
+    views: listing.views,
+  };
+}
+
 export default async function ProductPage({ params }: PageProps<"/product/[id]">) {
   const { id } = await params;
-  const product = products.find((item) => item.id === id);
-  if (!product) notFound();
+  const [requestHeaders, user] = await Promise.all([headers(), getCurrentUser()]);
+  // The first address in the list is the visitor's own; the rest are the proxies on the way.
+  const address = requestHeaders.get("x-forwarded-for")?.split(",")[0].trim() ?? "";
+  const listing = await viewListing(id, {
+    key: viewerKey(address, requestHeaders.get("user-agent") ?? ""),
+    userId: user?.id,
+  });
+  if (!listing) notFound();
+  const product = toProduct(listing);
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -41,15 +86,14 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
 
             <section className="rounded-2xl border border-black/5 bg-white p-5">
               <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
-              <p className="mt-3 text-sm leading-6 whitespace-pre-line text-brand-ink/80">{product.description}</p>
-              <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-brand-ink/80 marker:text-brand-rose">
-                {product.features.map((feature) => (
-                  <li key={feature}>{feature}</li>
-                ))}
-              </ul>
+              {/* Cleaned when the listing was saved (see src/lib/listings/description.ts). */}
+              <div
+                className="rich-text mt-3 text-base wrap-break-word text-brand-ink/80"
+                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+              />
 
               <div className="mt-6 flex items-center justify-between gap-4 border-t border-black/5 pt-4 text-xs text-brand-ink/60">
-                <span>ID: {product.id}</span>
+                <span>ID: {product.number}</span>
                 <span className="flex items-center gap-1.5">
                   <Eye className="size-4" aria-hidden />
                   <span className="sr-only">Преглеждания:</span>

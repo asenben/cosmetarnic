@@ -169,7 +169,9 @@ function Sessions({ sessions }: { sessions: SessionRow[] }) {
     setError(undefined);
     try {
       const response = await fetch(`/api/profile/sessions/${id}`, { method: "DELETE" });
-      if (response.ok) router.refresh();
+      // 404 means the session ended in the meantime (signed out there, or expired) and the list on
+      // screen is out of date: the device is signed out either way, so the list is just reloaded.
+      if (response.ok || response.status === 404) router.refresh();
       else setError((await response.json()).message ?? GENERIC_ERROR);
     } catch {
       setError(GENERIC_ERROR);

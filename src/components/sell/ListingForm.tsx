@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode, type SubmitEvent } from "react";
 import {
   CircleCheck,
@@ -22,6 +23,7 @@ import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { categories, cities } from "@/data/listingOptions";
+import { MAX_LISTING_PHOTOS } from "@/lib/listings/images";
 
 const conditions = [
   { value: "new", label: "Ново" },
@@ -34,7 +36,9 @@ const deliveries = [
   { value: "econt", label: "Еконт", icon: Truck },
 ];
 
-const MAX_PHOTOS = 8;
+const MAX_PHOTOS = MAX_LISTING_PHOTOS;
+// Photos are shrunk to this many pixels on their longer side before they are sent.
+const PHOTO_SIDE = 1600;
 const MAX_PHOTO_MB = 5;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const PRICE_MAX = 100000;
@@ -47,6 +51,51 @@ type Field = (typeof fields)[number];
 type Errors = Partial<Record<Field, string>>;
 
 type Photo = { file: File; url: string };
+
+// Shrinks the photo and turns it into a JPEG, so uploads are small whatever the camera produced.
+async function toJpeg(file: File) {
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const scale = Math.min(1, PHOTO_SIDE / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const context = canvas.getContext("2d")!;
+  // JPEG has no transparency; see-through parts of a PNG become white instead of black.
+  context.fillStyle = "white";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))), "image/jpeg", 0.85),
+  );
+}
+
+// Sends the listing with its photos and answers with the new listing's id, or with what went wrong.
+async function publish(data: FormData, photos: Photo[]) {
+  const images: string[] = [];
+  for (const { file } of photos) {
+    const body = new FormData();
+    body.set("photo", await toJpeg(file), "photo.jpg");
+    const response = await fetch("/api/listings/images", { method: "POST", body });
+    const result = await response.json();
+    if (!response.ok) return { message: result.message as string };
+    images.push(result.file);
+  }
+
+  const response = await fetch("/api/listings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
+      color: data.get("color"),
+      delivery: data.getAll("delivery"),
+      images,
+    }),
+  });
+  const result = await response.json();
+  if (!response.ok) return { message: result.message as string, errors: result.errors as Errors | undefined };
+  return { id: result.id as string };
+}
 
 const roundButton =
   "absolute flex size-10 cursor-pointer items-center justify-center rounded-full bg-white text-brand-ink shadow-sm transition-colors hover:text-brand-rose";
@@ -144,7 +193,10 @@ export default function ListingForm() {
   const [selected, setSelected] = useState(0);
   const [photoError, setPhotoError] = useState<string>();
   const [errors, setErrors] = useState<Errors>({});
-  const [ready, setReady] = useState(false);
+  // "sending" while the photos and the listing are on their way, "done" once it is published.
+  const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
+  const [formError, setFormError] = useState<string>();
+  const router = useRouter();
 
   // The preview addresses hold the files in memory until they are released.
   const previewUrls = useRef(new Set<string>());
@@ -194,20 +246,40 @@ export default function ListingForm() {
     addPhotos([...event.dataTransfer.files]);
   };
 
-  const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (status !== "idle") return;
     const form = event.currentTarget;
-    const found = validate(new FormData(form));
+    const data = new FormData(form);
+    const found = validate(data);
     setErrors(found);
+    setFormError(undefined);
 
-    const firstInvalid = fields.find((field) => found[field]);
-    if (firstInvalid) {
-      setReady(false);
-      form.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
-      return;
+    const focusFirst = (invalid: Errors) => {
+      const first = fields.find((field) => invalid[field]);
+      if (first) form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+      return Boolean(first);
+    };
+    if (focusFirst(found)) return;
+
+    setStatus("sending");
+    try {
+      const result = await publish(data, photos);
+      if (result.id) {
+        setStatus("done");
+        // Leaves the confirmation on the button for a moment, then opens the new listing.
+        setTimeout(() => router.push(`/product/${result.id}`), 1500);
+        return;
+      }
+      if (result.errors) {
+        setErrors(result.errors);
+        focusFirst(result.errors);
+      }
+      setFormError(result.message ?? "Не успяхме да качим обявата. Опитай отново.");
+    } catch {
+      setFormError("Не успяхме да качим обявата. Провери връзката си и опитай отново.");
     }
-    // TODO: upload `photos` and save the listing once the listings backend exists.
-    setReady(true);
+    setStatus("idle");
   };
 
   const fileInput = (
@@ -233,7 +305,7 @@ export default function ListingForm() {
       onChange={(event) => {
         const { name } = event.target as unknown as HTMLInputElement;
         if (errors[name as Field]) setErrors({ ...errors, [name]: undefined });
-        setReady(false);
+        setFormError(undefined);
       }}
       className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]"
     >
@@ -459,15 +531,24 @@ export default function ListingForm() {
             </div>
             <FieldError message={errors.city} />
 
-            {/* Turns green with a confirmation once the listing went through; editing a field turns it back. */}
+            <FieldError message={formError} />
+
+            {/* Turns green with a confirmation once the listing is saved; the new listing opens right after. */}
             <button
               type="submit"
-              className={`mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-colors ${
-                ready ? "bg-emerald-600 hover:bg-emerald-700" : "bg-brand-rose hover:bg-brand"
+              disabled={status !== "idle"}
+              className={`mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:cursor-default ${
+                status === "done" ? "bg-emerald-600" : "bg-brand-rose hover:bg-brand disabled:hover:bg-brand-rose"
               }`}
             >
-              {ready && <CircleCheck className="size-4.5" aria-hidden />}
-              <span role="status">{ready ? "Обявата е качена успешно" : "Публикувай обявата"}</span>
+              {status === "done" && <CircleCheck className="size-4.5" aria-hidden />}
+              <span role="status">
+                {status === "done"
+                  ? "Обявата е качена успешно"
+                  : status === "sending"
+                    ? "Качване…"
+                    : "Публикувай обявата"}
+              </span>
             </button>
           </div>
         </section>

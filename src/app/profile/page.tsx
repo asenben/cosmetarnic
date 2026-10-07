@@ -8,6 +8,7 @@ import { getProfile } from "@/lib/auth/profile";
 import { profileLinks } from "@/lib/auth/profileLinks";
 import { getCurrentUser } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
+import { countUserListings } from "@/lib/listings";
 
 export const metadata: Metadata = {
   title: "Моят профил",
@@ -21,9 +22,10 @@ export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
 
-  const [[account], profile] = await Promise.all([
+  const [[account], profile, activeListings] = await Promise.all([
     sql`select created_at, email_verified_at from users where id = ${user.id}`,
     getProfile(user.id),
+    countUserListings(user.id),
   ]);
   const memberSince = fullDate.format(new Date(account.created_at));
   // "Verified" means the owner confirmed the email address the account was registered with.
@@ -31,16 +33,16 @@ export default async function ProfilePage() {
   // Only the links that were filled in and left switched to "public" in the settings.
   const shownLinks = profileLinks.filter(({ key }) => profile.links[key].url && profile.links[key].public);
 
-  // Listings, sales, favourites and purchases are not stored yet, so every account starts with none.
+  // Sales, favourites and purchases are not stored yet, so every account starts with none of them.
   // The three counts shown inside the profile card; the visitor can hide them in the settings.
   const highlights = [
-    { label: "Активни обяви", value: 0, icon: FileText },
+    { label: "Активни обяви", value: activeListings, icon: FileText },
     { label: "Продадени", value: 0, icon: ShoppingBag },
     { label: "Любими", value: 0, icon: Heart },
   ];
   // The full row under the card.
   const stats = [
-    { label: "Активни обяви", value: 0, icon: Package },
+    { label: "Активни обяви", value: activeListings, icon: Package },
     { label: "Продадени", value: 0, icon: Tag },
     { label: "Архивирани", value: 0, icon: FileText },
     { label: "Любими", value: 0, icon: Heart },

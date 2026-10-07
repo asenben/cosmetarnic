@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Bell, Heart, Search, User } from "lucide-react";
+import { Bell, Heart, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import SearchBox from "@/components/SearchBox";
 import UserMenu from "@/components/UserMenu";
 
 const links = [
@@ -100,18 +101,7 @@ export default function Navigation() {
             </ul>
           </div>
 
-          <form action="/tarsene" role="search" className="flex min-w-0 flex-1 justify-center md:grow-0 md:basis-md">
-            <label className="flex h-11 w-full max-w-md items-center gap-3 rounded-full bg-zinc-100 px-4 transition-colors focus-within:bg-zinc-200/70">
-              <Search className="size-5 shrink-0 text-brand-ink/60" aria-hidden />
-              <input
-                type="search"
-                name="q"
-                placeholder="Търси обяви, продукти, марки..."
-                aria-label="Търсене"
-                className="w-full min-w-0 bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/50"
-              />
-            </label>
-          </form>
+          <SearchBox />
 
           <div className="flex items-center gap-1 md:grow md:justify-center">
             <Link href="/profile/favorites" aria-label="Любими" onClick={guardLink} className={`${iconButton} hidden sm:flex`}>

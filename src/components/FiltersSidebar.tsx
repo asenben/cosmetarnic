@@ -2,14 +2,14 @@
 
 import { useState, type ReactNode } from "react";
 import { ChevronDown, RotateCcw } from "lucide-react";
-import { CategoryFilter, CityFilter, ConditionFilter, PriceFilter } from "@/components/SortBar";
-
-const sections = [
-  { id: "categories", title: "Категории", Content: CategoryFilter },
-  { id: "condition", title: "Състояние", Content: ConditionFilter },
-  { id: "price", title: "Цена", Content: PriceFilter },
-  { id: "city", title: "Град", Content: CityFilter },
-];
+import {
+  CategoryFilter,
+  CityFilter,
+  ConditionFilter,
+  PriceFilter,
+  noFilters,
+  type Filters,
+} from "@/components/SortBar";
 
 type FilterSectionProps = {
   title: string;
@@ -48,8 +48,13 @@ function FilterSection({ title, children }: FilterSectionProps) {
   );
 }
 
-export default function FiltersSidebar() {
-  // Bumping the key remounts the filters, which resets their selections.
+type FiltersSidebarProps = {
+  filters: Filters;
+  onChange: (filters: Filters) => void;
+};
+
+export default function FiltersSidebar({ filters, onChange }: FiltersSidebarProps) {
+  // Bumping the key also clears what was typed in the town search box.
   const [resetKey, setResetKey] = useState(0);
 
   return (
@@ -60,7 +65,10 @@ export default function FiltersSidebar() {
       <div className="flex justify-end border-b border-black/5 px-4 py-3">
         <button
           type="button"
-          onClick={() => setResetKey(resetKey + 1)}
+          onClick={() => {
+            onChange(noFilters);
+            setResetKey(resetKey + 1);
+          }}
           className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-brand-rose transition-colors hover:text-brand"
         >
           <RotateCcw className="size-3.5" aria-hidden />
@@ -68,11 +76,25 @@ export default function FiltersSidebar() {
         </button>
       </div>
 
-      {sections.map(({ id, title, Content }) => (
-        <FilterSection key={id} title={title}>
-          <Content key={resetKey} />
-        </FilterSection>
-      ))}
+      <FilterSection title="Категории">
+        <CategoryFilter
+          selected={filters.categories}
+          onChange={(categories) => onChange({ ...filters, categories })}
+        />
+      </FilterSection>
+      <FilterSection title="Състояние">
+        <ConditionFilter selected={filters.condition} onChange={(condition) => onChange({ ...filters, condition })} />
+      </FilterSection>
+      <FilterSection title="Цена">
+        <PriceFilter
+          min={filters.priceMin}
+          max={filters.priceMax}
+          onChange={(priceMin, priceMax) => onChange({ ...filters, priceMin, priceMax })}
+        />
+      </FilterSection>
+      <FilterSection title="Град">
+        <CityFilter key={resetKey} selected={filters.cities} onChange={(cities) => onChange({ ...filters, cities })} />
+      </FilterSection>
     </aside>
   );
 }

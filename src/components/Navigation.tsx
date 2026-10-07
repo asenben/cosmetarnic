@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
 import { Bell, Heart, Search, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import UserMenu from "@/components/UserMenu";
 
 const links = [
   { href: "/search", label: "Търся" },
@@ -113,11 +114,11 @@ export default function Navigation() {
           </form>
 
           <div className="flex items-center gap-1 md:grow md:justify-center">
-            <Link href="/lyubimi" aria-label="Любими" onClick={guardLink} className={`${iconButton} hidden sm:flex`}>
+            <Link href="/profile/favorites" aria-label="Любими" onClick={guardLink} className={`${iconButton} hidden sm:flex`}>
               <Heart className="size-5.5" aria-hidden />
             </Link>
             <Link
-              href="/notifications"
+              href="/profile/notifications"
               aria-label="Известия"
               onClick={guardLink}
               className={`${iconButton} hidden sm:flex`}
@@ -126,9 +127,7 @@ export default function Navigation() {
             </Link>
             <span className="mx-2 hidden h-6 w-px bg-brand-ink/15 sm:block" aria-hidden />
             {isLoggedIn ? (
-              <Link href="/profile" aria-label="Профил" className={iconButton}>
-                <User className="size-5.5" aria-hidden />
-              </Link>
+              <UserMenu />
             ) : (
               <button
                 type="button"

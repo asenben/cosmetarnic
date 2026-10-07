@@ -7,6 +7,7 @@ import {
   ImagePlus,
   LayoutGrid,
   MapPin,
+  Package,
   Palette,
   Phone,
   Plus,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
+import DescriptionField from "@/components/sell/DescriptionField";
 import { categories, cities } from "@/data/listingOptions";
 
 const conditions = [
@@ -27,9 +29,9 @@ const conditions = [
 ];
 
 const deliveries = [
-  { value: "pickup", label: "Лично предаване" },
-  { value: "speedy", label: "Спиди" },
-  { value: "econt", label: "Еконт" },
+  { value: "pickup", label: "Лично предаване", icon: MapPin },
+  { value: "speedy", label: "Спиди", icon: Truck },
+  { value: "econt", label: "Еконт", icon: Truck },
 ];
 
 const MAX_PHOTOS = 8;
@@ -53,20 +55,19 @@ const textInput =
   "w-full rounded-xl border border-black/10 bg-white px-3.5 text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500";
 
 const specInput =
-  "h-9 w-44 rounded-lg border border-black/10 bg-white px-3 text-right text-sm font-semibold text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500";
+  "h-9 w-44 rounded-lg border border-black/10 bg-white px-3 text-sm font-semibold text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500";
 
 const chip =
   "flex h-9 cursor-pointer items-center rounded-lg border border-black/10 px-3 text-sm font-medium text-brand-ink transition-colors hover:border-brand-rose/50 has-checked:border-brand-rose has-checked:bg-brand-rose/10 has-checked:text-brand-rose has-focus-visible:ring-2 has-focus-visible:ring-brand-rose/40";
 
-const noSpinner =
-  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-
 function validate(data: FormData) {
   const text = (name: Field) => String(data.get(name) ?? "").trim();
-  const price = Number(text("price"));
+  // The amount may be typed with a decimal comma or a point.
+  const price = Number(text("price").replace(",", "."));
   const errors: Errors = {};
 
-  if (text("description").length < DESCRIPTION_MIN) {
+  // The editor submits the formatted description and, next to it, its plain text for this check.
+  if (String(data.get("description_text") ?? "").trim().length < DESCRIPTION_MIN) {
     errors.description = `Опиши продукта с поне ${DESCRIPTION_MIN} знака.`;
   }
   if (text("title").length < 3) errors.title = "Заглавието трябва да е поне 3 знака.";
@@ -121,16 +122,17 @@ type ChipsProps = {
   label: string;
   name: string;
   type: "radio" | "checkbox";
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; icon?: LucideIcon }[];
 };
 
 function Chips({ label, name, type, options }: ChipsProps) {
   return (
     <div role={type === "radio" ? "radiogroup" : "group"} aria-label={label} className="flex flex-wrap justify-end gap-2">
-      {options.map((option) => (
-        <label key={option.value} className={chip}>
-          <input type={type} name={name} value={option.value} className="sr-only" />
-          {option.label}
+      {options.map(({ value, label: text, icon: Icon }) => (
+        <label key={value} className={`${chip} gap-1.5`}>
+          <input type={type} name={name} value={value} className="sr-only" />
+          {Icon && <Icon className="size-4" aria-hidden />}
+          {text}
         </label>
       ))}
     </div>
@@ -245,13 +247,23 @@ export default function ListingForm() {
             >
               {current ? (
                 <>
+                  {/* The whole photo is shown, whatever its shape; a blurred copy fills the space around it. */}
+                  <Image
+                    src={current.url}
+                    alt=""
+                    aria-hidden
+                    fill
+                    unoptimized
+                    sizes="100px"
+                    className="scale-110 object-cover opacity-60 blur-2xl"
+                  />
                   <Image
                     src={current.url}
                     alt={current.file.name}
                     fill
                     unoptimized
                     sizes="(min-width: 1024px) 60vw, 100vw"
-                    className="object-cover"
+                    className="object-contain"
                   />
                   {selected === 0 ? (
                     <span className="absolute top-4 left-4 rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-rose shadow-sm">
@@ -325,16 +337,14 @@ export default function ListingForm() {
 
         <section className="rounded-2xl border border-black/5 bg-white p-5">
           <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">
-            <label htmlFor="listing-description">Описание</label>
+            Описание
           </h2>
-          <textarea
+          <DescriptionField
             id="listing-description"
             name="description"
-            rows={8}
             maxLength={2000}
             placeholder="Състояние, нюанс, срок на годност, колко е използван продуктът..."
-            aria-invalid={Boolean(errors.description)}
-            className={`${textInput} mt-3 resize-y py-2.5 text-sm leading-6`}
+            invalid={Boolean(errors.description)}
           />
           <FieldError message={errors.description} />
         </section>
@@ -353,23 +363,32 @@ export default function ListingForm() {
             />
             <FieldError message={errors.title} />
 
-            <div className="relative mt-4">
+            {/* One bordered box holding the amount and the currency; the border lights up
+                for the whole box when the amount inside is focused or invalid. */}
+            <label className="mt-4 flex h-14 cursor-text items-center overflow-hidden rounded-xl border border-black/10 bg-white transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500">
               <input
-                type="number"
+                // A text field, because a number field refuses the decimal comma in some browsers.
+                type="text"
                 name="price"
                 aria-label="Цена в евро"
-                min={0}
-                max={PRICE_MAX}
-                step="0.01"
                 inputMode="decimal"
+                autoComplete="off"
                 placeholder="0,00"
+                onInput={(event) => {
+                  // Only digits, one decimal comma and two digits after it are kept.
+                  const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
+                  event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
+                }}
                 aria-invalid={Boolean(errors.price)}
-                className={`${textInput} ${noSpinner} h-12 pr-10 text-2xl font-bold`}
+                className={`h-full min-w-0 flex-1 bg-transparent px-4 text-2xl font-bold text-brand-ink outline-none placeholder:text-brand-ink/30`}
               />
-              <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-2xl font-bold text-brand-ink/60">
+              <span
+                aria-hidden
+                className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-4 text-xl font-bold text-brand-rose"
+              >
                 €
               </span>
-            </div>
+            </label>
             <FieldError message={errors.price} />
           </div>
 
@@ -399,7 +418,7 @@ export default function ListingForm() {
             <SpecRow icon={Palette} label="Цвят">
               <input name="color" aria-label="Цвят" maxLength={40} placeholder="по желание" className={specInput} />
             </SpecRow>
-            <SpecRow icon={Truck} label="Изпращане" error={errors.delivery}>
+            <SpecRow icon={Package} label="Изпращане" error={errors.delivery}>
               <Chips label="Изпращане" name="delivery" type="checkbox" options={deliveries} />
             </SpecRow>
           </div>
@@ -440,18 +459,15 @@ export default function ListingForm() {
             </div>
             <FieldError message={errors.city} />
 
-            {ready && (
-              <p role="status" className="mt-3 flex gap-3 rounded-xl bg-brand-rose/10 p-4 text-sm leading-5 text-brand-ink/80">
-                <CircleCheck className="mt-0.5 size-5 shrink-0 text-brand-rose" aria-hidden />
-                Обявата е попълнена правилно. Публикуването ще заработи, щом добавим запазването на обявите.
-              </p>
-            )}
-
+            {/* Turns green with a confirmation once the listing went through; editing a field turns it back. */}
             <button
               type="submit"
-              className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-brand-rose text-sm font-semibold text-white transition-colors hover:bg-brand"
+              className={`mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-colors ${
+                ready ? "bg-emerald-600 hover:bg-emerald-700" : "bg-brand-rose hover:bg-brand"
+              }`}
             >
-              Публикувай обявата
+              {ready && <CircleCheck className="size-4.5" aria-hidden />}
+              <span role="status">{ready ? "Обявата е качена успешно" : "Публикувай обявата"}</span>
             </button>
           </div>
         </section>

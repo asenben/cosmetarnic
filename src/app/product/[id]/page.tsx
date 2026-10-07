@@ -41,7 +41,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
 
             <section className="rounded-2xl border border-black/5 bg-white p-5">
               <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
-              <p className="mt-3 text-sm leading-6 text-brand-ink/80">{product.description}</p>
+              <p className="mt-3 text-sm leading-6 whitespace-pre-line text-brand-ink/80">{product.description}</p>
               <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-brand-ink/80 marker:text-brand-rose">
                 {product.features.map((feature) => (
                   <li key={feature}>{feature}</li>

@@ -16,6 +16,7 @@
   --color-brand-pastel: #d88fa2;
   --color-brand-lilac: #bfa8d1;
   --color-facebook: #1877f2;
+  --color-instagram: #e4405f;
   --color-footer: #2f2b2d;
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
@@ -54,6 +55,52 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+  }
+}
+
+/* Text written in the description editor: lists, indents and the placeholder. Tailwind's reset
+   removes list markers, so they are put back here. */
+.rich-text {
+  line-height: 1.6;
+
+  & ul,
+  & ol {
+    padding-left: 1.5rem;
+  }
+  & ul {
+    list-style-type: disc;
+  }
+  & ul[data-kind="check"] {
+    list-style-type: "✓  ";
+  }
+  & ul[data-kind="dash"] {
+    list-style-type: "–  ";
+  }
+  & ol {
+    list-style-type: decimal;
+  }
+  & li::marker {
+    @apply text-brand-rose;
+  }
+  & [data-indent="1"] {
+    margin-left: 1.5rem;
+  }
+  & [data-indent="2"] {
+    margin-left: 3rem;
+  }
+  & [data-indent="3"] {
+    margin-left: 4.5rem;
+  }
+  & [data-indent="4"] {
+    margin-left: 6rem;
+  }
+  /* Shown by the editor while nothing has been typed. */
+  & p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    @apply text-brand-ink/40;
   }
 }
 

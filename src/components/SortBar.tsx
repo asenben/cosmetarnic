@@ -8,10 +8,30 @@ const conditions = [
   { value: "all", label: "Всички" },
   { value: "new", label: "Ново" },
   { value: "used", label: "Използвано" },
-];
+] as const;
 
-const PRICE_MIN = 0;
-const PRICE_MAX = 500;
+export const PRICE_MIN = 0;
+// The top of the slider. Left there, it means "no upper limit", so dearer listings still show.
+export const PRICE_MAX = 500;
+
+// What the visitor has chosen in the sidebar. Empty lists mean "any".
+export type Filters = {
+  categories: string[];
+  condition: (typeof conditions)[number]["value"];
+  priceMin: number;
+  priceMax: number;
+  cities: string[];
+};
+
+export const noFilters: Filters = {
+  categories: [],
+  condition: "all",
+  priceMin: PRICE_MIN,
+  priceMax: PRICE_MAX,
+  cities: [],
+};
+
+type ListFilterProps = { selected: string[]; onChange: (selected: string[]) => void };
 
 const rangeThumb =
   "pointer-events-none absolute inset-x-0 top-1/2 h-4 w-full -translate-y-1/2 cursor-pointer appearance-none bg-transparent outline-none " +
@@ -55,9 +75,7 @@ function toggle(list: string[], value: string) {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
-export function CategoryFilter() {
-  const [selected, setSelected] = useState<string[]>([]);
-
+export function CategoryFilter({ selected, onChange }: ListFilterProps) {
   return (
     <div>
       {categories.map(({ value, label, icon }) => (
@@ -67,7 +85,7 @@ export function CategoryFilter() {
             name="category"
             value={value}
             checked={selected.includes(value)}
-            onChange={() => setSelected(toggle(selected, value))}
+            onChange={() => onChange(toggle(selected, value))}
             className="size-4 shrink-0 cursor-pointer accent-brand-rose"
           />
         </OptionRow>
@@ -76,9 +94,9 @@ export function CategoryFilter() {
   );
 }
 
-export function ConditionFilter() {
-  const [selected, setSelected] = useState(conditions[0].value);
+type ConditionFilterProps = { selected: Filters["condition"]; onChange: (condition: Filters["condition"]) => void };
 
+export function ConditionFilter({ selected, onChange }: ConditionFilterProps) {
   return (
     <div role="radiogroup" aria-label="Състояние">
       {conditions.map(({ value, label }) => (
@@ -88,7 +106,7 @@ export function ConditionFilter() {
             name="condition"
             value={value}
             checked={selected === value}
-            onChange={() => setSelected(value)}
+            onChange={() => onChange(value)}
             className="size-4 shrink-0 cursor-pointer accent-brand-rose"
           />
         </OptionRow>
@@ -97,12 +115,11 @@ export function ConditionFilter() {
   );
 }
 
-export function PriceFilter() {
-  const [min, setMin] = useState(PRICE_MIN);
-  const [max, setMax] = useState(PRICE_MAX);
+type PriceFilterProps = { min: number; max: number; onChange: (min: number, max: number) => void };
 
-  const changeMin = (value: number) => setMin(Math.min(Math.max(value || PRICE_MIN, PRICE_MIN), max));
-  const changeMax = (value: number) => setMax(Math.max(Math.min(value || PRICE_MIN, PRICE_MAX), min));
+export function PriceFilter({ min, max, onChange }: PriceFilterProps) {
+  const changeMin = (value: number) => onChange(Math.min(Math.max(value || PRICE_MIN, PRICE_MIN), max), max);
+  const changeMax = (value: number) => onChange(min, Math.max(Math.min(value || PRICE_MIN, PRICE_MAX), min));
 
   const percent = (value: number) => ((value - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
 
@@ -179,9 +196,9 @@ export function PriceFilter() {
   );
 }
 
-export function CityFilter() {
+export function CityFilter({ selected, onChange }: ListFilterProps) {
+  // Only narrows the list of towns to pick from; it is not a filter on the listings itself.
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
 
   const visible = cities.filter((city) => city.toLowerCase().includes(query.trim().toLowerCase()));
 
@@ -210,7 +227,7 @@ export function CityFilter() {
               name="city"
               value={city}
               checked={selected.includes(city)}
-              onChange={() => setSelected(toggle(selected, city))}
+              onChange={() => onChange(toggle(selected, city))}
               className="size-4 shrink-0 cursor-pointer accent-brand-rose"
             />
           </OptionRow>

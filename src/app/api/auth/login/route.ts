@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return Response.json({ message: result.message }, { status: result.reason === "unverified" ? 403 : 401 });
     }
 
-    await createSession(result.user.id, input.remember === true);
+    await createSession(result.user.id, input.remember === true, request.headers.get("user-agent"));
     return Response.json({ user: result.user });
   } catch (error) {
     console.error("Login failed", error);

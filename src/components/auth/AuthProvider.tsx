@@ -28,6 +28,8 @@ const readEmailVerified = () => new URLSearchParams(window.location.search).get(
 
 type AuthContextValue = {
   user: SessionUser | null;
+  // Applies a change the user just made to their own account, e.g. a new profile picture.
+  updateUser: (changes: Partial<SessionUser>) => void;
   isLoggedIn: boolean;
   openLogin: () => void;
   logout: () => Promise<void>;
@@ -109,6 +111,10 @@ export default function AuthProvider({ initialUser, children }: AuthProviderProp
     router.refresh();
   };
 
+  const updateUser = (changes: Partial<SessionUser>) => {
+    if (user) setUser({ ...user, ...changes });
+  };
+
   const requireAuth = () => {
     if (isLoggedIn) return true;
     openLogin();
@@ -116,7 +122,7 @@ export default function AuthProvider({ initialUser, children }: AuthProviderProp
   };
 
   return (
-    <AuthContext value={{ user, isLoggedIn, openLogin, logout, requireAuth }}>
+    <AuthContext value={{ user, updateUser, isLoggedIn, openLogin, logout, requireAuth }}>
       {children}
 
       <AuthModal ref={modalRef} open={open || resetActive || verificationActive} onClose={closeModal}>

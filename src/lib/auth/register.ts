@@ -1,3 +1,4 @@
+import { USERNAME_TAKEN, checkFullName, checkPhone, checkUsername, isUniqueViolation, text } from "@/lib/auth/accountFields";
 import { sendVerificationEmail } from "@/lib/auth/emailVerification";
 import { hashPassword, passwordProblem } from "@/lib/auth/password";
 import { sql } from "@/lib/db";
@@ -17,47 +18,33 @@ export type RegisterResult =
   | { ok: true; user: { id: string; username: string; email: string }; emailSent: boolean }
   | { ok: false; errors: RegisterErrors };
 
-const USERNAME_PATTERN = /^[\p{L}\p{N}._-]{3,30}$/u;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// A first and a last name: at least two words of letters, with hyphens or apostrophes allowed.
-const FULL_NAME_PATTERN = /^[\p{L}'’-]+(\s+[\p{L}'’-]+)+$/u;
-// Checked after spaces, dashes and brackets are removed: an optional + and 7 to 15 digits.
-const PHONE_PATTERN = /^\+?\d{7,15}$/;
-
-const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 function validate(input: Record<string, unknown>) {
-  const username = text(input.username).trim();
-  const fullName = text(input.full_name).trim().replace(/\s+/g, " ");
+  const username = checkUsername(input.username);
+  const fullName = checkFullName(input.full_name);
+  const phone = checkPhone(input.phone);
   const email = text(input.email).trim().toLowerCase();
-  // Stored without the separators people type, e.g. "0888 123-456" becomes "0888123456".
-  const phone = text(input.phone).replace(/[\s().-]/g, "");
   const password = text(input.password);
   const errors: RegisterErrors = {};
 
-  if (!USERNAME_PATTERN.test(username)) {
-    errors.username = "Потребителското име трябва да е от 3 до 30 знака: букви, цифри, точка, тире или долна черта.";
-  }
-  if (fullName.length > 80 || !FULL_NAME_PATTERN.test(fullName)) {
-    errors.full_name = "Въведи име и фамилия.";
-  }
+  if (username.error) errors.username = username.error;
+  if (fullName.error) errors.full_name = fullName.error;
   if (email.length > 254 || !EMAIL_PATTERN.test(email)) {
     errors.email = "Въведи валиден имейл адрес.";
   }
-  if (!PHONE_PATTERN.test(phone)) {
-    errors.phone = "Въведи валиден телефонен номер.";
-  }
+  if (phone.error) errors.phone = phone.error;
   const problem = passwordProblem(password, input.password_confirm);
   if (problem) errors[problem.field] = problem.message;
   if (input.terms !== true) {
     errors.terms = "Трябва да приемеш правилата и политиката за поверителност.";
   }
 
-  return { username, fullName, email, phone, password, errors };
+  return { username: username.value, fullName: fullName.value, email, phone: phone.value, password, errors };
 }
 
 const TAKEN: RegisterErrors = {
-  username: "Това потребителско име вече е заето.",
+  username: USERNAME_TAKEN,
   email: "Вече има профил с този имейл.",
 };
 
@@ -89,8 +76,8 @@ export async function registerUser(input: Record<string, unknown>, origin: strin
     user = row as typeof user;
   } catch (error) {
     // Two sign-ups for the same name or email at the same moment: the unique index rejects the second.
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
-      const constraint = "constraint" in error ? String(error.constraint) : "";
+    if (isUniqueViolation(error)) {
+      const constraint = String(error.constraint ?? "");
       return { ok: false, errors: constraint.includes("email") ? { email: TAKEN.email } : { username: TAKEN.username } };
     }
     throw error;

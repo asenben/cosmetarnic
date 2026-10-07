@@ -26,14 +26,25 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
     <div className="flex gap-3">
       <div className="relative aspect-16/9 min-w-0 flex-1 overflow-hidden rounded-xl bg-brand-pale">
         {images.length > 0 ? (
-          <Image
-            src={images[selected]}
-            alt={alt}
-            fill
-            priority
-            sizes="(min-width: 1024px) 60vw, 100vw"
-            className="object-cover"
-          />
+          <>
+            {/* The whole photo is shown, whatever its shape; a blurred copy fills the space around it. */}
+            <Image
+              src={images[selected]}
+              alt=""
+              aria-hidden
+              fill
+              sizes="100px"
+              className="scale-110 object-cover opacity-60 blur-2xl"
+            />
+            <Image
+              src={images[selected]}
+              alt={alt}
+              fill
+              priority
+              sizes="(min-width: 1024px) 60vw, 100vw"
+              className="object-contain"
+            />
+          </>
         ) : (
           <div className="flex size-full flex-col items-center justify-center gap-3 text-sm font-medium text-brand-ink/60">
             <Image src="/images/logo.svg" alt="" width={96} height={96} className="size-24 rounded-full opacity-80" />

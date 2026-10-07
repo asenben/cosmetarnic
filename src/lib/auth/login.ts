@@ -1,3 +1,4 @@
+import { avatarUrl } from "@/lib/auth/avatar";
 import { resendVerificationEmail } from "@/lib/auth/emailVerification";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import type { SessionUser } from "@/lib/auth/session";
@@ -25,7 +26,7 @@ export async function loginUser(input: Record<string, unknown>, origin: string):
 
   // The same field accepts the username or the email the account was registered with.
   const [row] = await sql`
-    select id, username, email, role, password_hash, email_verified_at
+    select id, username, email, role, avatar, password_hash, email_verified_at
     from users
     where lower(username) = lower(${identifier}) or lower(email) = lower(${identifier})
     limit 1
@@ -57,5 +58,8 @@ export async function loginUser(input: Record<string, unknown>, origin: string):
     };
   }
 
-  return { ok: true, user: { id: row.id, username: row.username, email: row.email, role: row.role } };
+  return {
+    ok: true,
+    user: { id: row.id, username: row.username, email: row.email, role: row.role, avatar: avatarUrl(row.avatar) },
+  };
 }

@@ -7,7 +7,9 @@ const sortOptions = [
   { value: "newest", label: "Най-нови" },
   { value: "price-asc", label: "Ниска към висока" },
   { value: "price-desc", label: "Висока към ниска" },
-];
+] as const;
+
+export type SortOrder = (typeof sortOptions)[number]["value"];
 
 const views = [
   { value: "grid", label: "Изглед мрежа", icon: LayoutGrid },
@@ -18,12 +20,14 @@ type View = (typeof views)[number]["value"];
 
 type ProductGridProps = {
   count?: number;
+  sort: SortOrder;
+  onSortChange: (sort: SortOrder) => void;
   children?: ReactNode;
 };
 
 type SortDropdownProps = {
-  value: string;
-  onChange: (value: string) => void;
+  value: SortOrder;
+  onChange: (value: SortOrder) => void;
 };
 
 function SortDropdown({ value, onChange }: SortDropdownProps) {
@@ -132,8 +136,7 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
   );
 }
 
-export default function ProductGrid({ count = 0, children }: ProductGridProps) {
-  const [sort, setSort] = useState(sortOptions[0].value);
+export default function ProductGrid({ count = 0, sort, onSortChange, children }: ProductGridProps) {
   const [view, setView] = useState<View>("grid");
 
   return (
@@ -147,7 +150,7 @@ export default function ProductGrid({ count = 0, children }: ProductGridProps) {
         </p>
 
         <div className="flex items-center gap-3">
-          <SortDropdown value={sort} onChange={setSort} />
+          <SortDropdown value={sort} onChange={onSortChange} />
 
           <div role="group" aria-label="Изглед" className="flex items-center gap-1">
             {views.map(({ value, label, icon: Icon }) => (

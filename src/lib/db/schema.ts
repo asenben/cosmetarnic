@@ -41,4 +41,19 @@ export const schema = [
   // Asked for at sign-up. Nullable only because accounts created before these fields have none.
   `alter table users add column if not exists full_name text`,
   `alter table users add column if not exists phone text`,
+  // The file name of the profile picture in the bucket (see src/lib/auth/avatar.ts), if one is set.
+  `alter table users add column if not exists avatar text`,
+  // The "about me" text from the profile settings.
+  `alter table users add column if not exists bio text`,
+  // The user's social profiles and pages on other marketplaces, by key (see src/lib/auth/profileLinks.ts).
+  `alter table users add column if not exists links jsonb not null default '{}'`,
+  // The town the user chose in the profile settings, if any.
+  `alter table users add column if not exists city text`,
+  // Whether the counts of listings, sales and favourites are shown on the user's profile.
+  `alter table users add column if not exists show_stats boolean not null default true`,
+  // For the list of signed-in devices in the security settings: an id to refer to a session by
+  // without exposing its token hash, and the browser it was started from.
+  `alter table sessions add column if not exists id uuid not null default gen_random_uuid()`,
+  `create unique index if not exists sessions_id_key on sessions (id)`,
+  `alter table sessions add column if not exists user_agent text`,
 ];

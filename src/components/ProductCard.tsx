@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Clock, Heart, MapPin, Package, Truck } from "lucide-react";
+import { Clock, Heart, MapPin, Truck } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const conditions = {
@@ -19,7 +19,7 @@ type Delivery = "pickup" | keyof typeof couriers;
 function deliveryBadges(delivery: Delivery[]) {
   const offered = (Object.keys(couriers) as (keyof typeof couriers)[]).filter((key) => delivery.includes(key));
   return [
-    ...(delivery.includes("pickup") ? [{ key: "pickup", label: "Лично предаване", icon: Package }] : []),
+    ...(delivery.includes("pickup") ? [{ key: "pickup", label: "Лично предаване", icon: MapPin }] : []),
     ...(offered.length > 0
       ? [{ key: "courier", label: offered.map((key) => couriers[key]).join(" / "), icon: Truck }]
       : []),

@@ -12,6 +12,8 @@ export type ProductDetails = Omit<Product, "href" | "image"> & {
   id: string;
   images: string[];
   title: string;
+  // One of the category values from listingOptions.ts; the filters match on it.
+  category: string;
   categories: string[];
   seller: "private" | "business";
   sellerProfile: SellerProfile;
@@ -35,6 +37,7 @@ export const products: ProductDetails[] = [
     delivery: ["pickup", "speedy", "econt"],
     images: [1, 2, 3, 4, 5].map((n) => `/images/samples/sample-${n}.svg`),
     title: "Pillow Talk молив за устни",
+    category: "makeup",
     categories: ["Красота и козметика", "Грим"],
     seller: "private",
     sellerProfile: { name: "Ивана Петрова", handle: "ivana_beauty", memberSince: "март 2024", listings: 12 },
@@ -61,6 +64,7 @@ export const products: ProductDetails[] = [
     delivery: ["econt", "pickup"],
     images: [],
     title: "Addict Lip Glow балсам за устни",
+    category: "makeup",
     categories: ["Красота и козметика", "Грим"],
     seller: "private",
     sellerProfile: { name: "Мария Георгиева", handle: "maria_g", memberSince: "януари 2025", listings: 3 },

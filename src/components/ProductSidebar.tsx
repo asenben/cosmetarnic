@@ -12,7 +12,7 @@ import {
   Phone,
   Sparkles,
   Tag,
-  Truck,
+  Package,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { ProductDetails } from "@/data/products";
@@ -42,7 +42,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
     { icon: Sparkles, label: "Състояние", value: conditionLabels[condition] },
     { icon: Palette, label: "Цвят", value: color },
     { icon: CalendarDays, label: "Публикувана", value: postedAgo },
-    { icon: Truck, label: "Изпращане", value: delivery.map((key) => deliveryLabels[key]).join(" / ") },
+    { icon: Package, label: "Изпращане", value: delivery.map((key) => deliveryLabels[key]).join(" / ") },
   ];
 
   return (

@@ -12,9 +12,6 @@ import {
   MessageCircle,
   Package,
   Settings,
-  ShieldCheck,
-  ShoppingBag,
-  Tag,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -24,11 +21,9 @@ const links = [
   { href: "/sell", label: "Добави обява", icon: CirclePlus },
   { href: "/profile/messages", label: "Съобщения", icon: MessageCircle },
   { href: "/profile/favorites", label: "Любими", icon: Heart },
-  { href: "/profile/purchases", label: "Моите покупки", icon: ShoppingBag },
-  { href: "/profile/sales", label: "Моите продажби", icon: Tag },
   { href: "/profile/notifications", label: "Известия", icon: Bell },
-  { href: "/profile/settings", label: "Настройки", icon: Settings },
-  { href: "/profile/security", label: "Сигурност", icon: ShieldCheck },
+  // `divided` starts a new group, with a line above it.
+  { href: "/profile/settings", label: "Настройки", icon: Settings, divided: true },
   { href: "/faq", label: "Помощ и поддръжка", icon: CircleHelp },
 ];
 
@@ -44,10 +39,10 @@ export default function ProfileSidebar() {
       className="hidden w-60 shrink-0 self-start rounded-2xl border border-black/5 bg-white p-3 lg:block"
     >
       <ul className="space-y-1">
-        {links.map(({ href, label, icon: Icon }) => {
+        {links.map(({ href, label, icon: Icon, divided }) => {
           const active = pathname === href;
           return (
-            <li key={href}>
+            <li key={href} className={divided ? "mt-2! border-t border-black/5 pt-2" : undefined}>
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}

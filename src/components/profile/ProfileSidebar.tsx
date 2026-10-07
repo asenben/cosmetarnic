@@ -1,0 +1,82 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Bell,
+  CircleHelp,
+  CirclePlus,
+  Heart,
+  House,
+  LogOut,
+  MessageCircle,
+  Package,
+  Settings,
+  ShieldCheck,
+  ShoppingBag,
+  Tag,
+} from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { profile } from "@/data/profile";
+
+const links = [
+  { href: "/profile", label: "Моят профил", icon: House },
+  { href: "/profile/listings", label: "Моите обяви", icon: Package },
+  { href: "/sell", label: "Добави обява", icon: CirclePlus },
+  { href: "/profile/messages", label: "Съобщения", icon: MessageCircle, badge: profile.unreadMessages },
+  { href: "/profile/favorites", label: "Любими", icon: Heart },
+  { href: "/profile/purchases", label: "Моите покупки", icon: ShoppingBag },
+  { href: "/profile/sales", label: "Моите продажби", icon: Tag },
+  { href: "/profile/notifications", label: "Известия", icon: Bell },
+  { href: "/profile/settings", label: "Настройки", icon: Settings },
+  { href: "/profile/security", label: "Сигурност", icon: ShieldCheck },
+  { href: "/faq", label: "Помощ и поддръжка", icon: CircleHelp },
+];
+
+const item = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors";
+
+export default function ProfileSidebar() {
+  const pathname = usePathname();
+  const { logout } = useAuth();
+
+  return (
+    <nav
+      aria-label="Профил"
+      className="hidden w-60 shrink-0 self-start rounded-2xl border border-black/5 bg-white p-3 lg:block"
+    >
+      <ul className="space-y-1">
+        {links.map(({ href, label, icon: Icon, badge }) => {
+          const active = pathname === href;
+          return (
+            <li key={href}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`${item} ${
+                  active ? "bg-brand-rose/10 text-brand-rose" : "text-brand-ink hover:bg-zinc-50 hover:text-brand-rose"
+                }`}
+              >
+                <Icon className="size-5 shrink-0" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+                {badge ? (
+                  <span className="flex size-5 items-center justify-center rounded-full bg-brand-rose text-xs font-semibold text-white">
+                    {badge}
+                  </span>
+                ) : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <button
+        type="button"
+        onClick={logout}
+        className={`${item} mt-4 cursor-pointer text-brand-rose hover:bg-brand-rose/10`}
+      >
+        <LogOut className="size-5 shrink-0" aria-hidden />
+        Изход
+      </button>
+    </nav>
+  );
+}

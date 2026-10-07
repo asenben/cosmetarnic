@@ -1,5 +1,5 @@
 import { sendVerificationEmail } from "@/lib/auth/emailVerification";
-import { hashPassword } from "@/lib/auth/password";
+import { hashPassword, passwordProblem } from "@/lib/auth/password";
 import { sql } from "@/lib/db";
 
 export type RegisterField = "username" | "email" | "password" | "password_confirm" | "terms";
@@ -12,9 +12,6 @@ export type RegisterResult =
 
 const USERNAME_PATTERN = /^[\p{L}\p{N}._-]{3,30}$/u;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_MIN = 8;
-// scrypt accepts any length; the cap only stops someone from making the server hash megabytes.
-const PASSWORD_MAX = 200;
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
@@ -30,11 +27,8 @@ function validate(input: Record<string, unknown>) {
   if (email.length > 254 || !EMAIL_PATTERN.test(email)) {
     errors.email = "Въведи валиден имейл адрес.";
   }
-  if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
-    errors.password = `Паролата трябва да е между ${PASSWORD_MIN} и ${PASSWORD_MAX} знака.`;
-  } else if (password !== text(input.password_confirm)) {
-    errors.password_confirm = "Паролите не съвпадат.";
-  }
+  const problem = passwordProblem(password, input.password_confirm);
+  if (problem) errors[problem.field] = problem.message;
   if (input.terms !== true) {
     errors.terms = "Трябва да приемеш правилата и политиката за поверителност.";
   }

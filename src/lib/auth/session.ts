@@ -1,6 +1,6 @@
-import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { hashToken, newToken } from "@/lib/auth/tokens";
 import { sql } from "@/lib/db";
 
 export type SessionUser = {
@@ -15,11 +15,8 @@ const DAY_SECONDS = 60 * 60 * 24;
 // "Remember me" keeps the session for a month; otherwise it ends with the browser, or after a day.
 const REMEMBERED_DAYS = 30;
 
-// Only a hash of the token is stored, so a leaked database cannot be used to sign in as someone.
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
-
 export async function createSession(userId: string, remember: boolean) {
-  const token = randomBytes(32).toString("base64url");
+  const token = newToken();
   const lifetime = (remember ? REMEMBERED_DAYS : 1) * DAY_SECONDS;
 
   await sql`

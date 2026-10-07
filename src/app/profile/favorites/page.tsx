@@ -1,4 +1,4 @@
-export default function Favorites() {
+export default function ProfileFavorites() {
     return (
         <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
         </main>

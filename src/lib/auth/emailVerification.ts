@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { hashToken, newToken } from "@/lib/auth/tokens";
 import { sql } from "@/lib/db";
 import { sendEmail } from "@/lib/email/send";
 
@@ -6,14 +6,12 @@ const LINK_HOURS = 24;
 // A new link is not sent more often than this, so the sign-in form can't be used to flood an inbox.
 const RESEND_AFTER_SECONDS = 60;
 
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
-
 type Recipient = { id: string; username: string; email: string };
 
 // `origin` is the site address the link should open, e.g. https://example.com.
 // Returns false when no mail service is configured and the email was only logged.
 export async function sendVerificationEmail(user: Recipient, origin: string) {
-  const token = randomBytes(32).toString("base64url");
+  const token = newToken();
   await sql`
     insert into email_verifications (token_hash, user_id, expires_at)
     values (${hashToken(token)}, ${user.id}, now() + (${LINK_HOURS}::int * interval '1 hour'))

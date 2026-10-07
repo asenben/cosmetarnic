@@ -30,4 +30,12 @@ export const schema = [
     expires_at timestamptz not null
   )`,
   `create index if not exists email_verifications_user_id_idx on email_verifications (user_id)`,
+  // The "forgotten password" links that are still waiting to be used. Only a hash of each token is kept.
+  `create table if not exists password_resets (
+    token_hash text primary key,
+    user_id uuid not null references users (id) on delete cascade,
+    created_at timestamptz not null default now(),
+    expires_at timestamptz not null
+  )`,
+  `create index if not exists password_resets_user_id_idx on password_resets (user_id)`,
 ];

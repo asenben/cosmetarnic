@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import { Clock, Heart, MapPin, Truck } from "lucide-react";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useFavorite } from "@/components/FavoritesProvider";
 
 const conditions = {
   new: { label: "Ново", className: "bg-emerald-50 text-emerald-700" },
@@ -29,6 +28,8 @@ function deliveryBadges(delivery: Delivery[]) {
 const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 export type Product = {
+  // The listing's id, which its heart is saved under.
+  id: string;
   href: string;
   brand: string;
   price: number;
@@ -37,9 +38,12 @@ export type Product = {
   condition: keyof typeof conditions;
   delivery?: Delivery[];
   image?: string;
+  // A sold listing gets a label over its picture and no heart.
+  sold?: boolean;
 };
 
 export default function ProductCard({
+  id,
   href,
   brand,
   price,
@@ -48,23 +52,28 @@ export default function ProductCard({
   condition,
   delivery = [],
   image,
+  sold = false,
 }: Product) {
-  const { requireAuth } = useAuth();
-  const [favorite, setFavorite] = useState(false);
+  const { favorite, toggleFavorite } = useFavorite(id);
   const { label: conditionLabel, className: conditionClass } = conditions[condition];
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow hover:shadow-lg hover:shadow-brand-ink/10 listview:flex">
+    <article className="relative overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex">
       {/* Not a positioning anchor in the list view, so the heart there moves to the card's top right corner. */}
       <div className="relative aspect-4/5 listview:static listview:m-2.5 listview:aspect-auto listview:w-24 listview:shrink-0 listview:sm:w-36">
-        <div className="relative size-full overflow-hidden bg-brand-pale listview:rounded-xl">
+        {/* Only the picture opens the listing; the details under it are not a link. */}
+        <Link
+          href={href}
+          aria-label={`${brand}, ${priceFormat.format(price)}`}
+          className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
+        >
           {image ? (
             <Image
               src={image}
               alt=""
               fill
               sizes="(min-width: 1024px) 25vw, 50vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className={`object-cover transition-transform duration-300 group-hover/image:scale-105 ${sold ? "opacity-50" : ""}`}
             />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 text-xs font-medium text-brand-ink/60">
@@ -72,15 +81,19 @@ export default function ProductCard({
               Няма изображение
             </div>
           )}
-        </div>
+          {sold && (
+            <span className="absolute top-3 left-3 rounded-full bg-brand-ink px-3 py-1 text-xs font-semibold text-white">
+              Продадено
+            </span>
+          )}
+        </Link>
 
         <button
           type="button"
+          hidden={sold}
           aria-label={favorite ? "Премахни от любими" : "Добави в любими"}
           aria-pressed={favorite}
-          onClick={() => {
-            if (requireAuth()) setFavorite(!favorite);
-          }}
+          onClick={toggleFavorite}
           className="absolute right-3 bottom-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-full bg-white text-brand-ink shadow-sm listview:top-3 listview:right-4 listview:bottom-auto listview:size-10 listview:border listview:border-black/5 transition-colors hover:text-brand-rose"
         >
           <Heart className={`size-4.5 ${favorite ? "fill-red-800 text-red-800" : ""}`} aria-hidden />
@@ -92,10 +105,7 @@ export default function ProductCard({
       <div className="space-y-1.5 p-3 listview:grid listview:min-w-0 listview:flex-1 listview:grid-cols-[minmax(0,1fr)_auto] listview:content-center listview:gap-x-4 listview:gap-y-1 listview:py-3 listview:pr-4 listview:pl-1.5">
         <div className="flex items-center justify-between gap-2 listview:col-start-1 listview:row-start-1 listview:mb-0 listview:min-w-0 listview:justify-start listview:gap-3 listview:pr-10">
           <h3 className="min-w-0 truncate text-sm font-semibold text-brand-ink listview:text-lg">
-            {/* The stretched link makes the whole card clickable; the heart sits above it. */}
-            <Link href={href} className="after:absolute after:inset-0">
-              {brand}
-            </Link>
+            {brand}
           </h3>
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${conditionClass}`}>
             {conditionLabel}

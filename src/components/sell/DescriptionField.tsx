@@ -97,6 +97,8 @@ type DescriptionFieldProps = {
   // The formatted description is submitted as HTML under this name, and its plain text under
   // `${name}_text` for checks such as the minimum length.
   name: string;
+  // The description the editor starts with, as the HTML it produced earlier.
+  defaultValue?: string;
   placeholder?: string;
   maxLength?: number;
   invalid?: boolean;
@@ -104,8 +106,16 @@ type DescriptionFieldProps = {
 
 // A small word-processor for the listing's description: font size for the selected text, four
 // kinds of lists and indenting, all shown as they will look.
-export default function DescriptionField({ id, name, placeholder, maxLength, invalid }: DescriptionFieldProps) {
+export default function DescriptionField({
+  id,
+  name,
+  defaultValue = "",
+  placeholder,
+  maxLength,
+  invalid,
+}: DescriptionFieldProps) {
   const editor = useEditor({
+    content: defaultValue,
     // Rendered on the client only: the server has no document to build the editor in.
     immediatelyRender: false,
     extensions: [
@@ -198,8 +208,9 @@ export default function DescriptionField({ id, name, placeholder, maxLength, inv
       >
         <EditorContent editor={editor} />
       </div>
-      <input type="hidden" name={name} value={state?.html ?? ""} />
-      <input type="hidden" name={`${name}_text`} value={state?.text ?? ""} />
+      {/* Until the editor has started, the description it was given stands in for its content. */}
+      <input type="hidden" name={name} value={state?.html ?? defaultValue} />
+      <input type="hidden" name={`${name}_text`} value={state?.text ?? defaultValue.replace(/<[^>]*>/g, " ")} />
     </div>
   );
 }

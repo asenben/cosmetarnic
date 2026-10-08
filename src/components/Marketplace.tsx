@@ -9,7 +9,7 @@ import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
 import { PRICE_MAX, noFilters, type Filters } from "@/components/SortBar";
 
 // A listing as the marketplace needs it: what its card shows, plus what the filters match on.
-export type MarketplaceListing = Product & { id: string; category: string };
+export type MarketplaceListing = Product & { category: string };
 
 function matches(listing: MarketplaceListing, filters: Filters) {
   if (filters.categories.length > 0 && !filters.categories.includes(listing.category)) return false;
@@ -58,6 +58,7 @@ export default function Marketplace({ listings, search = "" }: MarketplaceProps)
         {shown.map(({ id, href, image, brand, price, city, postedAgo, condition, delivery }) => (
           <ProductCard
             key={id}
+            id={id}
             href={href}
             image={image}
             brand={brand}

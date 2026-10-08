@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MessageCircle } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Съобщения",
@@ -13,7 +13,7 @@ export default function ProfileMessages() {
 
       <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-brand-ink/60">
         <span className="flex size-14 items-center justify-center rounded-full bg-brand-rose/10 text-brand-rose">
-          <MessageCircle className="size-7" aria-hidden />
+          <MessageSquare className="size-7" aria-hidden />
         </span>
         Все още нямаш съобщения.
       </div>

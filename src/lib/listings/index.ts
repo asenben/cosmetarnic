@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { categories } from "@/data/listingOptions";
 import { sql } from "@/lib/db";
 import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
-import { LISTING_IMAGE_PATTERN, MAX_LISTING_PHOTOS } from "@/lib/listings/images";
+import { LISTING_IMAGE_PATTERN, MAX_LISTING_PHOTOS, listingImageKey } from "@/lib/listings/images";
+import { deleteImage } from "@/lib/storage/deleteImage";
 
 // The same limits the form in src/components/sell/ListingForm.tsx checks before sending.
 const CONDITIONS = ["new", "used"] as const;
@@ -11,10 +12,14 @@ const PRICE_MAX = 100000;
 const DESCRIPTION_MIN = 20;
 const DESCRIPTION_MAX_HTML = 20000;
 const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
-const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const LISTING_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type Listing = {
   id: string;
+  // The id of the user who published it.
+  userId: string;
+  // A sold listing is off the marketplace and the search, but its page stays for those with the link.
+  sold: boolean;
   // Which listing this was in the order of publishing, starting from 1. Shown to people as its ID.
   number: number;
   title: string;
@@ -38,6 +43,8 @@ export type Listing = {
 
 const toListing = (row: Record<string, unknown>): Listing => ({
   id: row.id as string,
+  userId: row.user_id as string,
+  sold: row.status === "sold",
   number: Number(row.number),
   title: row.title as string,
   brand: row.brand as string,
@@ -61,9 +68,11 @@ const toListing = (row: Record<string, unknown>): Listing => ({
 });
 
 type FieldErrors = Record<string, string>;
-type CreateResult = { ok: true; id: string } | { ok: false; errors: FieldErrors };
+type SaveResult = { ok: true; id: string } | { ok: false; errors: FieldErrors };
 
-export async function createListing(userId: string, input: Record<string, unknown>): Promise<CreateResult> {
+// Checks what the listing form sent. Answers with the values ready to store, or with what is
+// wrong with each field.
+function readListing(input: Record<string, unknown>) {
   const text = (name: string) => {
     const value = input[name];
     return typeof value === "string" ? value.trim() : "";
@@ -102,14 +111,82 @@ export async function createListing(userId: string, input: Record<string, unknow
   if (images.length > MAX_LISTING_PHOTOS || images.some((file) => !LISTING_IMAGE_PATTERN.test(file))) {
     errors.photos = "Снимките не можаха да бъдат приети. Добави ги отново.";
   }
-  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  if (Object.keys(errors).length > 0) return { ok: false as const, errors };
+
+  return {
+    ok: true as const,
+    values: { title, brand, category, condition, price, color: color || null, delivery, phone, city, description, images },
+  };
+}
+
+export async function createListing(userId: string, input: Record<string, unknown>): Promise<SaveResult> {
+  const read = readListing(input);
+  if (!read.ok) return read;
+  const v = read.values;
 
   const [row] = await sql`
     insert into listings (user_id, title, brand, category, condition, price, color, delivery, phone, city, description, images)
-    values (${userId}, ${title}, ${brand}, ${category}, ${condition}, ${price}, ${color || null},
-            ${delivery}::text[], ${phone}, ${city}, ${description}, ${images}::text[])
+    values (${userId}, ${v.title}, ${v.brand}, ${v.category}, ${v.condition}, ${v.price}, ${v.color},
+            ${v.delivery}::text[], ${v.phone}, ${v.city}, ${v.description}, ${v.images}::text[])
     returning id`;
   return { ok: true, id: row.id };
+}
+
+// Removes photos from the bucket, except those some listing still shows. A leftover file is
+// harmless, so a failure here is only logged.
+async function discardImages(files: string[]) {
+  for (const file of files) {
+    try {
+      const [used] = await sql`select 1 from listings where ${file} = any (images) limit 1`;
+      if (!used) await deleteImage(listingImageKey(file));
+    } catch (error) {
+      console.error("Listing photo could not be deleted", error);
+    }
+  }
+}
+
+// Saves the owner's changes to a listing. Answers null when there is no such listing of theirs.
+export async function updateListing(
+  userId: string,
+  id: string,
+  input: Record<string, unknown>,
+): Promise<SaveResult | null> {
+  if (!LISTING_ID_PATTERN.test(id)) return null;
+  const read = readListing(input);
+  if (!read.ok) return read;
+  const v = read.values;
+
+  const [before] = await sql`select images from listings where id = ${id} and user_id = ${userId}`;
+  if (!before) return null;
+  await sql`
+    update listings
+    set title = ${v.title}, brand = ${v.brand}, category = ${v.category}, condition = ${v.condition},
+        price = ${v.price}, color = ${v.color}, delivery = ${v.delivery}::text[], phone = ${v.phone},
+        city = ${v.city}, description = ${v.description}, images = ${v.images}::text[]
+    where id = ${id} and user_id = ${userId}`;
+  // The photos the owner took out of the listing are no longer needed.
+  await discardImages((before.images as string[]).filter((file) => !v.images.includes(file)));
+  return { ok: true, id };
+}
+
+// Deletes the owner's listing for good, with its photos, views and hearts. Answers false when
+// there is no such listing of theirs.
+export async function deleteListing(userId: string, id: string) {
+  if (!LISTING_ID_PATTERN.test(id)) return false;
+  const [removed] = await sql`delete from listings where id = ${id} and user_id = ${userId} returning images`;
+  if (!removed) return false;
+  await discardImages(removed.images as string[]);
+  return true;
+}
+
+// The owner's listing as it is stored, for the form that edits it; null for anybody else.
+export async function getOwnListing(userId: string, id: string) {
+  if (!LISTING_ID_PATTERN.test(id)) return null;
+  const [row] = await sql`
+    select l.*, u.username, u.avatar, u.created_at as seller_created_at, 0 as seller_listings
+    from listings l join users u on u.id = l.user_id
+    where l.id = ${id} and l.user_id = ${userId}`;
+  return row ? toListing(row) : null;
 }
 
 // The words of a search, lower-cased. A listing matches when every one of them is found in it.
@@ -143,19 +220,35 @@ export async function getListings(search = "", limit: number | null = null) {
   return rows.map(toListing);
 }
 
-// One user's listings on sale, newest first.
+// All of one user's listings, on sale and sold, newest first.
 export async function getUserListings(userId: string) {
   const rows = await sql`
     select l.*, u.username, u.avatar, u.created_at as seller_created_at, 0 as seller_listings
     from listings l join users u on u.id = l.user_id
-    where l.status = 'active' and l.user_id = ${userId}
+    where l.user_id = ${userId}
     order by l.created_at desc`;
   return rows.map(toListing);
 }
 
+// How many listings the user has on sale and how many they have sold.
 export async function countUserListings(userId: string) {
-  const [row] = await sql`select count(*)::int as count from listings where status = 'active' and user_id = ${userId}`;
-  return row.count as number;
+  const [row] = await sql`
+    select count(*) filter (where status = 'active')::int as active,
+           count(*) filter (where status = 'sold')::int as sold
+    from listings where user_id = ${userId}`;
+  return { active: row.active as number, sold: row.sold as number };
+}
+
+// Marks the owner's listing as sold, or puts it back on sale. Answers false when there is no
+// such listing of theirs.
+export async function setListingSold(userId: string, id: string, sold: boolean) {
+  if (!LISTING_ID_PATTERN.test(id)) return false;
+  const changed = await sql`
+    update listings
+    set status = ${sold ? "sold" : "active"}, sold_at = ${sold ? new Date().toISOString() : null}
+    where id = ${id} and user_id = ${userId}
+    returning id`;
+  return changed.length > 0;
 }
 
 // What tells one visitor's device from another's: its network address and browser. Only a hash of
@@ -163,10 +256,10 @@ export async function countUserListings(userId: string) {
 export const viewerKey = (address: string, userAgent: string) =>
   createHash("sha256").update(`${address}|${userAgent}`).digest("hex");
 
-// The listing for its own page, or null when there is none. Opening the page counts as a view the
-// first time a device does it; the seller looking at their own listing is not counted.
+// The listing for its own page, sold or not, or null when there is none. Opening the page counts
+// as a view the first time a device does it; the seller looking at their own listing is not counted.
 export async function viewListing(id: string, viewer: { key: string; userId?: string }) {
-  if (!ID_PATTERN.test(id)) return null;
+  if (!LISTING_ID_PATTERN.test(id)) return null;
   const [row] = await sql`
     with seen as (
       insert into listing_views (listing_id, viewer)
@@ -180,7 +273,7 @@ export async function viewListing(id: string, viewer: { key: string; userId?: st
            -- The view added just above is not visible to this query yet, so it is counted separately.
            (select count(*)::int from listing_views where listing_id = l.id) + (select count(*)::int from seen) as views
     from listings l join users u on u.id = l.user_id
-    where l.id = ${id} and l.status = 'active'`;
+    where l.id = ${id}`;
   return row ? toListing(row) : null;
 }
 

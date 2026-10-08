@@ -8,6 +8,8 @@ type ComboboxProps = {
   label: string;
   // Suggestions shown while typing; any other text can still be entered.
   options: readonly string[];
+  // The text the field starts with.
+  defaultValue?: string;
   placeholder?: string;
   maxLength?: number;
   invalid?: boolean;
@@ -21,13 +23,14 @@ export default function Combobox({
   name,
   label,
   options,
+  defaultValue = "",
   placeholder,
   maxLength,
   invalid = false,
   className = "",
 }: ComboboxProps) {
   const id = useId();
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(defaultValue);
   const [open, setOpen] = useState(false);
   // -1 while nothing is highlighted, so Enter still submits the form until a suggestion is chosen.
   const [activeIndex, setActiveIndex] = useState(-1);

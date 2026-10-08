@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
 import { Bell, Heart, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useFavoriteCount } from "@/components/FavoritesProvider";
 import SearchBox from "@/components/SearchBox";
 import UserMenu from "@/components/UserMenu";
 
@@ -20,6 +21,7 @@ const iconButton =
 export default function Navigation() {
   const pathname = usePathname();
   const { isLoggedIn, openLogin, requireAuth } = useAuth();
+  const favoriteCount = useFavoriteCount();
   // Links to account-only pages open the login form instead of navigating when signed out.
   const guardLink = (event: MouseEvent) => {
     if (!requireAuth()) event.preventDefault();
@@ -104,8 +106,22 @@ export default function Navigation() {
           <SearchBox />
 
           <div className="flex items-center gap-1 md:grow md:justify-center">
-            <Link href="/profile/favorites" aria-label="Любими" onClick={guardLink} className={`${iconButton} hidden sm:flex`}>
+            <Link
+              href="/profile/favorites"
+              aria-label={favoriteCount > 0 ? `Любими (${favoriteCount})` : "Любими"}
+              onClick={guardLink}
+              className={`${iconButton} relative hidden sm:flex`}
+            >
               <Heart className="size-5.5" aria-hidden />
+              {/* How many listings carry the user's heart. */}
+              {favoriteCount > 0 && (
+                <span
+                  aria-hidden
+                  className="absolute top-0 right-0 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-brand-rose px-1 text-[0.6875rem] leading-none font-bold text-white ring-2 ring-white"
+                >
+                  {favoriteCount > 99 ? "99+" : favoriteCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/profile/notifications"

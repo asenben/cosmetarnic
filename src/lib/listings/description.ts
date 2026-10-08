@@ -66,7 +66,8 @@ export function sanitizeDescription(html: string) {
   output += escapeText(html.slice(position));
   while (open.length > 0) output += `</${open.pop()}>`;
 
-  return output;
+  // The editor leaves an empty paragraph after a list at the end; it would show as a blank line.
+  return output.replace(/(?:<p>(?:<br>)?<\/p>)+$/, "");
 }
 
 // The description without its formatting, for checks such as the minimum length.

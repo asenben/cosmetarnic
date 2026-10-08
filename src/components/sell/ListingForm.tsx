@@ -23,7 +23,7 @@ import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { categories, cities } from "@/data/listingOptions";
-import { MAX_LISTING_PHOTOS } from "@/lib/listings/images";
+import { MAX_LISTING_PHOTOS, listingImageUrl } from "@/lib/listings/images";
 
 const conditions = [
   { value: "new", label: "Ново" },
@@ -50,7 +50,27 @@ const fields = ["description", "title", "price", "brand", "category", "condition
 type Field = (typeof fields)[number];
 type Errors = Partial<Record<Field, string>>;
 
-type Photo = { file: File; url: string };
+// A photo in the form: one just picked from the device (`file`), or one the listing being edited
+// already has in the bucket (`stored`, its file name there).
+type Photo = { url: string; file?: File; stored?: string };
+
+// The listing the form starts filled in with, when it edits one instead of making a new one.
+export type EditedListing = {
+  id: string;
+  title: string;
+  price: number;
+  brand: string;
+  category: string;
+  condition: string;
+  color: string;
+  delivery: string[];
+  phone: string;
+  city: string;
+  // The description as the HTML the editor produced.
+  description: string;
+  // The photos' file names in the bucket, cover first.
+  images: string[];
+};
 
 // Shrinks the photo and turns it into a JPEG, so uploads are small whatever the camera produced.
 async function toJpeg(file: File) {
@@ -70,10 +90,16 @@ async function toJpeg(file: File) {
   );
 }
 
-// Sends the listing with its photos and answers with the new listing's id, or with what went wrong.
-async function publish(data: FormData, photos: Photo[]) {
+// Sends the listing with its photos and answers with the listing's id, or with what went wrong.
+// With `editedId` the changes are saved to that listing instead of publishing a new one.
+async function publish(data: FormData, photos: Photo[], editedId?: string) {
   const images: string[] = [];
-  for (const { file } of photos) {
+  for (const { file, stored } of photos) {
+    // Photos the listing already has stay where they are; only new ones are uploaded.
+    if (!file) {
+      if (stored) images.push(stored);
+      continue;
+    }
     const body = new FormData();
     body.set("photo", await toJpeg(file), "photo.jpg");
     const response = await fetch("/api/listings/images", { method: "POST", body });
@@ -82,8 +108,8 @@ async function publish(data: FormData, photos: Photo[]) {
     images.push(result.file);
   }
 
-  const response = await fetch("/api/listings", {
-    method: "POST",
+  const response = await fetch(editedId ? `/api/listings/${editedId}` : "/api/listings", {
+    method: editedId ? "PATCH" : "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
@@ -172,14 +198,16 @@ type ChipsProps = {
   name: string;
   type: "radio" | "checkbox";
   options: { value: string; label: string; icon?: LucideIcon }[];
+  // The values that start chosen.
+  chosen?: string[];
 };
 
-function Chips({ label, name, type, options }: ChipsProps) {
+function Chips({ label, name, type, options, chosen = [] }: ChipsProps) {
   return (
     <div role={type === "radio" ? "radiogroup" : "group"} aria-label={label} className="flex flex-wrap justify-end gap-2">
       {options.map(({ value, label: text, icon: Icon }) => (
         <label key={value} className={`${chip} gap-1.5`}>
-          <input type={type} name={name} value={value} className="sr-only" />
+          <input type={type} name={name} value={value} defaultChecked={chosen.includes(value)} className="sr-only" />
           {Icon && <Icon className="size-4" aria-hidden />}
           {text}
         </label>
@@ -188,12 +216,15 @@ function Chips({ label, name, type, options }: ChipsProps) {
   );
 }
 
-export default function ListingForm() {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+// The form for a new listing; with `listing` it edits that listing instead.
+export default function ListingForm({ listing }: { listing?: EditedListing }) {
+  const [photos, setPhotos] = useState<Photo[]>(
+    () => listing?.images.map((stored) => ({ stored, url: listingImageUrl(stored) })) ?? [],
+  );
   const [selected, setSelected] = useState(0);
   const [photoError, setPhotoError] = useState<string>();
   const [errors, setErrors] = useState<Errors>({});
-  // "sending" while the photos and the listing are on their way, "done" once it is published.
+  // "sending" while the photos and the listing are on their way, "done" once it is saved.
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
   const [formError, setFormError] = useState<string>();
   const router = useRouter();
@@ -264,11 +295,15 @@ export default function ListingForm() {
 
     setStatus("sending");
     try {
-      const result = await publish(data, photos);
+      const result = await publish(data, photos, listing?.id);
       if (result.id) {
         setStatus("done");
-        // Leaves the confirmation on the button for a moment, then opens the new listing.
-        setTimeout(() => router.push(`/product/${result.id}`), 1500);
+        // Leaves the confirmation on the button for a moment, then opens the listing.
+        setTimeout(() => {
+          router.push(`/product/${result.id}`);
+          // The pages already visited showed the listing as it was before.
+          router.refresh();
+        }, 1500);
         return;
       }
       if (result.errors) {
@@ -331,7 +366,7 @@ export default function ListingForm() {
                   />
                   <Image
                     src={current.url}
-                    alt={current.file.name}
+                    alt={current.file?.name ?? "Снимка на продукта"}
                     fill
                     unoptimized
                     sizes="(min-width: 1024px) 60vw, 100vw"
@@ -414,6 +449,7 @@ export default function ListingForm() {
           <DescriptionField
             id="listing-description"
             name="description"
+            defaultValue={listing?.description}
             maxLength={2000}
             placeholder="Състояние, нюанс, срок на годност, колко е използван продуктът..."
             invalid={Boolean(errors.description)}
@@ -427,6 +463,7 @@ export default function ListingForm() {
           <div className="p-5">
             <input
               name="title"
+              defaultValue={listing?.title}
               aria-label="Заглавие"
               maxLength={80}
               placeholder="Заглавие на обявата"
@@ -442,6 +479,7 @@ export default function ListingForm() {
                 // A text field, because a number field refuses the decimal comma in some browsers.
                 type="text"
                 name="price"
+                defaultValue={listing && String(listing.price).replace(".", ",")}
                 aria-label="Цена в евро"
                 inputMode="decimal"
                 autoComplete="off"
@@ -468,6 +506,7 @@ export default function ListingForm() {
             <SpecRow icon={Tag} label="Марка" error={errors.brand}>
               <input
                 name="brand"
+                defaultValue={listing?.brand}
                 aria-label="Марка"
                 maxLength={50}
                 placeholder="напр. Dior"
@@ -478,6 +517,7 @@ export default function ListingForm() {
             <SpecRow icon={LayoutGrid} label="Категория" error={errors.category}>
               <Select
                 name="category"
+                defaultValue={listing?.category}
                 label="Категория"
                 options={categories}
                 invalid={Boolean(errors.category)}
@@ -485,13 +525,32 @@ export default function ListingForm() {
               />
             </SpecRow>
             <SpecRow icon={Sparkles} label="Състояние" error={errors.condition}>
-              <Chips label="Състояние" name="condition" type="radio" options={conditions} />
+              <Chips
+                label="Състояние"
+                name="condition"
+                type="radio"
+                options={conditions}
+                chosen={listing && [listing.condition]}
+              />
             </SpecRow>
             <SpecRow icon={Palette} label="Цвят">
-              <input name="color" aria-label="Цвят" maxLength={40} placeholder="по желание" className={specInput} />
+              <input
+                name="color"
+                defaultValue={listing?.color}
+                aria-label="Цвят"
+                maxLength={40}
+                placeholder="по желание"
+                className={specInput}
+              />
             </SpecRow>
             <SpecRow icon={Package} label="Изпращане" error={errors.delivery}>
-              <Chips label="Изпращане" name="delivery" type="checkbox" options={deliveries} />
+              <Chips
+                label="Изпращане"
+                name="delivery"
+                type="checkbox"
+                options={deliveries}
+                chosen={listing?.delivery}
+              />
             </SpecRow>
           </div>
 
@@ -504,6 +563,7 @@ export default function ListingForm() {
               <input
                 type="tel"
                 name="phone"
+                defaultValue={listing?.phone}
                 aria-label="Телефон"
                 autoComplete="tel"
                 maxLength={20}
@@ -521,6 +581,7 @@ export default function ListingForm() {
               />
               <Combobox
                 name="city"
+                defaultValue={listing?.city}
                 label="Град"
                 options={cities}
                 maxLength={50}
@@ -544,10 +605,16 @@ export default function ListingForm() {
               {status === "done" && <CircleCheck className="size-4.5" aria-hidden />}
               <span role="status">
                 {status === "done"
-                  ? "Обявата е качена успешно"
+                  ? listing
+                    ? "Промените са запазени"
+                    : "Обявата е качена успешно"
                   : status === "sending"
-                    ? "Качване…"
-                    : "Публикувай обявата"}
+                    ? listing
+                      ? "Запазване…"
+                      : "Качване…"
+                    : listing
+                      ? "Запази промените"
+                      : "Публикувай обявата"}
               </span>
             </button>
           </div>

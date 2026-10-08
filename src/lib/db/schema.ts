@@ -90,4 +90,14 @@ export const schema = [
   // The number shown on the listing's page as its ID: 1 for the first listing published, 2 for the
   // next, and so on. A number is never given out again, even after its listing is deleted.
   `alter table listings add column if not exists number bigint generated always as identity`,
+  // When the seller marked the listing as sold (its status is then 'sold'), for showing it so.
+  `alter table listings add column if not exists sold_at timestamptz`,
+  // The listings each user marked with the heart.
+  `create table if not exists favorites (
+    user_id uuid not null references users (id) on delete cascade,
+    listing_id uuid not null references listings (id) on delete cascade,
+    created_at timestamptz not null default now(),
+    primary key (user_id, listing_id)
+  )`,
+  `create index if not exists favorites_listing_id_idx on favorites (listing_id)`,
 ];

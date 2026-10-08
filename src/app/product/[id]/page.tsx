@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight, Eye, Flag } from "lucide-react";
 import ProductGallery from "@/components/ProductGallery";
 import ProductSidebar from "@/components/ProductSidebar";
+import ListingActions from "@/components/sell/ListingActions";
 import { categories } from "@/data/listingOptions";
 import type { ProductDetails } from "@/data/products";
 import { avatarUrl } from "@/lib/auth/avatar";
@@ -21,6 +22,7 @@ function toProduct(listing: Listing): ProductDetails {
   return {
     id: listing.id,
     number: listing.number,
+    sold: listing.sold,
     brand: listing.brand,
     price: listing.price,
     city: listing.city,
@@ -82,7 +84,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
 
         <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]">
           <div className="space-y-6">
-            <ProductGallery images={product.images} alt={product.title} badge={conditionLabels[product.condition]} />
+            <ProductGallery images={product.images} alt={product.title} badge={product.sold ? "Продадено" : conditionLabels[product.condition]} />
 
             <section className="rounded-2xl border border-black/5 bg-white p-5">
               <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
@@ -110,7 +112,14 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
             </section>
           </div>
 
-          <div>
+          <div className="space-y-5">
+            {/* Only the seller sees these: the buttons for editing and deleting the listing. */}
+            {user?.id === listing.userId && (
+              <section className="rounded-2xl border border-black/5 bg-white p-5">
+                <h2 className="text-base font-bold text-brand-ink">Това е твоя обява</h2>
+                <ListingActions id={listing.id} sold={listing.sold} afterDelete="/profile/listings" className="mt-3" />
+              </section>
+            )}
             <ProductSidebar product={product} />
           </div>
         </div>

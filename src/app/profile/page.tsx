@@ -9,6 +9,7 @@ import { profileLinks } from "@/lib/auth/profileLinks";
 import { getCurrentUser } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
 import { countUserListings } from "@/lib/listings";
+import { getFavoriteIds } from "@/lib/listings/favorites";
 
 export const metadata: Metadata = {
   title: "Моят профил",
@@ -22,10 +23,11 @@ export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
 
-  const [[account], profile, activeListings] = await Promise.all([
+  const [[account], profile, listingCounts, favoriteIds] = await Promise.all([
     sql`select created_at, email_verified_at from users where id = ${user.id}`,
     getProfile(user.id),
     countUserListings(user.id),
+    getFavoriteIds(user.id),
   ]);
   const memberSince = fullDate.format(new Date(account.created_at));
   // "Verified" means the owner confirmed the email address the account was registered with.
@@ -33,19 +35,17 @@ export default async function ProfilePage() {
   // Only the links that were filled in and left switched to "public" in the settings.
   const shownLinks = profileLinks.filter(({ key }) => profile.links[key].url && profile.links[key].public);
 
-  // Sales, favourites and purchases are not stored yet, so every account starts with none of them.
-  // The three counts shown inside the profile card; the visitor can hide them in the settings.
+  // The counts shown inside the profile card; the visitor can hide them in the settings.
   const highlights = [
-    { label: "Активни обяви", value: activeListings, icon: FileText },
-    { label: "Продадени", value: 0, icon: ShoppingBag },
-    { label: "Любими", value: 0, icon: Heart },
+    { label: "Активни обяви", value: listingCounts.active, icon: FileText },
+    { label: "Продадени", value: listingCounts.sold, icon: ShoppingBag },
+    { label: "Любими", value: favoriteIds.length, icon: Heart },
   ];
-  // The full row under the card.
+  // The row under the card. Purchases are not stored yet, so every account has none.
   const stats = [
-    { label: "Активни обяви", value: activeListings, icon: Package },
-    { label: "Продадени", value: 0, icon: Tag },
-    { label: "Архивирани", value: 0, icon: FileText },
-    { label: "Любими", value: 0, icon: Heart },
+    { label: "Активни обяви", value: listingCounts.active, icon: Package },
+    { label: "Продадени", value: listingCounts.sold, icon: Tag },
+    { label: "Любими", value: favoriteIds.length, icon: Heart },
     { label: "Покупки", value: 0, icon: ShoppingBag },
   ];
 
@@ -146,7 +146,7 @@ export default async function ProfilePage() {
         )}
       </section>
 
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon }) => (
           <li key={label} className={`${card} flex items-center gap-3 p-3`}>
             <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-rose/10 text-brand-ink">

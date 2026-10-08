@@ -1,0 +1,123 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { BadgeCheck, Pencil, RotateCcw, Trash2 } from "lucide-react";
+
+const button =
+  "flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition-colors disabled:cursor-default disabled:opacity-60";
+
+type ListingActionsProps = {
+  id: string;
+  // Whether the listing is marked as sold already.
+  sold?: boolean;
+  // Where to go once the listing is deleted; without it the page just reloads its list.
+  afterDelete?: string;
+  className?: string;
+};
+
+// The owner's buttons for a listing: one opens it in the form, one deletes it after asking once
+// more, because a deleted listing cannot be brought back, and one marks it as sold or puts it back
+// on sale.
+export default function ListingActions({ id, sold = false, afterDelete, className = "" }: ListingActionsProps) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [changing, setChanging] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const remove = async () => {
+    setDeleting(true);
+    setError(undefined);
+    try {
+      const response = await fetch(`/api/listings/${id}`, { method: "DELETE" });
+      // 404 means it is gone already, e.g. deleted in another tab.
+      if (response.ok || response.status === 404) {
+        if (afterDelete) router.push(afterDelete);
+        router.refresh();
+        return;
+      }
+      setError((await response.json()).message);
+    } catch {
+      setError("Не успяхме да изтрием обявата. Опитай отново.");
+    }
+    setDeleting(false);
+  };
+
+  const changeSold = async () => {
+    setChanging(true);
+    setError(undefined);
+    try {
+      const response = await fetch(`/api/listings/${id}/sold`, { method: sold ? "DELETE" : "PUT" });
+      if (response.ok) router.refresh();
+      else setError((await response.json()).message);
+    } catch {
+      setError("Не успяхме да запазим промяната. Опитай отново.");
+    }
+    setChanging(false);
+  };
+
+  return (
+    <div className={className}>
+      {confirming ? (
+        <div role="group" aria-label="Изтриване на обявата">
+          <p className="text-sm text-brand-ink/80">Да изтрием ли обявата? Това не може да се върне.</p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={remove}
+              className={`${button} border-red-600 bg-red-600 text-white hover:bg-red-700`}
+            >
+              {deleting ? "Изтриване…" : "Да, изтрий"}
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setConfirming(false)}
+              className={`${button} border-black/10 text-brand-ink hover:border-brand-rose/50`}
+            >
+              Отказ
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Link href={`/sell/${id}`} className={`${button} border-brand-rose text-brand-rose hover:bg-brand-rose/10`}>
+            <Pencil className="size-4" aria-hidden />
+            Редактирай
+          </Link>
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            className={`${button} border-red-600/40 text-red-600 hover:bg-red-600/10`}
+          >
+            <Trash2 className="size-4" aria-hidden />
+            Изтрий
+          </button>
+        </div>
+      )}
+      {!confirming && (
+        <button
+          type="button"
+          disabled={changing}
+          onClick={changeSold}
+          className={`${button} mt-2 w-full flex-none ${
+            sold
+              ? "border-black/10 text-brand-ink hover:border-brand-rose/50"
+              : "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+          }`}
+        >
+          {sold ? <RotateCcw className="size-4" aria-hidden /> : <BadgeCheck className="size-4" aria-hidden />}
+          {sold ? "Върни в продажба" : "Маркирай като продадена"}
+        </button>
+      )}
+      {error && (
+        <p role="alert" className="mt-2 text-xs text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

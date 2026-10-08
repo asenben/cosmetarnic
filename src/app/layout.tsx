@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/components/auth/AuthProvider";
+import FavoritesProvider from "@/components/FavoritesProvider";
 import Footer from "@/components/Footer";
 import Navigation from "@/components/Navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getFavoriteIds } from "@/lib/listings/favorites";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,14 +25,17 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getCurrentUser();
+  const favoriteIds = user ? await getFavoriteIds(user.id) : [];
 
   return (
     <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <AuthProvider initialUser={user}>
-          <Navigation />
-          {children}
-          <Footer />
+          <FavoritesProvider initialIds={favoriteIds}>
+            <Navigation />
+            {children}
+            <Footer />
+          </FavoritesProvider>
         </AuthProvider>
       </body>
     </html>

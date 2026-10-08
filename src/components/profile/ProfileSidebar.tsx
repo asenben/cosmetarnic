@@ -9,7 +9,7 @@ import {
   Heart,
   House,
   LogOut,
-  MessageCircle,
+  MessageSquare,
   Package,
   Settings,
 } from "lucide-react";
@@ -19,7 +19,7 @@ const links = [
   { href: "/profile", label: "Моят профил", icon: House },
   { href: "/profile/listings", label: "Моите обяви", icon: Package },
   { href: "/sell", label: "Добави обява", icon: CirclePlus },
-  { href: "/profile/messages", label: "Съобщения", icon: MessageCircle },
+  { href: "/profile/messages", label: "Съобщения", icon: MessageSquare },
   { href: "/profile/favorites", label: "Любими", icon: Heart },
   { href: "/profile/notifications", label: "Известия", icon: Bell },
   // `divided` starts a new group, with a line above it.

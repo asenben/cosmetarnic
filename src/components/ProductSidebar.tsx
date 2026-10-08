@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import {
+  BadgeCheck,
   CalendarDays,
   ChevronRight,
   Heart,
@@ -15,6 +16,7 @@ import {
   Package,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useFavorite } from "@/components/FavoritesProvider";
 import type { ProductDetails } from "@/data/products";
 
 const conditionLabels = { new: "Ново", used: "Използвано" };
@@ -31,10 +33,10 @@ const phoneButton =
 const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 export default function ProductSidebar({ product }: { product: ProductDetails }) {
-  const { title, brand, price, city, postedAgo, condition, color, phone, delivery = [], sellerProfile: seller } = product;
+  const { sold, title, brand, price, city, postedAgo, condition, color, phone, delivery = [], sellerProfile: seller } = product;
 
   const { requireAuth } = useAuth();
-  const [favorite, setFavorite] = useState(false);
+  const { favorite, toggleFavorite } = useFavorite(product.id);
   const [phoneVisible, setPhoneVisible] = useState(false);
 
   const specs = [
@@ -54,11 +56,10 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             <h1 className="text-lg leading-snug font-bold text-brand-ink">{title}</h1>
             <button
               type="button"
+              hidden={sold}
               aria-label={favorite ? "Премахни от любими" : "Добави в любими"}
               aria-pressed={favorite}
-              onClick={() => {
-                if (requireAuth()) setFavorite(!favorite);
-              }}
+              onClick={toggleFavorite}
               className="-mt-1.5 -mr-2 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-brand-ink transition-colors hover:text-brand-rose"
             >
               <Heart className={`size-5.5 ${favorite ? "fill-red-800 text-red-800" : ""}`} aria-hidden />
@@ -86,31 +87,40 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
         </dl>
 
         <div className="border-t border-black/5 p-5">
-          <button
-            type="button"
-            onClick={requireAuth}
-            className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-rose text-sm font-semibold text-white transition-colors hover:bg-brand"
-          >
-            <MessageSquare className="size-4.5" aria-hidden />
-            Съобщение
-          </button>
-
-          {phoneVisible ? (
-            <a href={`tel:${phone.replaceAll(" ", "")}`} className={phoneButton}>
-              <Phone className="size-4.5" aria-hidden />
-              {phone}
-            </a>
+          {sold ? (
+            <p className="flex h-12 items-center justify-center gap-2 rounded-xl bg-zinc-100 text-sm font-semibold text-brand-ink/70">
+              <BadgeCheck className="size-4.5" aria-hidden />
+              Обявата е продадена
+            </p>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                if (requireAuth()) setPhoneVisible(true);
-              }}
-              className={phoneButton}
-            >
-              <Phone className="size-4.5" aria-hidden />
-              Покажи номер
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={requireAuth}
+                className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-rose text-sm font-semibold text-white transition-colors hover:bg-brand"
+              >
+                <MessageSquare className="size-4.5" aria-hidden />
+                Съобщение
+              </button>
+
+              {phoneVisible ? (
+                <a href={`tel:${phone.replaceAll(" ", "")}`} className={phoneButton}>
+                  <Phone className="size-4.5" aria-hidden />
+                  {phone}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (requireAuth()) setPhoneVisible(true);
+                  }}
+                  className={phoneButton}
+                >
+                  <Phone className="size-4.5" aria-hidden />
+                  Покажи номер
+                </button>
+              )}
+            </>
           )}
 
           <div className="relative mt-3 flex h-14 items-center gap-2.5 overflow-hidden rounded-xl bg-zinc-100 px-4 text-sm font-medium text-brand-ink">

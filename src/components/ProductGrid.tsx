@@ -22,6 +22,12 @@ type ProductGridProps = {
   count?: number;
   sort: SortOrder;
   onSortChange: (sort: SortOrder) => void;
+  // What the grid holds, for screen readers, and the words before the count. Both are about
+  // listings unless a page shows something else in the grid.
+  label?: string;
+  countLabel?: string;
+  // The classes that lay the cards out in the grid view, for cards of another shape than a listing's.
+  gridClassName?: string;
   children?: ReactNode;
 };
 
@@ -136,14 +142,22 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
   );
 }
 
-export default function ProductGrid({ count = 0, sort, onSortChange, children }: ProductGridProps) {
+export default function ProductGrid({
+  count = 0,
+  sort,
+  onSortChange,
+  label = "Обяви",
+  countLabel = count === 1 ? "Намерена обява" : "Намерени обяви",
+  gridClassName = "grid grid-cols-2 gap-4 lg:grid-cols-3",
+  children,
+}: ProductGridProps) {
   const [view, setView] = useState<View>("grid");
 
   return (
-    <section aria-label="Обяви" className="min-w-0 flex-1">
+    <section aria-label={label} className="min-w-0 flex-1">
       <div className="flex items-center justify-between gap-4">
         <p className="flex items-center gap-2 text-sm font-medium text-brand-ink">
-          {count === 1 ? "Намерена обява" : "Намерени обяви"}
+          {countLabel}
           <span className="min-w-7 rounded-full bg-brand-rose/10 px-2.5 py-0.5 text-center font-semibold text-brand-rose tabular-nums">
             {count}
           </span>
@@ -177,7 +191,7 @@ export default function ProductGrid({ count = 0, sort, onSortChange, children }:
         // The cards read this to lay themselves out as rows in the list view.
         data-view={view}
         className={`mt-4 ${
-          view === "grid" ? "grid grid-cols-2 gap-4 lg:grid-cols-3" : "flex flex-col gap-4"
+          view === "grid" ? gridClassName : "flex flex-col gap-4"
         }`}
       >
         {children}

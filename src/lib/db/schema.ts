@@ -92,6 +92,32 @@ export const schema = [
   `alter table listings add column if not exists number bigint generated always as identity`,
   // When the seller marked the listing as sold (its status is then 'sold'), for showing it so.
   `alter table listings add column if not exists sold_at timestamptz`,
+  // The "Търся" posts: what a registered user is looking for, so that sellers can get in touch.
+  // Not listings: nothing is on sale and there are no photos (see src/lib/requests).
+  `create table if not exists requests (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references users (id) on delete cascade,
+    title text not null,
+    brand text,
+    category text not null,
+    condition text not null,
+    budget numeric(10, 2),
+    city text not null,
+    phone text not null,
+    description text not null,
+    created_at timestamptz not null default now()
+  )`,
+  `create index if not exists requests_created_at_idx on requests (created_at desc)`,
+  // A picture of the product wanted, if the author added one: its file name in the bucket.
+  `alter table requests add column if not exists image text`,
+  // The "Търся" posts each user marked with the heart.
+  `create table if not exists request_favorites (
+    user_id uuid not null references users (id) on delete cascade,
+    request_id uuid not null references requests (id) on delete cascade,
+    created_at timestamptz not null default now(),
+    primary key (user_id, request_id)
+  )`,
+  `create index if not exists request_favorites_request_id_idx on request_favorites (request_id)`,
   // The listings each user marked with the heart.
   `create table if not exists favorites (
     user_id uuid not null references users (id) on delete cascade,

@@ -22,6 +22,7 @@ import {
 import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
 import DescriptionField from "@/components/sell/DescriptionField";
+import { uploadPhoto } from "@/components/sell/toJpeg";
 import { categories, cities } from "@/data/listingOptions";
 import { MAX_LISTING_PHOTOS, listingImageUrl } from "@/lib/listings/images";
 
@@ -37,8 +38,6 @@ const deliveries = [
 ];
 
 const MAX_PHOTOS = MAX_LISTING_PHOTOS;
-// Photos are shrunk to this many pixels on their longer side before they are sent.
-const PHOTO_SIDE = 1600;
 const MAX_PHOTO_MB = 5;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const PRICE_MAX = 100000;
@@ -72,24 +71,6 @@ export type EditedListing = {
   images: string[];
 };
 
-// Shrinks the photo and turns it into a JPEG, so uploads are small whatever the camera produced.
-async function toJpeg(file: File) {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, PHOTO_SIDE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const context = canvas.getContext("2d")!;
-  // JPEG has no transparency; see-through parts of a PNG become white instead of black.
-  context.fillStyle = "white";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))), "image/jpeg", 0.85),
-  );
-}
-
 // Sends the listing with its photos and answers with the listing's id, or with what went wrong.
 // With `editedId` the changes are saved to that listing instead of publishing a new one.
 async function publish(data: FormData, photos: Photo[], editedId?: string) {
@@ -100,12 +81,9 @@ async function publish(data: FormData, photos: Photo[], editedId?: string) {
       if (stored) images.push(stored);
       continue;
     }
-    const body = new FormData();
-    body.set("photo", await toJpeg(file), "photo.jpg");
-    const response = await fetch("/api/listings/images", { method: "POST", body });
-    const result = await response.json();
-    if (!response.ok) return { message: result.message as string };
-    images.push(result.file);
+    const uploaded = await uploadPhoto(file);
+    if ("message" in uploaded) return { message: uploaded.message };
+    images.push(uploaded.file);
   }
 
   const response = await fetch(editedId ? `/api/listings/${editedId}` : "/api/listings", {
@@ -474,7 +452,7 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
 
             {/* One bordered box holding the amount and the currency; the border lights up
                 for the whole box when the amount inside is focused or invalid. */}
-            <label className="mt-4 flex h-14 cursor-text items-center overflow-hidden rounded-xl border border-black/10 bg-white transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500">
+            <label className="mt-4 flex h-11 w-48 cursor-text items-center overflow-hidden rounded-xl border border-black/10 bg-white transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500">
               <input
                 // A text field, because a number field refuses the decimal comma in some browsers.
                 type="text"
@@ -490,11 +468,11 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
                   event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
                 }}
                 aria-invalid={Boolean(errors.price)}
-                className={`h-full min-w-0 flex-1 bg-transparent px-4 text-2xl font-bold text-brand-ink outline-none placeholder:text-brand-ink/30`}
+                className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-lg font-bold text-brand-ink outline-none placeholder:text-brand-ink/30`}
               />
               <span
                 aria-hidden
-                className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-4 text-xl font-bold text-brand-rose"
+                className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-3.5 text-base font-bold text-brand-rose"
               >
                 €
               </span>

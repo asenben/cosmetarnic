@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CalendarDays, CircleCheck, FileText, Heart, MapPin, Package, Pencil, ShoppingBag, Tag } from "lucide-react";
+import { CalendarDays, FileText, Heart, MapPin, Package, Pencil, ShoppingBag, Tag } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Avatar from "@/components/Avatar";
@@ -24,14 +24,12 @@ export default async function ProfilePage() {
   if (!user) redirect("/");
 
   const [[account], profile, listingCounts, favoriteIds] = await Promise.all([
-    sql`select created_at, email_verified_at from users where id = ${user.id}`,
+    sql`select created_at from users where id = ${user.id}`,
     getProfile(user.id),
     countUserListings(user.id),
     getFavoriteIds(user.id),
   ]);
   const memberSince = fullDate.format(new Date(account.created_at));
-  // "Verified" means the owner confirmed the email address the account was registered with.
-  const verified = account.email_verified_at !== null;
   // Only the links that were filled in and left switched to "public" in the settings.
   const shownLinks = profileLinks.filter(({ key }) => profile.links[key].url && profile.links[key].public);
 
@@ -58,12 +56,6 @@ export default async function ProfilePage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <h1 className="min-w-0 truncate text-3xl font-bold text-brand-ink">{user.username}</h1>
-              {verified && (
-                <span className="flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-600">
-                  <CircleCheck className="size-5 fill-emerald-600 text-emerald-50" aria-hidden />
-                  Проверен профил
-                </span>
-              )}
               <Link
                 href="/profile/settings"
                 className="ml-auto flex h-11 shrink-0 items-center gap-2 rounded-full bg-brand-pale px-6 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-rose hover:text-white"
@@ -90,6 +82,26 @@ export default async function ProfilePage() {
                 Член от {memberSince}
               </li>
             </ul>
+
+            {/* The public links sit right under the name, with no box around them. */}
+            {shownLinks.length > 0 && (
+              <ul className="mt-4 flex flex-wrap gap-3">
+                {shownLinks.map(({ key, label }) => (
+                  <li key={key}>
+                    <a
+                      href={profile.links[key].url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      aria-label={label}
+                      title={label}
+                      className="block rounded-full transition-opacity hover:opacity-80"
+                    >
+                      <LinkMark site={key} size="lg" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
@@ -109,38 +121,14 @@ export default async function ProfilePage() {
           </ul>
         )}
 
-        {/* The description and the public links share one tinted box under the counts. */}
-        {(profile.bio || shownLinks.length > 0) && (
+        {profile.bio && (
           <div className={profile.show_stats ? "mt-4" : "mt-6 border-t border-black/5 pt-6"}>
             <div className="rounded-2xl bg-brand-rose/5 p-5 sm:p-6">
-              {profile.bio && (
-                <>
-                  <h2 className="flex items-center gap-2.5 text-lg font-bold text-brand-ink">
-                    <FileText className="size-5 text-brand-ink/60" aria-hidden />
-                    За мен
-                  </h2>
-                  <p className="mt-3 max-w-4xl leading-7 whitespace-pre-line text-brand-ink/80">{profile.bio}</p>
-                </>
-              )}
-
-              {shownLinks.length > 0 && (
-                <ul className={`flex flex-wrap gap-4 ${profile.bio ? "mt-5 border-t border-black/5 pt-5" : ""}`}>
-                  {shownLinks.map(({ key, label }) => (
-                    <li key={key}>
-                      <a
-                        href={profile.links[key].url}
-                        target="_blank"
-                        rel="noopener noreferrer nofollow"
-                        aria-label={label}
-                        title={label}
-                        className="block rounded-full transition-opacity hover:opacity-80"
-                      >
-                        <LinkMark site={key} size="lg" />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <h2 className="flex items-center gap-2.5 text-lg font-bold text-brand-ink">
+                <FileText className="size-5 text-brand-ink/60" aria-hidden />
+                За мен
+              </h2>
+              <p className="mt-3 max-w-4xl leading-7 whitespace-pre-line text-brand-ink/80">{profile.bio}</p>
             </div>
           </div>
         )}

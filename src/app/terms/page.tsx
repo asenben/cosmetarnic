@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ScrollText } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Правила за използване",
+  title: "Terms",
 };
 
 const rights = [

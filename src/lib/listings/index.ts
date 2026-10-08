@@ -277,6 +277,13 @@ export async function viewListing(id: string, viewer: { key: string; userId?: st
   return row ? toListing(row) : null;
 }
 
+// The listing's title for the browser tab, without counting a view; null when there is none.
+export async function getListingTitle(id: string) {
+  if (!LISTING_ID_PATTERN.test(id)) return null;
+  const [row] = await sql`select title from listings where id = ${id}`;
+  return (row?.title as string | undefined) ?? null;
+}
+
 // "преди 5 минути", "преди 2 дни": how long ago a listing was published.
 export function postedAgo(date: Date) {
   const minutes = Math.floor((Date.now() - date.getTime()) / 60000);

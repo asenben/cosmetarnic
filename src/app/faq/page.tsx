@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ChevronDown, CircleHelp, Info } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Често задавани въпроси",
+  title: "FAQ",
 };
 
 const steps = [

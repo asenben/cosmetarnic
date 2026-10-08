@@ -19,9 +19,20 @@ const signInTime = new Intl.DateTimeFormat("bg-BG", {
   timeZone: "Europe/Sofia",
 });
 
-// A short name for the device from its browser's User-Agent header, e.g. "Windows • Chrome".
-function describeDevice(userAgent: string | null) {
-  if (!userAgent) return { device: "Непознато устройство", mobile: false };
+const kindLabels = { desktop: "Компютър", phone: "Телефон", tablet: "Таблет" };
+
+// What kind of device the browser's User-Agent header describes. Tablets say "iPad" or "Tablet",
+// or are Android without the word "Mobile" that Android phones add.
+function deviceKind(userAgent: string): SessionRow["kind"] {
+  if (/iPad|Tablet|PlayBook|Silk/i.test(userAgent)) return "tablet";
+  if (/Android/.test(userAgent)) return /Mobile/.test(userAgent) ? "phone" : "tablet";
+  if (/iPhone|iPod|Mobile|Windows Phone/.test(userAgent)) return "phone";
+  return "desktop";
+}
+
+// A short name for the device from its browser's User-Agent header, e.g. "Телефон • Android • Chrome".
+function describeDevice(userAgent: string | null): Pick<SessionRow, "device" | "kind"> {
+  if (!userAgent) return { device: "Непознато устройство", kind: "desktop" };
 
   const system =
     [
@@ -42,7 +53,8 @@ function describeDevice(userAgent: string | null) {
       ["Safari", /Safari\//],
     ].find(([, pattern]) => (pattern as RegExp).test(userAgent))?.[0] ?? "непознат браузър";
 
-  return { device: `${system} • ${browser}`, mobile: /iPhone|iPad|Android|Mobile/.test(userAgent) };
+  const kind = deviceKind(userAgent);
+  return { device: `${kindLabels[kind]} • ${system} • ${browser}`, kind };
 }
 
 export default async function ProfileSettings() {

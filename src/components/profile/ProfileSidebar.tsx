@@ -11,6 +11,7 @@ import {
   LogOut,
   MessageSquare,
   Package,
+  Search,
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -19,6 +20,7 @@ const links = [
   { href: "/profile", label: "Моят профил", icon: House },
   { href: "/profile/listings", label: "Моите обяви", icon: Package },
   { href: "/sell", label: "Добави обява", icon: CirclePlus },
+  { href: "/profile/search", label: "Търся", icon: Search },
   { href: "/profile/messages", label: "Съобщения", icon: MessageSquare },
   { href: "/profile/favorites", label: "Любими", icon: Heart },
   { href: "/profile/notifications", label: "Известия", icon: Bell },

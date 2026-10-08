@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,7 +10,7 @@ import { categories } from "@/data/listingOptions";
 import type { ProductDetails } from "@/data/products";
 import { avatarUrl } from "@/lib/auth/avatar";
 import { getCurrentUser } from "@/lib/auth/session";
-import { postedAgo, viewerKey, viewListing, type Listing } from "@/lib/listings";
+import { getListingTitle, postedAgo, viewerKey, viewListing, type Listing } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
 
 const conditionLabels = { new: "Ново", used: "Използвано" };
@@ -45,6 +46,11 @@ function toProduct(listing: Listing): ProductDetails {
     descriptionHtml: listing.description,
     views: listing.views,
   };
+}
+
+export async function generateMetadata({ params }: PageProps<"/product/[id]">): Promise<Metadata> {
+  const title = await getListingTitle((await params).id);
+  return title ? { title } : {};
 }
 
 export default async function ProductPage({ params }: PageProps<"/product/[id]">) {

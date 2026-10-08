@@ -33,6 +33,10 @@ export async function createSession(userId: string, remember: boolean, userAgent
   `;
 
   const cookieStore = await cookies();
+  // Signing in again from a browser that is still signed in replaces its session instead of
+  // leaving the old one behind in the list of active sessions.
+  const previous = cookieStore.get(COOKIE_NAME)?.value;
+  if (previous) await sql`delete from sessions where token_hash = ${hashToken(previous)}`;
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",

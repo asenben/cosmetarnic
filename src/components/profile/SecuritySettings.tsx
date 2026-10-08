@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode, type SubmitEvent } from "react";
-import { CircleCheck, Link2, Lock, Monitor, Shield, Smartphone, Trash2, type LucideIcon } from "lucide-react";
+import { CircleCheck, Link2, Lock, Monitor, Shield, Smartphone, Tablet, Trash2, type LucideIcon } from "lucide-react";
 import { FaFacebook } from "react-icons/fa6";
 import { FcGoogle } from "react-icons/fc";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -14,7 +14,8 @@ const GENERIC_ERROR = "Нещо се обърка. Опитай отново с�
 export type SessionRow = {
   id: string;
   device: string;
-  mobile: boolean;
+  // Chooses the icon beside it.
+  kind: "desktop" | "phone" | "tablet";
   signedIn: string;
   current: boolean;
 };
@@ -183,8 +184,8 @@ function Sessions({ sessions }: { sessions: SessionRow[] }) {
   return (
     <Row icon={Monitor} title="Активни сесии" hint="Прегледай устройствата, на които си влязъл в профила си.">
       <ul className="mt-4 divide-y divide-black/5 rounded-xl bg-zinc-50 px-4">
-        {sessions.map(({ id, device, mobile, signedIn, current }) => {
-          const Icon = mobile ? Smartphone : Monitor;
+        {sessions.map(({ id, device, kind, signedIn, current }) => {
+          const Icon = { desktop: Monitor, phone: Smartphone, tablet: Tablet }[kind];
           return (
             <li key={id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
               <Icon className="size-5 shrink-0 text-brand-ink/70" aria-hidden />

@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import Marketplace, { type MarketplaceListing } from "@/components/Marketplace";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getListings, postedAgo } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
+
+// The layout's "<page> | <username>" pattern does not reach the page beside it, so the home page
+// builds the same title itself.
+export async function generateMetadata(): Promise<Metadata> {
+  const owner = (await getCurrentUser())?.username ?? "Козметарник";
+  return { title: { absolute: `Продавалник | ${owner}` } };
+}
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   // What was typed in the search field of the navigation, if the visitor came from there.

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Политика за поверителност",
+  title: "Privacy",
 };
 
 export default function PrivacyPage() {

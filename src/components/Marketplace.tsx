@@ -25,10 +25,16 @@ type MarketplaceProps = {
   listings: MarketplaceListing[];
   // The search the listings were found by, when the visitor came from the search field.
   search?: string;
+  // What to say when there are no listings at all.
+  emptyText?: string;
 };
 
 // The listings with the filters beside them. `listings` arrive newest first.
-export default function Marketplace({ listings, search = "" }: MarketplaceProps) {
+export default function Marketplace({
+  listings,
+  search = "",
+  emptyText = "Все още няма публикувани обяви.",
+}: MarketplaceProps) {
   const [filters, setFilters] = useState(noFilters);
   const [sort, setSort] = useState<SortOrder>("newest");
 
@@ -70,12 +76,12 @@ export default function Marketplace({ listings, search = "" }: MarketplaceProps)
           />
         ))}
         {shown.length === 0 && (
-          <div className="col-span-full flex flex-col items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 py-16 text-center text-sm text-brand-ink/60">
+          <div className="col-span-full flex flex-col items-center gap-3 px-4 py-16 text-center text-sm text-brand-ink/60">
             <span className="flex size-14 items-center justify-center rounded-full bg-brand-rose/10 text-brand-rose">
               <SearchX className="size-7" aria-hidden />
             </span>
             {listings.length === 0 ? (
-              search ? `Няма намерени обяви за „${search}“.` : "Все още няма публикувани обяви."
+              search ? `Няма намерени обяви за „${search}“.` : emptyText
             ) : (
               <>
                 Няма обяви, които отговарят на избраните филтри.

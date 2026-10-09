@@ -14,6 +14,7 @@ import {
   Plus,
   Search,
   Settings,
+  ShieldCheck,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -92,6 +93,23 @@ export default function UserMenu() {
             <p className="truncate text-xs text-brand-ink/60">{user.email}</p>
           </div>
         </div>
+
+        {/* Administrators get the way into the panel above everything else. */}
+        {user.role === "admin" && (
+          <Link
+            href="/admin"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className={`${item} mt-1 ${
+              pathname.startsWith("/admin")
+                ? "bg-brand-rose/10 text-brand-rose"
+                : "text-brand-ink hover:bg-zinc-50 hover:text-brand-rose"
+            }`}
+          >
+            <ShieldCheck className="size-5 shrink-0" aria-hidden />
+            Администрация
+          </Link>
+        )}
 
         {groups.map((links, index) => (
           <ul key={index} className={index === 0 ? "mt-1" : "mt-2 border-t border-black/5 pt-2"}>

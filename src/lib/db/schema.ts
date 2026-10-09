@@ -118,6 +118,32 @@ export const schema = [
     primary key (user_id, request_id)
   )`,
   `create index if not exists request_favorites_request_id_idx on request_favorites (request_id)`,
+  // Conversations between two users about a "Търся" post or a listing: the one who wrote first
+  // (starter) and the one who published it (owner). `subject` keeps the title as it was, so the
+  // conversation still reads well after the post or the listing is deleted (see src/lib/messages).
+  `create table if not exists conversations (
+    id uuid primary key default gen_random_uuid(),
+    kind text not null,
+    request_id uuid references requests (id) on delete set null,
+    listing_id uuid references listings (id) on delete set null,
+    subject text not null,
+    starter_id uuid not null references users (id) on delete cascade,
+    owner_id uuid not null references users (id) on delete cascade,
+    created_at timestamptz not null default now(),
+    last_message_at timestamptz not null default now()
+  )`,
+  `create index if not exists conversations_starter_id_idx on conversations (starter_id)`,
+  `create index if not exists conversations_owner_id_idx on conversations (owner_id)`,
+  // `read_at` is empty until the other person opens the conversation.
+  `create table if not exists messages (
+    id uuid primary key default gen_random_uuid(),
+    conversation_id uuid not null references conversations (id) on delete cascade,
+    sender_id uuid not null references users (id) on delete cascade,
+    body text not null,
+    created_at timestamptz not null default now(),
+    read_at timestamptz
+  )`,
+  `create index if not exists messages_conversation_id_idx on messages (conversation_id, created_at)`,
   // The listings each user marked with the heart.
   `create table if not exists favorites (
     user_id uuid not null references users (id) on delete cascade,

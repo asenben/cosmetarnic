@@ -15,7 +15,6 @@ export function toBoardRequest(request: ProductRequest, viewerId?: string | null
     condition: request.condition,
     budget: request.budget,
     city: request.city,
-    description: request.description,
     image: request.image ? listingImageUrl(request.image) : null,
     postedAgo: postedAgo(request.createdAt),
     author: request.author.username,

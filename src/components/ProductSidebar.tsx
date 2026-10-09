@@ -8,16 +8,17 @@ import {
   ChevronRight,
   Heart,
   MapPin,
-  MessageSquare,
   Palette,
   Phone,
   Sparkles,
   Tag,
   Package,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavorite } from "@/components/FavoritesProvider";
-import type { ProductDetails } from "@/data/products";
+import MessageButton from "@/components/messages/MessageButton";
+import type { ProductDetails } from "@/data/product";
 
 const conditionLabels = { new: "Ново", used: "Използвано" };
 
@@ -44,7 +45,6 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
     { icon: Sparkles, label: "Състояние", value: conditionLabels[condition] },
     { icon: Palette, label: "Цвят", value: color },
     { icon: CalendarDays, label: "Публикувана", value: postedAgo },
-    { icon: Package, label: "Изпращане", value: delivery.map((key) => deliveryLabels[key]).join(" / ") },
     // The colour is optional in the listing form.
   ].filter(({ value }) => value);
 
@@ -75,7 +75,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
           {specs.map(({ icon: Icon, label, value }) => (
             <div
               key={label}
-              className="flex items-center justify-between gap-4 border-b border-black/5 py-3 text-sm last:border-b-0"
+              className="flex items-center justify-between gap-4 border-b border-black/5 py-3 text-sm"
             >
               <dt className="flex items-center gap-2.5 text-brand-ink/60">
                 <Icon className="size-4 text-brand-rose" aria-hidden />
@@ -84,6 +84,29 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
               <dd className="text-right font-semibold whitespace-nowrap text-brand-ink">{value}</dd>
             </div>
           ))}
+          {/* Each way of handing over with its own mark: a map pin for meeting in person, a parcel
+              for a courier. */}
+          {delivery.length > 0 && (
+            <div className="flex items-center justify-between gap-4 py-3 text-sm">
+              <dt className="flex items-center gap-2.5 text-brand-ink/60">
+                <Truck className="size-4 text-brand-rose" aria-hidden />
+                Изпращане
+              </dt>
+              <dd>
+                <ul className="flex flex-wrap justify-end gap-x-4 gap-y-1.5 font-semibold text-brand-ink">
+                  {delivery.map((key) => {
+                    const Icon = key === "pickup" ? MapPin : Package;
+                    return (
+                      <li key={key} className="flex items-center gap-1.5 whitespace-nowrap">
+                        <Icon className="size-4 text-brand-ink/60" aria-hidden />
+                        {deliveryLabels[key]}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </dd>
+            </div>
+          )}
         </dl>
 
         <div className="border-t border-black/5 p-5">
@@ -94,14 +117,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             </p>
           ) : (
             <>
-              <button
-                type="button"
-                onClick={requireAuth}
-                className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-rose text-sm font-semibold text-white transition-colors hover:bg-brand"
-              >
-                <MessageSquare className="size-4.5" aria-hidden />
-                Съобщение
-              </button>
+              <MessageButton target={{ listingId: product.id }} />
 
               {phoneVisible ? (
                 <a href={`tel:${phone.replaceAll(" ", "")}`} className={phoneButton}>

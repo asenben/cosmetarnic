@@ -1,5 +1,6 @@
 import { categories } from "@/data/listingOptions";
 import { sql } from "@/lib/db";
+import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
 import { LISTING_IMAGE_PATTERN, listingImageKey } from "@/lib/listings/images";
 import { deleteImage } from "@/lib/storage/deleteImage";
 
@@ -10,7 +11,7 @@ import { deleteImage } from "@/lib/storage/deleteImage";
 const CONDITIONS = ["new", "used", "any"] as const;
 const BUDGET_MAX = 100000;
 const DESCRIPTION_MIN = 10;
-const DESCRIPTION_MAX = 1000;
+const DESCRIPTION_MAX_HTML = 20000;
 const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
 const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -26,6 +27,8 @@ export type ProductRequest = {
   // The most the person would pay, in euro; null when they did not say.
   budget: number | null;
   city: string;
+  // Written in the same editor as a listing's description: HTML that was cleaned on the way in,
+  // so it can be put on the page as it is.
   description: string;
   // A picture of the product wanted, if the author added one. It is stored like a listing's
   // photo: the file name in the bucket (see src/lib/listings/images.ts).
@@ -36,6 +39,16 @@ export type ProductRequest = {
   favorite: boolean;
 };
 
+// Posts written before the editor was added hold plain text; their lines become paragraphs.
+const asHtml = (description: string) =>
+  description.includes("<")
+    ? description
+    : description
+        .split(/\n+/)
+        .filter((line) => line.trim())
+        .map((line) => `<p>${sanitizeDescription(line)}</p>`)
+        .join("");
+
 const toRequest = (row: Record<string, unknown>): ProductRequest => ({
   id: row.id as string,
   userId: row.user_id as string,
@@ -45,7 +58,7 @@ const toRequest = (row: Record<string, unknown>): ProductRequest => ({
   condition: row.condition as ProductRequest["condition"],
   budget: row.budget === null ? null : Number(row.budget),
   city: row.city as string,
-  description: row.description as string,
+  description: asHtml(row.description as string),
   image: (row.image as string | null) ?? null,
   createdAt: new Date(row.created_at as string),
   author: { username: row.username as string, avatar: row.avatar as string | null },
@@ -70,7 +83,8 @@ function readRequest(input: Record<string, unknown>) {
   const condition = text("condition");
   const city = text("city");
   const phone = text("phone");
-  const description = text("description");
+  const html = text("description");
+  const description = html.length <= DESCRIPTION_MAX_HTML ? sanitizeDescription(html) : "";
   const image = text("image");
   // The budget is optional; when given it has to be a real amount.
   const budgetText = text("budget").replace(",", ".");
@@ -82,7 +96,7 @@ function readRequest(input: Record<string, unknown>) {
   if (budget !== null && !(budget > 0 && budget <= BUDGET_MAX)) errors.budget = "Въведи сума, по-голяма от 0.";
   if (!city || city.length > 60) errors.city = "Въведи град.";
   if (!PHONE_PATTERN.test(phone)) errors.phone = "Въведи валиден телефонен номер.";
-  if (description.length < DESCRIPTION_MIN || description.length > DESCRIPTION_MAX) {
+  if (descriptionText(description).length < DESCRIPTION_MIN) {
     errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
   }
   if (image && !LISTING_IMAGE_PATTERN.test(image)) errors.image = "Снимката не можа да бъде приета. Добави я отново.";
@@ -176,6 +190,19 @@ export async function getRequests({ viewerId = null, authorId = null, favoritesO
       and (not ${favoritesOnly} or f.user_id is not null)
     order by r.created_at desc`;
   return rows.map(toRequest);
+}
+
+// One post for its own page, with the viewer's heart marked and how long the author has been a
+// member; null when there is no such post. The phone number is left out here too.
+export async function getRequest(id: string, viewerId: string | null = null) {
+  if (!ID_PATTERN.test(id)) return null;
+  const [row] = await sql`
+    select r.id, r.user_id, r.title, r.brand, r.category, r.condition, r.budget, r.city, r.description,
+           r.image, r.created_at, u.username, u.avatar, u.created_at as author_created_at,
+           exists (select 1 from request_favorites f where f.request_id = r.id and f.user_id = ${viewerId}) as favorite
+    from requests r join users u on u.id = r.user_id
+    where r.id = ${id}`;
+  return row ? { ...toRequest(row), authorSince: new Date(row.author_created_at as string) } : null;
 }
 
 // The phone number left on a post, or null when there is no such post.

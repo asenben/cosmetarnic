@@ -8,7 +8,6 @@ import {
   ImagePlus,
   LayoutGrid,
   MapPin,
-  Package,
   Palette,
   Phone,
   Plus,
@@ -324,11 +323,11 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
     >
       <div className="space-y-6">
         <div>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3">
             <div
               onDragOver={(event) => event.preventDefault()}
               onDrop={onDrop}
-              className="relative aspect-16/9 min-w-0 flex-1 overflow-hidden rounded-xl bg-brand-pale"
+              className="relative aspect-16/9 w-full overflow-hidden rounded-xl bg-brand-pale"
             >
               {current ? (
                 <>
@@ -386,7 +385,8 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
             </div>
 
             {photos.length > 0 && (
-              <ul className="order-first flex shrink-0 flex-col gap-2">
+              // The small pictures sit in a row under the large one, as on the listing's page.
+              <ul className="flex flex-wrap gap-2 px-0.5">
                 {photos.map(({ url }, index) => (
                   <li key={url} className="w-14">
                     <button
@@ -521,7 +521,7 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
                 className={specInput}
               />
             </SpecRow>
-            <SpecRow icon={Package} label="Изпращане" error={errors.delivery}>
+            <SpecRow icon={Truck} label="Изпращане" error={errors.delivery}>
               <Chips
                 label="Изпращане"
                 name="delivery"

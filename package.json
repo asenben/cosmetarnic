@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/migrate.mjs"
+    "db:migrate": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/migrate.mjs",
+    "db:role": "node --env-file=.env scripts/set-role.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
@@ -22,6 +23,7 @@
     "aws4fetch": "^1.0.20",
     "gsap": "^3.15.0",
     "lucide-react": "^1.52.0",
+    "motion": "^14.0.0",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",

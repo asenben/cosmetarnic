@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Clock, Heart, MapPin, Pencil, Phone, SearchX, Tag, Trash2 } from "lucide-react";
+import { Heart, Pencil, SearchX, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import FiltersSidebar from "@/components/FiltersSidebar";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
@@ -21,7 +21,6 @@ export type BoardRequest = {
   // The most the person would pay, in euro; null when they did not say.
   budget: number | null;
   city: string;
-  description: string;
   // The address of the product's picture, if the author added one.
   image: string | null;
   postedAgo: string;
@@ -31,6 +30,13 @@ export type BoardRequest = {
   own: boolean;
   // Whether the signed-in user marked it with the heart.
   favorite: boolean;
+};
+
+// The label beside the name, in the colours a listing's card uses for its condition.
+const conditions = {
+  new: { label: "Ново", className: "bg-emerald-50 text-emerald-700" },
+  used: { label: "Използвано", className: "bg-amber-100 text-amber-800" },
+  any: { label: "Ново или използвано", className: "bg-zinc-100 text-zinc-700" },
 };
 
 const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
@@ -55,26 +61,26 @@ const smallButton =
 
 type RequestCardProps = {
   request: BoardRequest;
+  // Shows the author the buttons for editing and deleting their post. Only the "Търся" page in
+  // the profile does; everywhere else a post is just shown.
+  manageable?: boolean;
   // Called after the heart was taken off, for lists that show only the marked posts.
   onUnfavorite?: () => void;
 };
 
-// One post: the picture on the left; beside it the category with the heart across from it, what
-// is wanted, and at the bottom the author with the button for getting in touch.
-export function RequestCard({ request, onUnfavorite }: RequestCardProps) {
+// One post, as a card like a listing's: the picture, which opens the post's own page, with the
+// heart on it; under it the same rows as on a listing's card: what is wanted with the condition
+// beside it, the budget, then the town and the time. The category, the description, the author
+// and the way to get in touch are on the post's page.
+export function RequestCard({ request, manageable = false, onUnfavorite }: RequestCardProps) {
   const router = useRouter();
   const { requireAuth } = useAuth();
   const [favorite, setFavorite] = useState(request.favorite);
-  const [phone, setPhone] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string>();
-
-  const details = [
-    { icon: Tag, label: "Бюджет", value: request.budget === null ? "" : `До ${priceFormat.format(request.budget)}` },
-    { icon: MapPin, label: "Град", value: request.city },
-    { icon: Clock, label: "Публикувана", value: request.postedAgo },
-  ].filter(({ value }) => value);
+  const condition = conditions[request.condition];
+  const budget = request.budget === null ? "По договаряне" : priceFormat.format(request.budget);
 
   const toggleFavorite = async () => {
     // Signed-out visitors get the login form instead.
@@ -89,22 +95,6 @@ export function RequestCard({ request, onUnfavorite }: RequestCardProps) {
     } catch {
       setFavorite(!next);
     }
-  };
-
-  // The number is asked from the server only now, and only for somebody signed in.
-  const showPhone = async () => {
-    if (!requireAuth()) return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      const response = await fetch(`/api/requests/${request.id}`);
-      const result = await response.json();
-      if (response.ok) setPhone(result.phone);
-      else setError(result.message);
-    } catch {
-      setError("Не успяхме да покажем номера. Опитай отново.");
-    }
-    setBusy(false);
   };
 
   const remove = async () => {
@@ -122,58 +112,68 @@ export function RequestCard({ request, onUnfavorite }: RequestCardProps) {
   };
 
   return (
-    <article className="flex gap-4 rounded-2xl border border-black/5 bg-white p-3">
-      <div className="relative min-h-36 w-28 shrink-0 self-stretch overflow-hidden rounded-xl bg-brand-pale sm:w-36">
-        {request.image ? (
-          <Image src={request.image} alt="" fill sizes="144px" className="object-cover" />
-        ) : (
-          <Image src="/images/logo.svg" alt="" fill sizes="144px" className="p-7 opacity-70" />
-        )}
+    <article className="relative flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex-row">
+      <div className="relative aspect-4/5 shrink-0 listview:m-2.5 listview:aspect-auto listview:min-h-28 listview:w-24 listview:sm:w-36">
+        {/* Only the picture opens the post; the details under it are not a link. */}
+        <Link
+          href={`/search/${request.id}`}
+          aria-label={`${request.title}, ${budget}`}
+          className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
+        >
+          {request.image ? (
+            <Image
+              src={request.image}
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 25vw, 50vw"
+              className="object-cover transition-transform duration-300 group-hover/image:scale-105"
+            />
+          ) : (
+            <div className="flex size-full flex-col items-center justify-center gap-2 text-xs font-medium text-brand-ink/60">
+              <Image src="/images/logo.svg" alt="" width={64} height={64} className="size-16 rounded-full opacity-80" />
+              <span className="listview:hidden">Няма изображение</span>
+            </div>
+          )}
+        </Link>
+
+        <button
+          type="button"
+          aria-label={favorite ? "Премахни от любими" : "Добави в любими"}
+          aria-pressed={favorite}
+          onClick={toggleFavorite}
+          className="absolute right-3 bottom-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-full bg-white text-brand-ink shadow-sm transition-colors hover:text-brand-rose listview:right-1.5 listview:bottom-1.5"
+        >
+          <Heart className={`size-4.5 ${favorite ? "fill-red-800 text-red-800" : ""}`} aria-hidden />
+        </button>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col py-0.5">
-        <div className="flex items-start justify-between gap-2">
-          <span className="truncate rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-brand-ink/80">
-            {request.categoryLabel}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3 listview:justify-center">
+        <div className="flex items-center justify-between gap-2">
+          <h3 title={request.title} className="min-w-0 truncate text-sm font-semibold text-brand-ink listview:text-lg">
+            {request.title}
+          </h3>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${condition.className}`}>
+            {condition.label}
           </span>
-          <button
-            type="button"
-            aria-label={favorite ? "Премахни от любими" : "Добави в любими"}
-            aria-pressed={favorite}
-            onClick={toggleFavorite}
-            className="-mt-1 -mr-1 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-brand-ink transition-colors hover:text-brand-rose"
-          >
-            <Heart className={`size-5 ${favorite ? "fill-red-800 text-red-800" : ""}`} aria-hidden />
-          </button>
         </div>
 
-        <h3 className="mt-2 text-base leading-snug font-bold wrap-break-word text-brand-ink">{request.title}</h3>
-        <p title={request.description} className="mt-1 line-clamp-2 text-sm leading-5 wrap-break-word text-brand-ink/70">
-          {request.description}
-        </p>
+        <p className="text-base font-bold text-brand-ink listview:text-xl">{budget}</p>
 
-        <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-brand-ink/60">
-          {details.map(({ icon: Icon, label, value }) => (
-            <li key={label} className="flex items-center gap-1.5">
-              <Icon className="size-3.5" aria-hidden />
-              <span className="sr-only">{label}:</span>
-              {value}
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-center justify-between gap-2 text-xs text-brand-ink/60">
+          <span className="min-w-0 truncate">{request.city}</span>
+          <span className="shrink-0">{request.postedAgo}</span>
+        </div>
 
-        {/* Pushed to the bottom, so the buttons of the cards in one row line up. */}
-        <div className="mt-auto flex items-center justify-between gap-3 pt-3">
-          <span className="min-w-0 truncate text-sm font-medium text-brand-ink">{request.author}</span>
-
-          {request.own ? (
-            confirming ? (
-              <span className="flex gap-2">
+        {/* The author's buttons, on the "Търся" page of the profile only. */}
+        {manageable && request.own && (
+          <div className="pt-1.5">
+            {confirming ? (
+              <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={busy}
                   onClick={remove}
-                  className={`${smallButton} bg-red-600 text-white hover:bg-red-700`}
+                  className={`${smallButton} flex-1 bg-red-600 text-white hover:bg-red-700`}
                 >
                   {busy ? "Изтриване…" : "Да, изтрий"}
                 </button>
@@ -181,19 +181,19 @@ export function RequestCard({ request, onUnfavorite }: RequestCardProps) {
                   type="button"
                   disabled={busy}
                   onClick={() => setConfirming(false)}
-                  className={`${smallButton} border border-black/10 text-brand-ink hover:border-brand-rose/50`}
+                  className={`${smallButton} flex-1 border border-black/10 text-brand-ink hover:border-brand-rose/50`}
                 >
                   Отказ
                 </button>
-              </span>
+              </div>
             ) : (
-              <span className="flex gap-2">
+              <div className="flex gap-2">
                 <Link
                   href={`/request/${request.id}`}
-                  className={`${smallButton} border border-brand-rose text-brand-rose hover:bg-brand-rose/10`}
+                  className={`${smallButton} min-w-0 flex-1 border border-brand-rose text-brand-rose hover:bg-brand-rose/10`}
                 >
-                  <Pencil className="size-4" aria-hidden />
-                  Редактирай
+                  <Pencil className="size-4 shrink-0" aria-hidden />
+                  <span className="truncate">Редактирай</span>
                 </Link>
                 <button
                   type="button"
@@ -204,31 +204,14 @@ export function RequestCard({ request, onUnfavorite }: RequestCardProps) {
                 >
                   <Trash2 className="size-4" aria-hidden />
                 </button>
-              </span>
-            )
-          ) : phone ? (
-            <a
-              href={`tel:${phone.replaceAll(" ", "")}`}
-              className={`${smallButton} border border-brand-rose text-brand-rose hover:bg-brand-rose/10`}
-            >
-              <Phone className="size-4" aria-hidden />
-              {phone}
-            </a>
-          ) : (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={showPhone}
-              className={`${smallButton} bg-brand-rose px-5 text-white hover:bg-brand`}
-            >
-              Свържи се
-            </button>
-          )}
-        </div>
-        {error && (
-          <p role="alert" className="mt-2 text-xs text-red-600">
-            {error}
-          </p>
+              </div>
+            )}
+            {error && (
+              <p role="alert" className="mt-2 text-xs text-red-600">
+                {error}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </article>
@@ -260,8 +243,6 @@ export default function RequestBoard({ requests }: { requests: BoardRequest[] })
         onSortChange={setSort}
         label="Публикации"
         countLabel={shown.length === 1 ? "Намерена публикация" : "Намерени публикации"}
-        // The cards are wide, so two fit beside each other where listings fit three.
-        gridClassName="grid gap-4 xl:grid-cols-2"
       >
         {shown.map((request) => (
           <RequestCard key={request.id} request={request} />
@@ -312,7 +293,7 @@ export function FavoriteRequests({ requests, emptyNote }: FavoriteRequestsProps)
   return (
     <section className="mt-8">
       <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Търсени продукти ({shown.length})</h2>
-      <div className="mt-4 grid gap-4 xl:grid-cols-2">
+      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-3">
         {shown.map((request) => (
           <RequestCard
             key={request.id}

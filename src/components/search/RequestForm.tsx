@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type DragEvent, type ReactNode, type Submi
 import { CircleCheck, ImagePlus, LayoutGrid, MapPin, Phone, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
 import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
+import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
 import { categories, cities } from "@/data/listingOptions";
 import { listingImageUrl } from "@/lib/listings/images";
@@ -63,7 +64,8 @@ function validate(data: FormData) {
   const errors: Errors = {};
   const budget = text("budget").replace(",", ".");
 
-  if (text("description").length < DESCRIPTION_MIN) {
+  // The editor submits the formatted description and, next to it, its plain text for this check.
+  if (String(data.get("description_text") ?? "").trim().length < DESCRIPTION_MIN) {
     errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
   }
   if (text("title").length < 3) errors.title = "Напиши какво търсиш с поне 3 знака.";
@@ -278,15 +280,13 @@ export default function RequestForm({ request }: { request?: EditedRequest }) {
 
         <section className="rounded-2xl border border-black/5 bg-white p-5">
           <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
-          <textarea
+          <DescriptionField
+            id="request-description"
             name="description"
             defaultValue={request?.description}
-            aria-label="Описание"
-            rows={8}
             maxLength={DESCRIPTION_MAX}
             placeholder="Нюанс, количество, срок на годност, до кога ти трябва..."
-            aria-invalid={Boolean(errors.description)}
-            className={`${textInput} scrollbar-soft mt-3 min-h-48 resize-y py-2.5 text-base leading-6`}
+            invalid={Boolean(errors.description)}
           />
           <FieldError message={errors.description} />
         </section>

@@ -42,7 +42,8 @@ export default function ProfileSidebar() {
     >
       <ul className="space-y-1">
         {links.map(({ href, label, icon: Icon, divided }) => {
-          const active = pathname === href;
+          // A page inside a section, e.g. one conversation, keeps its section marked.
+          const active = pathname === href || (href !== "/profile" && pathname.startsWith(`${href}/`));
           return (
             <li key={href} className={divided ? "mt-2! border-t border-black/5 pt-2" : undefined}>
               <Link

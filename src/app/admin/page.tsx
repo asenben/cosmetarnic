@@ -1,6 +1,7 @@
+import { redirect } from "next/navigation";
+import { FIRST_ADMIN_SECTION } from "@/lib/admin/sections";
+
+// The panel has no page of its own yet: it opens on its first section.
 export default function Admin() {
-    return (
-        <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
-        </main>
-    );
+  redirect(`/admin/${FIRST_ADMIN_SECTION}`);
 }

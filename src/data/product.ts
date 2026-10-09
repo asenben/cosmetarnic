@@ -8,6 +8,7 @@ export type SellerProfile = {
   avatar?: string;
 };
 
+// A listing as its own page shows it: what its card has, plus everything else about it.
 export type ProductDetails = Omit<Product, "href" | "image"> & {
   id: string;
   // The listing's number in the order of publishing, shown as its ID.

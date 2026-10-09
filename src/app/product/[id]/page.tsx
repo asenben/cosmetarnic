@@ -7,7 +7,7 @@ import ProductGallery from "@/components/ProductGallery";
 import ProductSidebar from "@/components/ProductSidebar";
 import ListingActions from "@/components/sell/ListingActions";
 import { categories } from "@/data/listingOptions";
-import type { ProductDetails } from "@/data/products";
+import type { ProductDetails } from "@/data/product";
 import { avatarUrl } from "@/lib/auth/avatar";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getListingTitle, postedAgo, viewerKey, viewListing, type Listing } from "@/lib/listings";

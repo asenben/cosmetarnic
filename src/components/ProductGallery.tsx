@@ -1,5 +1,6 @@
 "use client";
 
+import { MotionConfig, motion } from "motion/react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
@@ -22,14 +23,92 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
 
   const step = (offset: number) => setSelected((selected + offset + images.length) % images.length);
 
+  // Set by a swipe, so the tap that ends it is not also taken as a click on a picture.
+  const swiped = useRef(false);
+  const onSwipe = (distance: number) => {
+    if (Math.abs(distance) < 50) return;
+    swiped.current = true;
+    setTimeout(() => (swiped.current = false), 100);
+    step(distance < 0 ? 1 : -1);
+  };
+
   return (
-    <div className="flex gap-3">
-      <div className="relative aspect-16/9 min-w-0 flex-1 overflow-hidden rounded-xl bg-brand-pale">
-        {images.length > 0 ? (
+    <div>
+      {/* With several pictures there is no frame: they stand freely on the page. A single picture,
+          or none, keeps the tinted frame it fills. */}
+      <div
+        className={`relative aspect-16/9 w-full ${images.length > 1 ? "" : "overflow-hidden rounded-xl bg-brand-pale"}`}
+      >
+        {images.length > 1 ? (
+          // A "coverflow": the chosen picture faces the viewer in the middle, and the ones before
+          // and after it stand turned in 3D at its sides. Choosing another makes them swing round.
+          <MotionConfig reducedMotion="user">
+            <motion.div
+              onPanEnd={(_, info) => onSwipe(info.offset.x)}
+              className="absolute inset-0 touch-pan-y perspective-distant"
+            >
+              {images.map((src, index) => {
+                // How many places from the middle, the short way round, so the row has no end.
+                let offset = index - selected;
+                if (offset > images.length / 2) offset -= images.length;
+                if (offset < -images.length / 2) offset += images.length;
+                const distance = Math.abs(offset);
+                const side = Math.sign(offset);
+
+                return (
+                  <motion.button
+                    key={src}
+                    type="button"
+                    aria-label={
+                      offset === 0 ? "Виж на цял екран" : `Изображение ${index + 1} от ${images.length}`
+                    }
+                    aria-current={offset === 0}
+                    tabIndex={distance > 1 ? -1 : 0}
+                    onClick={() => {
+                      if (swiped.current) return;
+                      if (offset === 0) lightboxRef.current?.showModal();
+                      else setSelected(index);
+                    }}
+                    initial={false}
+                    animate={{
+                      // Percentages of the picture's own width; -50% centres it.
+                      x: `${-50 + offset * 52}%`,
+                      rotateY: side * -52,
+                      scale: offset === 0 ? 1 : 0.7,
+                      // Only the neighbours show; with no frame to clip them, the rest would reach outside.
+                      opacity: distance > 1 ? 0 : 1,
+                    }}
+                    transition={{ type: "spring", stiffness: 240, damping: 30 }}
+                    style={{ zIndex: 10 - distance, pointerEvents: distance > 1 ? "none" : "auto" }}
+                    className="absolute inset-y-0 left-1/2 aspect-square cursor-pointer overflow-hidden rounded-xl bg-white shadow-lg shadow-brand-ink/20"
+                  >
+                    {/* The whole photo is shown, whatever its shape; a blurred copy fills the space around it. */}
+                    <Image
+                      src={src}
+                      alt=""
+                      aria-hidden
+                      fill
+                      sizes="100px"
+                      className="scale-110 object-cover opacity-60 blur-2xl"
+                    />
+                    <Image
+                      src={src}
+                      alt={offset === 0 ? alt : ""}
+                      fill
+                      priority={index === 0}
+                      sizes="(min-width: 1024px) 35vw, 60vw"
+                      className="object-contain"
+                    />
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          </MotionConfig>
+        ) : images.length === 1 ? (
           <>
             {/* The whole photo is shown, whatever its shape; a blurred copy fills the space around it. */}
             <Image
-              src={images[selected]}
+              src={images[0]}
               alt=""
               aria-hidden
               fill
@@ -37,7 +116,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
               className="scale-110 object-cover opacity-60 blur-2xl"
             />
             <Image
-              src={images[selected]}
+              src={images[0]}
               alt={alt}
               fill
               priority
@@ -53,7 +132,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
         )}
 
         {badge && (
-          <span className="absolute top-4 left-4 rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-rose shadow-sm">
+          <span className="absolute top-4 left-4 z-20 rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-rose shadow-sm">
             {badge}
           </span>
         )}
@@ -64,7 +143,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
               type="button"
               aria-label="Предишно изображение"
               onClick={() => step(-1)}
-              className={`${roundButton} top-1/2 left-4 -translate-y-1/2`}
+              className={`${roundButton} top-1/2 left-4 z-20 -translate-y-1/2`}
             >
               <ChevronLeft className="size-5" aria-hidden />
             </button>
@@ -72,7 +151,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
               type="button"
               aria-label="Следващо изображение"
               onClick={() => step(1)}
-              className={`${roundButton} top-1/2 right-4 -translate-y-1/2`}
+              className={`${roundButton} top-1/2 right-4 z-20 -translate-y-1/2`}
             >
               <ChevronRight className="size-5" aria-hidden />
             </button>
@@ -84,32 +163,12 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
             type="button"
             aria-label="Виж на цял екран"
             onClick={() => lightboxRef.current?.showModal()}
-            className={`${roundButton} right-4 bottom-4`}
+            className={`${roundButton} right-4 bottom-4 z-20`}
           >
             <Maximize2 className="size-4.5" aria-hidden />
           </button>
         )}
       </div>
-
-      {images.length > 1 && (
-        <ul className="order-first flex shrink-0 flex-col gap-2">
-          {images.map((src, index) => (
-            <li key={src} className="w-14">
-              <button
-                type="button"
-                aria-label={`Изображение ${index + 1} от ${images.length}`}
-                aria-current={index === selected}
-                onClick={() => setSelected(index)}
-                className={`relative block aspect-square w-full cursor-pointer overflow-hidden rounded-lg bg-brand-pale ring-2 transition ${
-                  index === selected ? "ring-brand-rose" : "ring-transparent hover:ring-brand-rose/40"
-                }`}
-              >
-                <Image src={src} alt="" fill sizes="56px" className="object-cover" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
 
       {images.length > 0 && (
         <dialog

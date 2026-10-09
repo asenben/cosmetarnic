@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Check, ChevronDown, LayoutGrid, List } from "lucide-react";
+import { Check, ChevronDown, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 
 const sortOptions = [
   { value: "newest", label: "Най-нови" },
@@ -28,6 +28,9 @@ type ProductGridProps = {
   countLabel?: string;
   // The classes that lay the cards out in the grid view, for cards of another shape than a listing's.
   gridClassName?: string;
+  // Shows the "Филтри" button on narrow screens, where the filters are not at the side: how
+  // many filters are on, and what opens them.
+  filters?: { active: number; onOpen: () => void };
   children?: ReactNode;
 };
 
@@ -148,25 +151,47 @@ export default function ProductGrid({
   onSortChange,
   label = "Обяви",
   countLabel = count === 1 ? "Намерена обява" : "Намерени обяви",
-  gridClassName = "grid grid-cols-2 gap-4 lg:grid-cols-3",
+  // One card across on phones, two from there up, three on wide screens.
+  gridClassName = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
+  filters,
   children,
 }: ProductGridProps) {
   const [view, setView] = useState<View>("grid");
 
   return (
     <section aria-label={label} className="min-w-0 flex-1">
-      <div className="flex items-center justify-between gap-4">
-        <p className="flex items-center gap-2 text-sm font-medium text-brand-ink">
-          {countLabel}
-          <span className="min-w-7 rounded-full bg-brand-rose/10 px-2.5 py-0.5 text-center font-semibold text-brand-rose tabular-nums">
-            {count}
-          </span>
-        </p>
+      <div className="flex items-center justify-between gap-3 sm:gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          {filters && (
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={filters.onOpen}
+              className="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-brand-rose/10 px-3 text-sm font-semibold text-brand-rose transition-colors hover:bg-brand-rose/20 lg:hidden"
+            >
+              <SlidersHorizontal className="size-4" aria-hidden />
+              Филтри
+              {filters.active > 0 && (
+                <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-brand-rose px-1 text-[0.6875rem] leading-none font-bold text-white">
+                  {filters.active}
+                </span>
+              )}
+            </button>
+          )}
+          {/* The count has no room beside the button on phones. */}
+          <p className={`items-center gap-2 text-sm font-medium whitespace-nowrap text-brand-ink ${filters ? "hidden sm:flex" : "flex"}`}>
+            {countLabel}
+            <span className="min-w-7 rounded-full bg-brand-rose/10 px-2.5 py-0.5 text-center font-semibold text-brand-rose tabular-nums">
+              {count}
+            </span>
+          </p>
+        </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <SortDropdown value={sort} onChange={onSortChange} />
 
-          <div role="group" aria-label="Изглед" className="flex items-center gap-1">
+          {/* Phones show the cards one way only. */}
+          <div role="group" aria-label="Изглед" className="hidden items-center gap-1 sm:flex">
             {views.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}

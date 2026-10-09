@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode, type SubmitEvent } from "react";
 import { ArrowRight, CircleCheck, Lock, Mail, Phone, User } from "lucide-react";
-import { AuthField, AuthHeader, AuthSwitch, SocialLogin, submitButton, textLink } from "@/components/auth/AuthParts";
+import { AuthField, AuthHeader, AuthSwitch, submitButton, textLink } from "@/components/auth/AuthParts";
 import type { RegisterErrors, RegisterField } from "@/lib/auth/register";
 
 type RegisterFormProps = {
@@ -236,7 +236,6 @@ export default function RegisterForm({ onLogin }: RegisterFormProps) {
         </button>
       </form>
 
-      <SocialLogin />
       <AuthSwitch question="Вече имаш акаунт?" action="Влез" onClick={onLogin} />
     </div>
   );

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SearchX, X } from "lucide-react";
-import FiltersSidebar from "@/components/FiltersSidebar";
+import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
 import ProductCard, { type Product } from "@/components/ProductCard";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
+import { categories } from "@/data/listingOptions";
 import { PRICE_MAX, noFilters, type Filters } from "@/components/SortBar";
 
 // A listing as the marketplace needs it: what its card shows, plus what the filters match on.
@@ -37,6 +38,8 @@ export default function Marketplace({
 }: MarketplaceProps) {
   const [filters, setFilters] = useState(noFilters);
   const [sort, setSort] = useState<SortOrder>("newest");
+  // Whether the filters cover the page, on the narrow screens where they are not at its side.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const shown = listings.filter((listing) => matches(listing, filters));
   if (sort !== "newest") {
@@ -46,8 +49,13 @@ export default function Marketplace({
 
   return (
     <>
-      <FiltersSidebar filters={filters} onChange={setFilters} />
-      <ProductGrid count={shown.length} sort={sort} onSortChange={setSort}>
+      <FiltersSidebar filters={filters} onChange={setFilters} open={filtersOpen} onOpenChange={setFiltersOpen} />
+      <ProductGrid
+        count={shown.length}
+        sort={sort}
+        onSortChange={setSort}
+        filters={{ active: activeFilterCount(filters), onOpen: () => setFiltersOpen(true) }}
+      >
         {search && (
           <p className="col-span-full flex flex-wrap items-center gap-2 text-sm text-brand-ink/60">
             Резултати за
@@ -61,10 +69,11 @@ export default function Marketplace({
             </Link>
           </p>
         )}
-        {shown.map(({ id, href, image, brand, price, city, postedAgo, condition, delivery }) => (
+        {shown.map(({ id, href, image, brand, price, city, postedAgo, condition, delivery, category }) => (
           <ProductCard
             key={id}
             id={id}
+            categoryLabel={categories.find(({ value }) => value === category)?.label}
             href={href}
             image={image}
             brand={brand}

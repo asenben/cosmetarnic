@@ -2,9 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode, type SubmitEvent } from "react";
-import { CircleCheck, Link2, Lock, Monitor, Shield, Smartphone, Tablet, Trash2, type LucideIcon } from "lucide-react";
-import { FaFacebook } from "react-icons/fa6";
-import { FcGoogle } from "react-icons/fc";
+import { CircleCheck, Lock, Monitor, Shield, Smartphone, Tablet, Trash2, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const GENERIC_ERROR = "Нещо се обърка. Опитай отново след малко.";
@@ -325,24 +323,6 @@ export default function SecuritySettings({ sessions }: { sessions: SessionRow[] 
       </Row>
 
       <Sessions sessions={sessions} />
-
-      <Row icon={Link2} title="Свързани акаунти" hint="Управлявай свързаните с профила ти социални акаунти.">
-        <ul className="mt-4 divide-y divide-black/5 rounded-xl bg-zinc-50 px-4">
-          {[
-            { name: "Google", icon: <FcGoogle className="size-5" aria-hidden /> },
-            { name: "Facebook", icon: <FaFacebook className="size-5 text-facebook" aria-hidden /> },
-          ].map(({ name, icon }) => (
-            <li key={name} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
-              {icon}
-              <p className="w-24 text-sm font-medium text-brand-ink">{name}</p>
-              <p className="flex-1 text-sm text-brand-ink/60">Не е свързан</p>
-              <button type="button" disabled title={soon} className={`${outline} h-9 bg-white px-4 text-xs`}>
-                Свържи
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Row>
 
       <DeleteAccount />
     </div>

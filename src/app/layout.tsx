@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/components/auth/AuthProvider";
 import FavoritesProvider from "@/components/FavoritesProvider";
 import Footer from "@/components/Footer";
+import MobileTabBar from "@/components/MobileTabBar";
 import Navigation from "@/components/Navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getFavoriteIds } from "@/lib/listings/favorites";
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <Navigation />
             {children}
             <Footer />
+            <MobileTabBar />
           </FavoritesProvider>
         </AuthProvider>
       </body>

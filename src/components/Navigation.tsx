@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Bell, Heart, User } from "lucide-react";
+import { Bell, Heart, MessageSquare, Plus, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavoriteCount } from "@/components/FavoritesProvider";
 import SearchBox from "@/components/SearchBox";
@@ -60,7 +60,63 @@ export default function Navigation() {
 
   return (
     <header className="bg-zinc-50 pt-3">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+      {/* Phones: just the logo with the search field under it. The links and the buttons are in
+          the bar at the bottom of the screen (see MobileTabBar). */}
+      <div className="px-4 md:hidden">
+        {/* The logo, and across from it the messages, the favourites and the account. */}
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" aria-label="Начало" className="shrink-0">
+            <Image src="/images/logo.svg" alt="Cosmetarnic" width={44} height={44} priority className="size-11 rounded-full object-cover" />
+          </Link>
+
+          <div className="flex items-center gap-1">
+            <Link href="/profile/messages" aria-label="Съобщения" onClick={guardLink} className={iconButton}>
+              <MessageSquare className="size-5.5" aria-hidden />
+            </Link>
+            <Link
+              href="/profile/favorites"
+              aria-label={favoriteCount > 0 ? `Любими (${favoriteCount})` : "Любими"}
+              onClick={guardLink}
+              className={`${iconButton} relative`}
+            >
+              <Heart className="size-5.5" aria-hidden />
+              {favoriteCount > 0 && (
+                <span
+                  aria-hidden
+                  className="absolute top-0 right-0 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-brand-rose px-1 text-[0.6875rem] leading-none font-bold text-white ring-2 ring-zinc-50"
+                >
+                  {favoriteCount > 99 ? "99+" : favoriteCount}
+                </span>
+              )}
+            </Link>
+            {isLoggedIn ? (
+              <UserMenu />
+            ) : (
+              <button
+                type="button"
+                aria-label="Вход"
+                aria-haspopup="dialog"
+                onClick={openLogin}
+                className={`${iconButton} cursor-pointer`}
+              >
+                <User className="size-5.5" aria-hidden />
+              </button>
+            )}
+            {/* "Добави обява" as a round button with a plus, in the colour of the wide screens' button. */}
+            <Link
+              href="/sell"
+              aria-label="Добави обява"
+              onClick={guardLink}
+              className="ml-1.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-rose text-white transition-colors hover:bg-brand"
+            >
+              <Plus className="size-5.5" aria-hidden />
+            </Link>
+          </div>
+        </div>
+        <SearchBox className="mt-3 block" wide />
+      </div>
+
+      <div className="mx-auto hidden max-w-7xl px-4 sm:px-6 md:block">
         <nav
           aria-label="Основна навигация"
           className="flex h-18 items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 sm:gap-6 sm:px-5"

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type SubmitEvent } from "react";
 import { Search, X } from "lucide-react";
 import type { SearchResult } from "@/app/api/search/route";
 
@@ -15,7 +15,19 @@ const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency
 // The search field in the navigation. While the visitor types a brand, a category, a product's
 // name or several of them, the listings found so far are offered in a list underneath; Enter
 // opens the marketplace with all of them.
-export default function SearchBox() {
+type SearchBoxProps = {
+  // How the box sits among its neighbours; the default fits the top bar of wide screens.
+  className?: string;
+  // Full width with a white field, as on phones, instead of the grey field of the top bar.
+  wide?: boolean;
+};
+
+export default function SearchBox({
+  className = "flex min-w-0 flex-1 justify-center md:grow-0 md:basis-md",
+  wide = false,
+}: SearchBoxProps) {
+  // The phone layout and the wide one each have a search box, so the list's id cannot be fixed.
+  const listId = useId();
   const router = useRouter();
   const [query, setQuery] = useState("");
   // The listings found for `found.query`, or null before the first answer has arrived.
@@ -87,9 +99,15 @@ export default function SearchBox() {
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) close();
       }}
-      className="relative flex min-w-0 flex-1 justify-center md:grow-0 md:basis-md"
+      className={`relative ${className}`}
     >
-      <label className="flex h-11 w-full max-w-md items-center gap-3 rounded-full bg-zinc-100 px-4 transition-colors focus-within:bg-zinc-200/70">
+      <label
+        className={`flex h-11 w-full items-center gap-3 px-4 transition-colors ${
+          wide
+            ? "rounded-xl border border-black/10 bg-white focus-within:border-brand-rose"
+            : "max-w-md rounded-full bg-zinc-100 focus-within:bg-zinc-200/70"
+        }`}
+      >
         <Search className="size-5 shrink-0 text-brand-ink/60" aria-hidden />
         <input
           type="search"
@@ -102,7 +120,7 @@ export default function SearchBox() {
           aria-label="Търсене"
           role="combobox"
           aria-expanded={listOpen}
-          aria-controls="search-results"
+          aria-controls={listId}
           aria-autocomplete="list"
           autoComplete="off"
           // The browser's own clear button is hidden; the red one after the field replaces it.
@@ -126,8 +144,8 @@ export default function SearchBox() {
 
       {listOpen && (
         <div
-          id="search-results"
-          className="absolute top-full z-30 mt-2 w-full max-w-md overflow-hidden rounded-2xl border border-black/5 bg-white shadow-lg shadow-brand-ink/10"
+          id={listId}
+          className={`absolute top-full z-30 mt-2 w-full ${wide ? "" : "max-w-md"} overflow-hidden rounded-2xl border border-black/5 bg-white shadow-lg shadow-brand-ink/10`}
         >
           {results.length > 0 ? (
             <>

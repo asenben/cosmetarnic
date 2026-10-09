@@ -38,6 +38,8 @@ export type Product = {
   condition: keyof typeof conditions;
   delivery?: Delivery[];
   image?: string;
+  // The category's name, shown under the price on phones.
+  categoryLabel?: string;
   // A sold listing gets a label over its picture and no heart.
   sold?: boolean;
 };
@@ -52,6 +54,7 @@ export default function ProductCard({
   condition,
   delivery = [],
   image,
+  categoryLabel,
   sold = false,
 }: Product) {
   const { favorite, toggleFavorite } = useFavorite(id);
@@ -68,12 +71,14 @@ export default function ProductCard({
           className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
         >
           {image ? (
+            // The photo fills the frame from its middle, with nothing empty around it; whatever does
+            // not fit at its edges is seen on the listing's own page.
             <Image
               src={image}
               alt=""
               fill
               sizes="(min-width: 1024px) 25vw, 50vw"
-              className={`object-cover transition-transform duration-300 group-hover/image:scale-105 ${sold ? "opacity-50" : ""}`}
+              className={`object-cover object-center transition-transform duration-300 group-hover/image:scale-105 ${sold ? "opacity-50" : ""}`}
             />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 text-xs font-medium text-brand-ink/60">
@@ -94,7 +99,7 @@ export default function ProductCard({
           aria-label={favorite ? "Премахни от любими" : "Добави в любими"}
           aria-pressed={favorite}
           onClick={toggleFavorite}
-          className="absolute right-3 bottom-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-full bg-white text-brand-ink shadow-sm listview:top-3 listview:right-4 listview:bottom-auto listview:size-10 listview:border listview:border-black/5 transition-colors hover:text-brand-rose"
+          className="absolute top-3 right-3 z-10 flex size-9 cursor-pointer sm:top-auto sm:bottom-3 items-center justify-center rounded-full bg-white text-brand-ink shadow-sm listview:top-3 listview:right-4 listview:bottom-auto listview:size-10 listview:border listview:border-black/5 transition-colors hover:text-brand-rose"
         >
           <Heart className={`size-4.5 ${favorite ? "fill-red-800 text-red-800" : ""}`} aria-hidden />
         </button>
@@ -116,7 +121,7 @@ export default function ProductCard({
           <p className="text-base font-bold text-brand-ink listview:col-start-1 listview:row-start-2 listview:text-xl">
             {priceFormat.format(price)}
           </p>
-          <ul className="flex items-center gap-1.5 text-brand-ink/50 listview:col-span-2 listview:row-start-4 listview:mt-2 listview:flex-wrap listview:gap-x-4 listview:gap-y-1 listview:border-t listview:border-black/5 listview:pt-3 listview:text-sm listview:text-brand-ink">
+          <ul className="hidden items-center gap-1.5 text-brand-ink/50 sm:flex listview:col-span-2 listview:row-start-4 listview:mt-2 listview:flex-wrap listview:gap-x-4 listview:gap-y-1 listview:border-t listview:border-black/5 listview:pt-3 listview:text-sm listview:text-brand-ink">
             {deliveryBadges(delivery).map(({ key, label, icon: Icon }) => (
               <li
                 key={key}
@@ -130,13 +135,15 @@ export default function ProductCard({
           </ul>
         </div>
 
+        {categoryLabel && <p className="truncate text-xs text-brand-ink/60 sm:hidden">{categoryLabel}</p>}
+
         <div className="flex items-center justify-between gap-2 text-xs text-brand-ink/60 listview:contents">
-          <span className="flex min-w-0 items-center gap-1.5 listview:col-start-1 listview:row-start-3 listview:text-sm">
-            <MapPin className="hidden size-4 shrink-0 listview:block" aria-hidden />
+          <span className="flex min-w-0 items-center gap-1 sm:gap-1.5 listview:col-start-1 listview:row-start-3 listview:text-sm">
+            <MapPin className="size-3.5 shrink-0 sm:hidden listview:block listview:size-4" aria-hidden />
             <span className="truncate">{city}</span>
           </span>
-          <span className="flex shrink-0 items-center gap-1.5 listview:col-start-2 listview:row-start-3 listview:self-center">
-            <Clock className="hidden size-3.5 listview:block" aria-hidden />
+          <span className="flex shrink-0 items-center gap-1 sm:gap-1.5 listview:col-start-2 listview:row-start-3 listview:self-center">
+            <Clock className="size-3 sm:hidden listview:block listview:size-3.5" aria-hidden />
             {postedAgo}
           </span>
         </div>

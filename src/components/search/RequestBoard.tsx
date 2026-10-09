@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Heart, Pencil, SearchX, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import FiltersSidebar from "@/components/FiltersSidebar";
+import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
 import { PRICE_MAX, noFilters, type Filters } from "@/components/SortBar";
 
@@ -121,12 +121,13 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
           className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
         >
           {request.image ? (
+            // The picture fills the frame from its middle, with nothing empty around it.
             <Image
               src={request.image}
               alt=""
               fill
               sizes="(min-width: 1024px) 25vw, 50vw"
-              className="object-cover transition-transform duration-300 group-hover/image:scale-105"
+              className="object-cover object-center transition-transform duration-300 group-hover/image:scale-105"
             />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 text-xs font-medium text-brand-ink/60">
@@ -223,6 +224,8 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
 export default function RequestBoard({ requests }: { requests: BoardRequest[] }) {
   const [filters, setFilters] = useState(noFilters);
   const [sort, setSort] = useState<SortOrder>("newest");
+  // Whether the filters cover the page, on the narrow screens where they are not at its side.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const shown = requests.filter((request) => matches(request, filters));
   if (sort !== "newest") {
@@ -236,13 +239,14 @@ export default function RequestBoard({ requests }: { requests: BoardRequest[] })
 
   return (
     <>
-      <FiltersSidebar filters={filters} onChange={setFilters} />
+      <FiltersSidebar filters={filters} onChange={setFilters} open={filtersOpen} onOpenChange={setFiltersOpen} />
       <ProductGrid
         count={shown.length}
         sort={sort}
         onSortChange={setSort}
         label="Публикации"
         countLabel={shown.length === 1 ? "Намерена публикация" : "Намерени публикации"}
+        filters={{ active: activeFilterCount(filters), onOpen: () => setFiltersOpen(true) }}
       >
         {shown.map((request) => (
           <RequestCard key={request.id} request={request} />
@@ -293,7 +297,7 @@ export function FavoriteRequests({ requests, emptyNote }: FavoriteRequestsProps)
   return (
     <section className="mt-8">
       <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Търсени продукти ({shown.length})</h2>
-      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((request) => (
           <RequestCard
             key={request.id}

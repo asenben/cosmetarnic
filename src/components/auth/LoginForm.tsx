@@ -2,7 +2,7 @@
 
 import { useState, type SubmitEvent } from "react";
 import { Lock, User } from "lucide-react";
-import { AuthField, AuthHeader, AuthSwitch, SocialLogin, submitButton } from "@/components/auth/AuthParts";
+import { AuthField, AuthHeader, AuthSwitch, submitButton } from "@/components/auth/AuthParts";
 import type { SessionUser } from "@/lib/auth/session";
 
 type LoginFormProps = {
@@ -60,7 +60,7 @@ export default function LoginForm({ notice, onSuccess, onForgotPassword, onRegis
         </p>
       )}
 
-      <form onSubmit={onSubmit} className="mt-3 space-y-2.5">
+      <form onSubmit={onSubmit} className="mt-8 space-y-5">
         <AuthField
           label="Потребителско име"
           icon={User}
@@ -104,7 +104,6 @@ export default function LoginForm({ notice, onSuccess, onForgotPassword, onRegis
         </button>
       </form>
 
-      <SocialLogin />
       <AuthSwitch question="Нямаш акаунт?" action="Регистрирай се" onClick={onRegister} />
     </div>
   );

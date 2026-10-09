@@ -2,11 +2,6 @@
 
 import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { Eye, EyeOff, type LucideIcon } from "lucide-react";
-import { FaFacebook } from "react-icons/fa6";
-import { FcGoogle } from "react-icons/fc";
-
-const socialButton =
-  "flex h-10 cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-black/10 text-sm font-semibold text-brand-ink transition-colors hover:border-brand-rose/50 hover:bg-zinc-50";
 
 export const submitButton =
   "h-10 w-full cursor-pointer rounded-xl bg-brand-rose text-sm font-semibold text-white transition-colors hover:bg-brand";
@@ -89,29 +84,6 @@ export function AuthField({
   );
 }
 
-export function SocialLogin() {
-  return (
-    <>
-      <div className="my-3 flex items-center gap-4 text-xs text-brand-ink/50">
-        <span className="h-px flex-1 bg-black/10" aria-hidden />
-        или
-        <span className="h-px flex-1 bg-black/10" aria-hidden />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <button type="button" className={socialButton}>
-          <FcGoogle className="size-5" aria-hidden />
-          Google
-        </button>
-        <button type="button" className={socialButton}>
-          <FaFacebook className="size-5 text-facebook" aria-hidden />
-          Facebook
-        </button>
-      </div>
-    </>
-  );
-}
-
 type AuthSwitchProps = {
   question: string;
   action: string;
@@ -120,7 +92,7 @@ type AuthSwitchProps = {
 
 export function AuthSwitch({ question, action, onClick }: AuthSwitchProps) {
   return (
-    <p className="mt-3 text-center text-sm text-brand-ink/70">
+    <p className="mt-6 text-center text-sm text-brand-ink/70">
       {question}{" "}
       <button type="button" onClick={onClick} className={textLink}>
         {action}

@@ -23,7 +23,8 @@ import type { ProductDetails } from "@/data/product";
 const conditionLabels = { new: "Ново", used: "Използвано" };
 
 const deliveryLabels = {
-  pickup: "С лично предаване",
+  // Short, so that all three ways fit on one line beside "Изпращане"; the map pin says the rest.
+  pickup: "Лично",
   speedy: "Спиди",
   econt: "Еконт",
 };
@@ -93,11 +94,15 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
                 Изпращане
               </dt>
               <dd>
-                <ul className="flex flex-wrap justify-end gap-x-4 gap-y-1.5 font-semibold text-brand-ink">
+                <ul className="flex justify-end gap-x-3.5 font-semibold text-brand-ink">
                   {delivery.map((key) => {
                     const Icon = key === "pickup" ? MapPin : Package;
                     return (
-                      <li key={key} className="flex items-center gap-1.5 whitespace-nowrap">
+                      <li
+                        key={key}
+                        title={key === "pickup" ? "Лично предаване" : undefined}
+                        className="flex items-center gap-1.5 whitespace-nowrap"
+                      >
                         <Icon className="size-4 text-brand-ink/60" aria-hidden />
                         {deliveryLabels[key]}
                       </li>

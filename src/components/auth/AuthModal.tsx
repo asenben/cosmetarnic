@@ -136,7 +136,7 @@ export default function AuthModal({ ref, open, onClose, children }: AuthModalPro
       >
         <div
           ref={panelRef}
-          className="pointer-events-auto relative m-auto w-full will-change-transform max-w-md rounded-3xl bg-white p-5 shadow-2xl shadow-brand-ink/20"
+          className="pointer-events-auto relative m-auto w-full will-change-transform max-w-92 rounded-3xl bg-white px-7 py-10 shadow-2xl shadow-brand-ink/20"
         >
           <button
             type="button"

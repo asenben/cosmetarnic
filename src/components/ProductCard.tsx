@@ -38,8 +38,6 @@ export type Product = {
   condition: keyof typeof conditions;
   delivery?: Delivery[];
   image?: string;
-  // A sold listing gets a label over its picture and no heart.
-  sold?: boolean;
 };
 
 export default function ProductCard({
@@ -52,7 +50,6 @@ export default function ProductCard({
   condition,
   delivery = [],
   image,
-  sold = false,
 }: Product) {
   const { favorite, toggleFavorite } = useFavorite(id);
   const { label: conditionLabel, className: conditionClass } = conditions[condition];
@@ -79,7 +76,7 @@ export default function ProductCard({
               alt=""
               fill
               sizes="(min-width: 1024px) 25vw, 50vw"
-              className={`object-cover object-center transition-transform duration-300 group-hover/image:scale-105 ${sold ? "opacity-50" : ""}`}
+              className="object-cover object-center transition-transform duration-300 group-hover/image:scale-105"
             />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 text-xs font-medium text-brand-ink/60">
@@ -87,16 +84,10 @@ export default function ProductCard({
               Няма изображение
             </div>
           )}
-          {sold && (
-            <span className="absolute top-3 left-3 rounded-full bg-brand-ink px-3 py-1 text-xs font-semibold text-white">
-              Продадено
-            </span>
-          )}
         </Link>
 
         <button
           type="button"
-          hidden={sold}
           aria-label={favorite ? "Премахни от любими" : "Добави в любими"}
           aria-pressed={favorite}
           onClick={toggleFavorite}

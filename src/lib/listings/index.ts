@@ -18,8 +18,6 @@ export type Listing = {
   id: string;
   // The id of the user who published it.
   userId: string;
-  // A sold listing is off the marketplace and the search, but its page stays for those with the link.
-  sold: boolean;
   // Which listing this was in the order of publishing, starting from 1. Shown to people as its ID.
   number: number;
   title: string;
@@ -44,7 +42,6 @@ export type Listing = {
 const toListing = (row: Record<string, unknown>): Listing => ({
   id: row.id as string,
   userId: row.user_id as string,
-  sold: row.status === "sold",
   number: Number(row.number),
   title: row.title as string,
   brand: row.brand as string,
@@ -220,7 +217,7 @@ export async function getListings(search = "", limit: number | null = null) {
   return rows.map(toListing);
 }
 
-// All of one user's listings, on sale and sold, newest first.
+// All of one user's listings, newest first.
 export async function getUserListings(userId: string) {
   const rows = await sql`
     select l.*, u.username, u.avatar, u.created_at as seller_created_at, 0 as seller_listings
@@ -230,25 +227,11 @@ export async function getUserListings(userId: string) {
   return rows.map(toListing);
 }
 
-// How many listings the user has on sale and how many they have sold.
+// How many listings the user has on sale. A listing whose product is gone is deleted by its
+// owner, so there is no count of sold ones: `sold` stays 0 for the profile's tiles.
 export async function countUserListings(userId: string) {
-  const [row] = await sql`
-    select count(*) filter (where status = 'active')::int as active,
-           count(*) filter (where status = 'sold')::int as sold
-    from listings where user_id = ${userId}`;
-  return { active: row.active as number, sold: row.sold as number };
-}
-
-// Marks the owner's listing as sold, or puts it back on sale. Answers false when there is no
-// such listing of theirs.
-export async function setListingSold(userId: string, id: string, sold: boolean) {
-  if (!LISTING_ID_PATTERN.test(id)) return false;
-  const changed = await sql`
-    update listings
-    set status = ${sold ? "sold" : "active"}, sold_at = ${sold ? new Date().toISOString() : null}
-    where id = ${id} and user_id = ${userId}
-    returning id`;
-  return changed.length > 0;
+  const [row] = await sql`select count(*)::int as active from listings where status = 'active' and user_id = ${userId}`;
+  return { active: row.active as number, sold: 0 };
 }
 
 // What tells one visitor's device from another's: its network address and browser. Only a hash of
@@ -256,7 +239,7 @@ export async function setListingSold(userId: string, id: string, sold: boolean) 
 export const viewerKey = (address: string, userAgent: string) =>
   createHash("sha256").update(`${address}|${userAgent}`).digest("hex");
 
-// The listing for its own page, sold or not, or null when there is none. Opening the page counts
+// The listing for its own page, or null when there is none. Opening the page counts
 // as a view the first time a device does it; the seller looking at their own listing is not counted.
 export async function viewListing(id: string, viewer: { key: string; userId?: string }) {
   if (!LISTING_ID_PATTERN.test(id)) return null;

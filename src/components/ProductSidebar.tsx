@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useState } from "react";
 import {
-  BadgeCheck,
   CalendarDays,
   ChevronRight,
   Heart,
@@ -35,7 +34,7 @@ const phoneButton =
 const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 export default function ProductSidebar({ product }: { product: ProductDetails }) {
-  const { sold, title, brand, price, city, postedAgo, condition, color, phone, delivery = [], sellerProfile: seller } = product;
+  const { title, brand, price, city, postedAgo, condition, color, phone, delivery = [], sellerProfile: seller } = product;
 
   const { requireAuth } = useAuth();
   const { favorite, toggleFavorite } = useFavorite(product.id);
@@ -57,7 +56,6 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             <h1 className="min-w-0 text-lg leading-snug font-bold wrap-break-word text-brand-ink">{title}</h1>
             <button
               type="button"
-              hidden={sold}
               aria-label={favorite ? "Премахни от любими" : "Добави в любими"}
               aria-pressed={favorite}
               onClick={toggleFavorite}
@@ -115,33 +113,24 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
         </dl>
 
         <div className="border-t border-black/5 p-5">
-          {sold ? (
-            <p className="flex h-12 items-center justify-center gap-2 rounded-xl bg-zinc-100 text-sm font-semibold text-brand-ink/70">
-              <BadgeCheck className="size-4.5" aria-hidden />
-              Обявата е продадена
-            </p>
-          ) : (
-            <>
-              <MessageButton target={{ listingId: product.id }} />
+          <MessageButton target={{ listingId: product.id }} />
 
-              {phoneVisible ? (
-                <a href={`tel:${phone.replaceAll(" ", "")}`} className={phoneButton}>
-                  <Phone className="size-4.5" aria-hidden />
-                  {phone}
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (requireAuth()) setPhoneVisible(true);
-                  }}
-                  className={phoneButton}
-                >
-                  <Phone className="size-4.5" aria-hidden />
-                  Покажи номер
-                </button>
-              )}
-            </>
+          {phoneVisible ? (
+            <a href={`tel:${phone.replaceAll(" ", "")}`} className={phoneButton}>
+              <Phone className="size-4.5" aria-hidden />
+              {phone}
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (requireAuth()) setPhoneVisible(true);
+              }}
+              className={phoneButton}
+            >
+              <Phone className="size-4.5" aria-hidden />
+              Покажи номер
+            </button>
           )}
 
           <div className="relative mt-3 flex h-14 items-center gap-2.5 overflow-hidden rounded-xl bg-zinc-100 px-4 text-sm font-medium text-brand-ink">

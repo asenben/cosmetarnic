@@ -23,7 +23,6 @@ function toProduct(listing: Listing): ProductDetails {
   return {
     id: listing.id,
     number: listing.number,
-    sold: listing.sold,
     brand: listing.brand,
     price: listing.price,
     city: listing.city,
@@ -98,7 +97,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
               <ProductGallery
                 images={product.images}
                 alt={product.title}
-                badge={product.sold ? "Продадено" : conditionLabels[product.condition]}
+                badge={conditionLabels[product.condition]}
               />
             </div>
 
@@ -133,7 +132,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
             {user?.id === listing.userId && (
               <section className="rounded-2xl border border-black/5 bg-white p-5">
                 <h2 className="text-base font-bold text-brand-ink">Това е твоя обява</h2>
-                <ListingActions id={listing.id} sold={listing.sold} afterDelete="/profile/listings" className="mt-3" />
+                <ListingActions id={listing.id} afterDelete="/profile/listings" className="mt-3" />
               </section>
             )}
             <ProductSidebar product={product} />

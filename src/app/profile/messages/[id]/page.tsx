@@ -23,7 +23,7 @@ export default async function ConversationPage({ params }: PageProps<"/profile/m
   const { conversation, messages } = opened;
 
   return (
-    <div className="rounded-2xl border border-black/5 bg-white p-5 sm:p-6">
+    <div className="rounded-2xl border border-black/5 bg-white p-4 sm:p-6">
       <Link
         href="/profile/messages"
         className="flex w-fit items-center gap-1.5 text-sm font-medium text-brand-ink/60 transition-colors hover:text-brand-rose"
@@ -33,9 +33,9 @@ export default async function ConversationPage({ params }: PageProps<"/profile/m
       </Link>
 
       <div className="mt-4 flex items-center gap-3">
-        <Avatar name={conversation.other.username} src={avatarUrl(conversation.other.avatar)} className="size-12 text-lg" />
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold text-brand-ink">{conversation.other.username}</h1>
+        <Avatar name={conversation.other.username} src={avatarUrl(conversation.other.avatar)} className="size-11 text-lg sm:size-12" />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-bold text-brand-ink sm:text-xl">{conversation.other.username}</h1>
           <p className="truncate text-sm text-brand-ink/60">
             {conversation.kind === "request" ? "Относно публикацията " : "Относно обявата "}
             {conversation.href ? (

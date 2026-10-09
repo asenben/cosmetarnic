@@ -98,7 +98,9 @@ export default function Thread({ conversationId, initialMessages }: ThreadProps)
       <ol
         ref={listRef}
         aria-label="Съобщения"
-        className="scrollbar-soft mt-4 flex h-96 flex-col gap-2 overflow-y-auto rounded-xl bg-zinc-50 p-4"
+        // As tall as the screen allows, so the box for writing stays in view under it; it scrolls
+        // up and down only, never sideways.
+        className="scrollbar-soft mt-4 flex h-[calc(100dvh-25rem)] max-h-[32rem] min-h-64 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl bg-zinc-50 p-3 sm:p-4"
       >
         {messages.length === 0 && (
           <li className="m-auto text-center text-sm text-brand-ink/60">
@@ -106,9 +108,14 @@ export default function Thread({ conversationId, initialMessages }: ThreadProps)
           </li>
         )}
         {messages.map(({ id, body, mine, sentAt }) => (
-          <li key={id} className={`flex max-w-[80%] flex-col ${mine ? "items-end self-end" : "items-start self-start"}`}>
+          <li
+            key={id}
+            className={`flex max-w-[85%] min-w-0 flex-col sm:max-w-[75%] ${mine ? "items-end self-end" : "items-start self-start"}`}
+          >
+            {/* A long word or an address with no spaces is broken wherever it has to be, so the
+                bubble never grows wider than the conversation. */}
             <p
-              className={`rounded-2xl px-3.5 py-2 text-sm leading-5 wrap-break-word whitespace-pre-line ${
+              className={`max-w-full rounded-2xl px-3.5 py-2 text-sm leading-5 wrap-anywhere whitespace-pre-line ${
                 mine ? "rounded-br-md bg-brand-rose text-white" : "rounded-bl-md border border-black/5 bg-white text-brand-ink"
               }`}
             >
@@ -131,18 +138,21 @@ export default function Thread({ conversationId, initialMessages }: ThreadProps)
           }}
           onKeyDown={onKeyDown}
           aria-label="Ново съобщение"
-          rows={2}
+          rows={1}
           maxLength={MESSAGE_MAX}
           placeholder="Напиши съобщение..."
-          className="scrollbar-soft min-h-12 flex-1 resize-none rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm leading-5 text-brand-ink transition-colors outline-none placeholder:text-brand-ink/40 focus:border-brand-rose"
+          className="scrollbar-soft h-10 min-w-0 flex-1 resize-none rounded-xl border border-black/10 bg-white px-3.5 py-[9px] text-sm leading-5 text-brand-ink transition-colors outline-none placeholder:text-brand-ink/40 focus:border-brand-rose"
         />
         <button
           type="submit"
           disabled={sending || !text.trim()}
-          className="flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-brand-rose px-5 text-sm font-semibold text-white transition-colors hover:bg-brand disabled:cursor-default disabled:opacity-50 disabled:hover:bg-brand-rose"
+          aria-label="Изпрати"
+          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-rose text-sm sm:w-auto sm:px-5 font-semibold text-white transition-colors hover:bg-brand disabled:cursor-default disabled:opacity-50 disabled:hover:bg-brand-rose"
         >
-          <Send className="size-4" aria-hidden />
-          Изпрати
+          {/* The paper plane's shape leans to the top right, so it is nudged to look centred. */}
+          <Send className="size-4.5 -translate-x-px translate-y-px sm:size-4" aria-hidden />
+          {/* On phones the paper plane alone, to leave the room to the text. */}
+          <span className="hidden sm:inline">Изпрати</span>
         </button>
       </form>
       {error && (

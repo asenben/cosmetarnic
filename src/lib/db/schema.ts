@@ -90,7 +90,8 @@ export const schema = [
   // The number shown on the listing's page as its ID: 1 for the first listing published, 2 for the
   // next, and so on. A number is never given out again, even after its listing is deleted.
   `alter table listings add column if not exists number bigint generated always as identity`,
-  // When the seller marked the listing as sold (its status is then 'sold'), for showing it so.
+  // From when listings could be marked as sold; no longer used, since a sold product's listing
+  // is deleted instead. Left in place so that nothing stored is lost.
   `alter table listings add column if not exists sold_at timestamptz`,
   // The "Търся" posts: what a registered user is looking for, so that sellers can get in touch.
   // Not listings: nothing is on sale and there are no photos (see src/lib/requests).

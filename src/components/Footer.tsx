@@ -8,7 +8,9 @@ import {
   Heart,
   LayoutGrid,
   Lightbulb,
+  Lock,
   Recycle,
+  ScrollText,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -20,6 +22,7 @@ const columns = [
       { href: "/listings", label: "Всички обяви", icon: LayoutGrid },
       { href: "/listings?condition=new", label: "Нови", icon: Sparkles },
       { href: "/listings?condition=used", label: "Използвани", icon: Recycle },
+      { href: "/terms", label: "Правила и условия", icon: ScrollText },
     ],
   },
   {
@@ -37,11 +40,10 @@ const columns = [
       { href: "/about", label: "Мисията ни", icon: Heart },
       { href: "/faq", label: "Често задавани въпроси", icon: CircleHelp },
       { href: "/help/safety", label: "Безопасно пазаруване", icon: ShieldCheck },
+      { href: "/privacy", label: "Политика за поверителност", icon: Lock },
     ],
   },
 ];
-
-const legalLink = "transition-colors hover:text-white";
 
 export default function Footer() {
   return (
@@ -86,8 +88,10 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 text-xs sm:px-6 md:flex-row md:items-center md:justify-between">
-          <p>
+        {/* The copyright on one line, small enough to fit a phone, and the language under it;
+            side by side on wide screens. */}
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-5 text-xs sm:px-6 md:flex-row md:items-center md:justify-between">
+          <p className="text-[0.625rem] whitespace-nowrap min-[400px]:text-[0.6875rem] sm:text-xs">
             © 2026 Козметарник.{" "}
             <a
               href="https://codenovastudio.com"
@@ -99,24 +103,14 @@ export default function Footer() {
             </a>
             . Всички права запазени.
           </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Link href="/terms" className={legalLink}>
-              Правила и условия
-            </Link>
-            <span className="h-4 w-px bg-white/15" aria-hidden />
-            <Link href="/privacy" className={legalLink}>
-              Политика за поверителност
-            </Link>
-            <span className="h-4 w-px bg-white/15" aria-hidden />
-            <span className="inline-flex items-center gap-2">
-              <svg viewBox="0 0 20 14" className="h-3.5 w-5 rounded-xs" aria-hidden>
-                <rect width="20" height="14" fill="#fff" />
-                <rect y="4.67" width="20" height="4.67" fill="#00966e" />
-                <rect y="9.33" width="20" height="4.67" fill="#d62612" />
-              </svg>
-              Български
-            </span>
-          </div>
+          <span className="inline-flex items-center gap-2 self-center">
+            <svg viewBox="0 0 20 14" className="h-3.5 w-5 rounded-xs" aria-hidden>
+              <rect width="20" height="14" fill="#fff" />
+              <rect y="4.67" width="20" height="4.67" fill="#00966e" />
+              <rect y="9.33" width="20" height="4.67" fill="#d62612" />
+            </svg>
+            Български
+          </span>
         </div>
       </div>
     </footer>

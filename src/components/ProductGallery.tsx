@@ -37,7 +37,9 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
       {/* With several pictures there is no frame: they stand freely on the page. A single picture,
           or none, keeps the tinted frame it fills. */}
       <div
-        className={`relative aspect-16/9 w-full ${images.length > 1 ? "" : "overflow-hidden rounded-xl bg-brand-pale"}`}
+        className={`relative aspect-4/3 w-full sm:aspect-16/9 ${
+          images.length > 1 ? "overflow-x-clip" : "overflow-hidden rounded-xl bg-brand-pale"
+        }`}
       >
         {images.length > 1 ? (
           // A "coverflow": the chosen picture faces the viewer in the middle, and the ones before

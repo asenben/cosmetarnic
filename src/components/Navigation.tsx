@@ -22,6 +22,7 @@ export default function Navigation() {
   const pathname = usePathname();
   const { isLoggedIn, openLogin, requireAuth } = useAuth();
   const favoriteCount = useFavoriteCount();
+  const onItemPage = pathname.startsWith("/product/") || /^\/search\/[^/]+$/.test(pathname);
   // Links to account-only pages open the login form instead of navigating when signed out.
   const guardLink = (event: MouseEvent) => {
     if (!requireAuth()) event.preventDefault();
@@ -60,8 +61,7 @@ export default function Navigation() {
 
   return (
     <header className="bg-zinc-50 pt-3">
-      {/* Phones: just the logo with the search field under it. The links and the buttons are in
-          the bar at the bottom of the screen (see MobileTabBar). */}
+      {/* Phones: the logo with the account's buttons across from it, and the search field under them. */}
       <div className="px-4 md:hidden">
         {/* The logo, and across from it the messages, the favourites and the account. */}
         <div className="flex items-center justify-between gap-3">
@@ -113,7 +113,8 @@ export default function Navigation() {
             </Link>
           </div>
         </div>
-        <SearchBox className="mt-3 block" wide />
+        {/* Not on the page of one listing or one "Търся" post: there the photo comes first. */}
+        {!onItemPage && <SearchBox className="mt-3 block" wide />}
       </div>
 
       <div className="mx-auto hidden max-w-7xl px-4 sm:px-6 md:block">

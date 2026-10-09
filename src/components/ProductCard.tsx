@@ -38,8 +38,6 @@ export type Product = {
   condition: keyof typeof conditions;
   delivery?: Delivery[];
   image?: string;
-  // The category's name, shown under the price on phones.
-  categoryLabel?: string;
   // A sold listing gets a label over its picture and no heart.
   sold?: boolean;
 };
@@ -54,16 +52,17 @@ export default function ProductCard({
   condition,
   delivery = [],
   image,
-  categoryLabel,
   sold = false,
 }: Product) {
   const { favorite, toggleFavorite } = useFavorite(id);
   const { label: conditionLabel, className: conditionClass } = conditions[condition];
 
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex">
+    // A container, so the card can tell when it is narrow (two across on a phone) and lay its
+    // last row out to fit.
+    <article className="@container relative overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex">
       {/* Not a positioning anchor in the list view, so the heart there moves to the card's top right corner. */}
-      <div className="relative aspect-4/5 listview:static listview:m-2.5 listview:aspect-auto listview:w-24 listview:shrink-0 listview:sm:w-36">
+      <div className="relative aspect-4/5 @max-[13rem]:aspect-2/3 listview:static listview:m-2.5 listview:aspect-auto listview:w-24 listview:shrink-0 listview:sm:w-36">
         {/* Only the picture opens the listing; the details under it are not a link. */}
         <Link
           href={href}
@@ -107,7 +106,7 @@ export default function ProductCard({
 
       {/* In the list view the rows become one grid: name, price and city on the left, the time on
           the right under the heart, and the delivery options on a line of their own at the bottom. */}
-      <div className="space-y-1.5 p-3 listview:grid listview:min-w-0 listview:flex-1 listview:grid-cols-[minmax(0,1fr)_auto] listview:content-center listview:gap-x-4 listview:gap-y-1 listview:py-3 listview:pr-4 listview:pl-1.5">
+      <div className="space-y-1.5 p-3 @max-[13rem]:space-y-1 @max-[13rem]:p-2.5 listview:grid listview:min-w-0 listview:flex-1 listview:grid-cols-[minmax(0,1fr)_auto] listview:content-center listview:gap-x-4 listview:gap-y-1 listview:py-3 listview:pr-4 listview:pl-1.5">
         <div className="flex items-center justify-between gap-2 listview:col-start-1 listview:row-start-1 listview:mb-0 listview:min-w-0 listview:justify-start listview:gap-3 listview:pr-10">
           <h3 className="min-w-0 truncate text-sm font-semibold text-brand-ink listview:text-lg">
             {brand}
@@ -135,9 +134,8 @@ export default function ProductCard({
           </ul>
         </div>
 
-        {categoryLabel && <p className="truncate text-xs text-brand-ink/60 sm:hidden">{categoryLabel}</p>}
-
-        <div className="flex items-center justify-between gap-2 text-xs text-brand-ink/60 listview:contents">
+        {/* In a narrow card the town and the time each get a line, so neither is cut short. */}
+        <div className="flex items-center justify-between gap-2 text-xs text-brand-ink/60 @max-[13rem]:flex-col @max-[13rem]:items-start @max-[13rem]:gap-0.5 listview:contents">
           <span className="flex min-w-0 items-center gap-1 sm:gap-1.5 listview:col-start-1 listview:row-start-3 listview:text-sm">
             <MapPin className="size-3.5 shrink-0 sm:hidden listview:block listview:size-4" aria-hidden />
             <span className="truncate">{city}</span>

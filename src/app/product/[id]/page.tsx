@@ -68,7 +68,8 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
-        <nav aria-label="Навигационна пътека">
+        {/* Left out on phones, where it wraps over several lines and pushes the photo down. */}
+        <nav aria-label="Навигационна пътека" className="hidden md:block">
           <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-brand-ink/60">
             <li>
               <Link href="/" className="transition-colors hover:text-brand-rose">
@@ -88,11 +89,20 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
           </ol>
         </nav>
 
-        <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]">
-          <div className="space-y-6">
-            <ProductGallery images={product.images} alt={product.title} badge={product.sold ? "Продадено" : conditionLabels[product.condition]} />
+        {/* Wide screens: the photo with the description under it on the left, the details on the
+            right. Phones: one column in the order photo, details, description, so the name and
+            the price come straight after the photo. */}
+        <div className="grid grid-cols-1 gap-6 md:mt-4 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-8">
+          <div className="contents lg:block lg:space-y-6">
+            <div className="order-1 min-w-0 lg:order-none">
+              <ProductGallery
+                images={product.images}
+                alt={product.title}
+                badge={product.sold ? "Продадено" : conditionLabels[product.condition]}
+              />
+            </div>
 
-            <section className="rounded-2xl border border-black/5 bg-white p-5">
+            <section className="order-3 min-w-0 rounded-2xl border border-black/5 bg-white p-4 sm:p-5 lg:order-none">
               <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
               {/* Cleaned when the listing was saved (see src/lib/listings/description.ts). */}
               <div
@@ -118,7 +128,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
             </section>
           </div>
 
-          <div className="space-y-5">
+          <div className="order-2 min-w-0 space-y-5 lg:order-none">
             {/* Only the seller sees these: the buttons for editing and deleting the listing. */}
             {user?.id === listing.userId && (
               <section className="rounded-2xl border border-black/5 bg-white p-5">

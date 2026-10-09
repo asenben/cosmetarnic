@@ -54,7 +54,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
       <section className="rounded-2xl border border-black/5 bg-white">
         <div className="p-5">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="text-lg leading-snug font-bold text-brand-ink">{title}</h1>
+            <h1 className="min-w-0 text-lg leading-snug font-bold wrap-break-word text-brand-ink">{title}</h1>
             <button
               type="button"
               hidden={sold}
@@ -86,24 +86,24 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             </div>
           ))}
           {/* Each way of handing over with its own mark: a map pin for meeting in person, a parcel
-              for a courier. */}
+              for a courier. Smaller on phones, so that all three stay on one line. */}
           {delivery.length > 0 && (
-            <div className="flex items-center justify-between gap-4 py-3 text-sm">
-              <dt className="flex items-center gap-2.5 text-brand-ink/60">
+            <div className="flex items-center justify-between gap-2 py-3 text-sm sm:gap-4">
+              <dt className="flex shrink-0 items-center gap-2.5 text-brand-ink/60">
                 <Truck className="size-4 text-brand-rose" aria-hidden />
                 Изпращане
               </dt>
               <dd>
-                <ul className="flex justify-end gap-x-3.5 font-semibold text-brand-ink">
+                <ul className="flex justify-end gap-x-2 gap-y-1 text-[0.6875rem] font-semibold text-brand-ink max-[359px]:flex-wrap sm:gap-x-3.5 sm:text-sm">
                   {delivery.map((key) => {
                     const Icon = key === "pickup" ? MapPin : Package;
                     return (
                       <li
                         key={key}
                         title={key === "pickup" ? "Лично предаване" : undefined}
-                        className="flex items-center gap-1.5 whitespace-nowrap"
+                        className="flex items-center gap-1 whitespace-nowrap sm:gap-1.5"
                       >
-                        <Icon className="size-4 text-brand-ink/60" aria-hidden />
+                        <Icon className="size-3.5 shrink-0 text-brand-ink/60 sm:size-4" aria-hidden />
                         {deliveryLabels[key]}
                       </li>
                     );

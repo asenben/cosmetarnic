@@ -79,7 +79,7 @@ export default function RequestSidebar({ request }: { request: RequestDetails })
   };
 
   return (
-    <aside className="space-y-5">
+    <aside className="order-2 min-w-0 space-y-5 lg:order-none">
       <section className="rounded-2xl border border-black/5 bg-white">
         <div className="p-5">
           <div className="flex items-start justify-between gap-3">

@@ -6,7 +6,6 @@ import { SearchX, X } from "lucide-react";
 import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
 import ProductCard, { type Product } from "@/components/ProductCard";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
-import { categories } from "@/data/listingOptions";
 import { PRICE_MAX, noFilters, type Filters } from "@/components/SortBar";
 
 // A listing as the marketplace needs it: what its card shows, plus what the filters match on.
@@ -55,6 +54,8 @@ export default function Marketplace({
         sort={sort}
         onSortChange={setSort}
         filters={{ active: activeFilterCount(filters), onOpen: () => setFiltersOpen(true) }}
+        // Two listings across on phones too, so more of them are seen at once.
+        gridClassName="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3"
       >
         {search && (
           <p className="col-span-full flex flex-wrap items-center gap-2 text-sm text-brand-ink/60">
@@ -69,11 +70,10 @@ export default function Marketplace({
             </Link>
           </p>
         )}
-        {shown.map(({ id, href, image, brand, price, city, postedAgo, condition, delivery, category }) => (
+        {shown.map(({ id, href, image, brand, price, city, postedAgo, condition, delivery }) => (
           <ProductCard
             key={id}
             id={id}
-            categoryLabel={categories.find(({ value }) => value === category)?.label}
             href={href}
             image={image}
             brand={brand}

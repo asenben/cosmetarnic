@@ -54,8 +54,8 @@ export default function Marketplace({
         sort={sort}
         onSortChange={setSort}
         filters={{ active: activeFilterCount(filters), onOpen: () => setFiltersOpen(true) }}
-        // Two listings across on phones too, so more of them are seen at once.
-        gridClassName="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3"
+        // Two listings across on phones, so more of them are seen at once, and four on wide screens.
+        gridClassName="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
       >
         {search && (
           <p className="col-span-full flex flex-wrap items-center gap-2 text-sm text-brand-ink/60">

@@ -62,7 +62,9 @@ export default function ProductCard({
     // last row out to fit.
     <article className="@container relative overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex">
       {/* Not a positioning anchor in the list view, so the heart there moves to the card's top right corner. */}
-      <div className="relative aspect-4/5 @max-[13rem]:aspect-2/3 listview:static listview:m-2.5 listview:aspect-auto listview:w-24 listview:shrink-0 listview:sm:w-36">
+      {/* A tall frame, close to the shape of a photo taken with a phone held upright, so little
+          of it is left outside. */}
+      <div className="relative aspect-3/5 listview:static listview:m-2.5 listview:aspect-auto listview:w-24 listview:shrink-0 listview:sm:w-36">
         {/* Only the picture opens the listing; the details under it are not a link. */}
         <Link
           href={href}

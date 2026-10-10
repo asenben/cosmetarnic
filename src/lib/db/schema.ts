@@ -145,6 +145,69 @@ export const schema = [
     read_at timestamptz
   )`,
   `create index if not exists messages_conversation_id_idx on messages (conversation_id, created_at)`,
+  // Set when an administrator blocks the account: it cannot sign in, and what it published is
+  // not shown to anybody but administrators, until it is unblocked.
+  `alter table users add column if not exists blocked_at timestamptz`,
+  // The categories a listing or a "Търся" post can be in; the administrator adds to them from the
+  // panel. `value` is what is stored with a listing, `label` what people see, `icon` the name of
+  // its picture (see src/data/categoryIcons.ts).
+  `create table if not exists categories (
+    value text primary key,
+    label text not null,
+    icon text not null default 'Tag',
+    position integer not null default 0,
+    created_at timestamptz not null default now()
+  )`,
+  // The six categories the site started with. Skipped where they are there already, so a
+  // category the administrator renamed or removed is not brought back.
+  `insert into categories (value, label, icon, position)
+   select * from (values
+     ('makeup', 'Грим', 'Brush', 1),
+     ('skincare', 'Грижа за кожата', 'Droplet', 2),
+     ('hair', 'Коса', 'Scissors', 3),
+     ('nails', 'Нокти', 'Hand', 4),
+     ('perfumes', 'Парфюми', 'SprayCan', 5),
+     ('accessories', 'Аксесоари', 'Gem', 6)
+   ) as first (value, label, icon, position)
+   where not exists (select 1 from categories)`,
+  // The towns the filters and the forms offer; the administrator edits the list from the panel.
+  `create table if not exists cities (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    position integer not null default 0,
+    created_at timestamptz not null default now()
+  )`,
+  `create unique index if not exists cities_name_key on cities (lower(name))`,
+  // The ten towns the site started with; skipped once the table has any town.
+  `insert into cities (name, position)
+   select * from (values
+     ('София', 1), ('Пловдив', 2), ('Варна', 3), ('Бургас', 4), ('Русе', 5),
+     ('Стара Загора', 6), ('Плевен', 7), ('Сливен', 8), ('Добрич', 9), ('Шумен', 10)
+   ) as first (name, position)
+   where not exists (select 1 from cities)`,
+  // Single values the administrator sets, by key: 'price_range' holds the ends of the price
+  // slider in the filters as {"min": 0, "max": 500}.
+  `create table if not exists settings (
+    key text primary key,
+    value jsonb not null
+  )`,
+  // Reports sent with the "Докладвай" button on a listing's page, for the administrator. The
+  // listing's title and number are written down too, so a report still says what it was about
+  // after the listing, its seller or the reporter is deleted (see src/lib/reports).
+  `create table if not exists reports (
+    id uuid primary key default gen_random_uuid(),
+    listing_id uuid references listings (id) on delete set null,
+    listing_title text not null,
+    listing_number bigint,
+    seller_id uuid references users (id) on delete set null,
+    reporter_id uuid references users (id) on delete set null,
+    reason text not null,
+    details text,
+    status text not null default 'open',
+    created_at timestamptz not null default now(),
+    resolved_at timestamptz
+  )`,
+  `create index if not exists reports_status_idx on reports (status, created_at desc)`,
   // The listings each user marked with the heart.
   `create table if not exists favorites (
     user_id uuid not null references users (id) on delete cascade,

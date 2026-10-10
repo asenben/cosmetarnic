@@ -157,3 +157,88 @@ export async function sendMessage(userId: string, conversationId: string, input:
   await sql`update conversations set last_message_at = now() where id = ${conversationId}`;
   return { ok: true };
 }
+
+// ---- for the administrator, who may read any conversation ----
+// These only read: opening a conversation here does not mark anything as read, so the two people
+// talking see no trace of it.
+
+export type AdminConversation = {
+  id: string;
+  subject: string;
+  kind: "request" | "listing";
+  // The address of the post or listing, or null once it has been deleted.
+  href: string | null;
+  starter: { id: string; username: string; avatar: string | null };
+  owner: { id: string; username: string; avatar: string | null };
+  lastBody: string;
+  lastAt: Date;
+  messages: number;
+};
+
+const toAdminConversation = (row: Record<string, unknown>): AdminConversation => {
+  const kind = row.kind === "request" ? "request" : "listing";
+  const target = (kind === "request" ? row.request_id : row.listing_id) as string | null;
+  return {
+    id: row.id as string,
+    subject: row.subject as string,
+    kind,
+    href: target ? `${kind === "request" ? "/search" : "/product"}/${target}` : null,
+    starter: { id: row.starter_id as string, username: row.starter_username as string, avatar: row.starter_avatar as string | null },
+    owner: { id: row.owner_id as string, username: row.owner_username as string, avatar: row.owner_avatar as string | null },
+    lastBody: (row.last_body as string | null) ?? "",
+    lastAt: new Date(row.last_message_at as string),
+    messages: (row.messages as number | null) ?? 0,
+  };
+};
+
+// Every conversation with at least one message, or only those one user takes part in, the one
+// written in last first.
+export async function listAllConversations(userId: string | null = null) {
+  if (userId !== null && !ID_PATTERN.test(userId)) return [];
+  const rows = await sql`
+    select c.id, c.kind, c.request_id, c.listing_id, c.subject, c.last_message_at, c.starter_id, c.owner_id,
+           s.username as starter_username, s.avatar as starter_avatar,
+           o.username as owner_username, o.avatar as owner_avatar,
+           last.body as last_body,
+           (select count(*)::int from messages where conversation_id = c.id) as messages
+    from conversations c
+    join users s on s.id = c.starter_id
+    join users o on o.id = c.owner_id
+    join lateral (
+      select body from messages where conversation_id = c.id order by created_at desc limit 1
+    ) last on true
+    where ${userId}::uuid is null or c.starter_id = ${userId} or c.owner_id = ${userId}
+    order by c.last_message_at desc`;
+  return rows.map(toAdminConversation);
+}
+
+export type AdminMessage = { id: string; body: string; senderId: string; sentAt: Date; readAt: Date | null };
+
+// One conversation with all its messages, oldest first; null when there is none.
+export async function readConversation(id: string) {
+  if (!ID_PATTERN.test(id)) return null;
+  const [row] = await sql`
+    select c.id, c.kind, c.request_id, c.listing_id, c.subject, c.last_message_at, c.starter_id, c.owner_id,
+           s.username as starter_username, s.avatar as starter_avatar,
+           o.username as owner_username, o.avatar as owner_avatar
+    from conversations c
+    join users s on s.id = c.starter_id
+    join users o on o.id = c.owner_id
+    where c.id = ${id}`;
+  if (!row) return null;
+
+  const messages = await sql`
+    select id, body, sender_id, created_at, read_at from messages where conversation_id = ${id} order by created_at`;
+  return {
+    conversation: toAdminConversation({ ...row, messages: messages.length }),
+    messages: messages.map(
+      (message): AdminMessage => ({
+        id: message.id,
+        body: message.body,
+        senderId: message.sender_id,
+        sentAt: new Date(message.created_at),
+        readAt: message.read_at ? new Date(message.read_at) : null,
+      }),
+    ),
+  };
+}

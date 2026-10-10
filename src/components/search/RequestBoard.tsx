@@ -8,7 +8,7 @@ import { Heart, Pencil, SearchX, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
-import { PRICE_MAX, noFilters, type Filters } from "@/components/SortBar";
+import { noFilters, type Filters } from "@/components/SortBar";
 
 // A "Търся" post as the page shows it: what somebody is looking for.
 export type BoardRequest = {
@@ -49,8 +49,8 @@ function matches(request: BoardRequest, filters: Filters) {
   }
   // The price filter is compared with the budget; posts without one fit any price.
   if (request.budget !== null) {
-    if (request.budget < filters.priceMin) return false;
-    if (filters.priceMax < PRICE_MAX && request.budget > filters.priceMax) return false;
+    if (filters.priceMin !== null && request.budget < filters.priceMin) return false;
+    if (filters.priceMax !== null && request.budget > filters.priceMax) return false;
   }
   if (filters.cities.length > 0 && !filters.cities.includes(request.city)) return false;
   return true;

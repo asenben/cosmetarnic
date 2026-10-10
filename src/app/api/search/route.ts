@@ -1,4 +1,4 @@
-import { categories } from "@/data/listingOptions";
+import { getCategories } from "@/lib/categories";
 import { getListings } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
 
@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   if (!query.trim()) return Response.json({ results: [] });
 
   try {
+    const categories = await getCategories();
     const results: SearchResult[] = (await getListings(query, LIMIT)).map((listing) => ({
       id: listing.id,
       title: listing.title,

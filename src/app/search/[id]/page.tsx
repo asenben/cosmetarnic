@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import ProductGallery from "@/components/ProductGallery";
 import RequestSidebar from "@/components/search/RequestSidebar";
-import { categories } from "@/data/listingOptions";
+import { getCategories } from "@/lib/categories";
 import { avatarUrl } from "@/lib/auth/avatar";
 import { getCurrentUser } from "@/lib/auth/session";
 import { postedAgo } from "@/lib/listings";
@@ -22,8 +22,10 @@ export async function generateMetadata({ params }: PageProps<"/search/[id]">): P
 // on the left, the details and the way to get in touch on the right.
 export default async function RequestPage({ params }: PageProps<"/search/[id]">) {
   const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
-  const request = await getRequest(id, user?.id);
+  const isAdmin = user?.role === "admin";
+  const request = await getRequest(id, user?.id, isAdmin);
   if (!request) notFound();
+  const categories = await getCategories();
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -73,6 +75,7 @@ export default async function RequestPage({ params }: PageProps<"/search/[id]">)
           </div>
 
           <RequestSidebar
+            adminOf={isAdmin && request.userId !== user?.id ? { authorId: request.userId } : undefined}
             request={{
               id: request.id,
               title: request.title,

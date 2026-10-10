@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { MapPin, Search, type LucideIcon } from "lucide-react";
-import { categories, cities } from "@/data/listingOptions";
+import { useCategories, useCities, usePriceRange } from "@/components/SiteOptionsProvider";
 
 const conditions = [
   { value: "all", label: "Всички" },
@@ -10,24 +10,22 @@ const conditions = [
   { value: "used", label: "Използвано" },
 ] as const;
 
-export const PRICE_MIN = 0;
-// The top of the slider. Left there, it means "no upper limit", so dearer listings still show.
-export const PRICE_MAX = 500;
-
-// What the visitor has chosen in the sidebar. Empty lists mean "any".
+// What the visitor has chosen in the sidebar. Empty lists mean "any", and so does a price left
+// at null: the slider's thumb is at its end, so that end limits nothing and dearer (or cheaper)
+// listings than the slider reaches still show.
 export type Filters = {
   categories: string[];
   condition: (typeof conditions)[number]["value"];
-  priceMin: number;
-  priceMax: number;
+  priceMin: number | null;
+  priceMax: number | null;
   cities: string[];
 };
 
 export const noFilters: Filters = {
   categories: [],
   condition: "all",
-  priceMin: PRICE_MIN,
-  priceMax: PRICE_MAX,
+  priceMin: null,
+  priceMax: null,
   cities: [],
 };
 
@@ -76,6 +74,7 @@ function toggle(list: string[], value: string) {
 }
 
 export function CategoryFilter({ selected, onChange }: ListFilterProps) {
+  const categories = useCategories();
   return (
     <div>
       {categories.map(({ value, label, icon }) => (
@@ -115,11 +114,23 @@ export function ConditionFilter({ selected, onChange }: ConditionFilterProps) {
   );
 }
 
-type PriceFilterProps = { min: number; max: number; onChange: (min: number, max: number) => void };
+type PriceFilterProps = {
+  min: number | null;
+  max: number | null;
+  onChange: (min: number | null, max: number | null) => void;
+};
 
-export function PriceFilter({ min, max, onChange }: PriceFilterProps) {
-  const changeMin = (value: number) => onChange(Math.min(Math.max(value || PRICE_MIN, PRICE_MIN), max), max);
-  const changeMax = (value: number) => onChange(min, Math.max(Math.min(value || PRICE_MIN, PRICE_MAX), min));
+export function PriceFilter({ min: chosenMin, max: chosenMax, onChange }: PriceFilterProps) {
+  // The ends of the slider are set by the administrator. A thumb left at its end means that end
+  // is not limiting anything, which is kept as null.
+  const { min: PRICE_MIN, max: PRICE_MAX } = usePriceRange();
+  const min = Math.min(Math.max(chosenMin ?? PRICE_MIN, PRICE_MIN), PRICE_MAX);
+  const max = Math.max(Math.min(chosenMax ?? PRICE_MAX, PRICE_MAX), min);
+
+  const change = (newMin: number, newMax: number) =>
+    onChange(newMin <= PRICE_MIN ? null : newMin, newMax >= PRICE_MAX ? null : newMax);
+  const changeMin = (value: number) => change(Math.min(Math.max(value || PRICE_MIN, PRICE_MIN), max), max);
+  const changeMax = (value: number) => change(min, Math.max(Math.min(value || PRICE_MIN, PRICE_MAX), min));
 
   const percent = (value: number) => ((value - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
 
@@ -144,7 +155,7 @@ export function PriceFilter({ min, max, onChange }: PriceFilterProps) {
           value={min}
           onChange={(event) => changeMin(event.target.valueAsNumber)}
           // Keep the min thumb reachable when both thumbs sit at the right end.
-          className={`${rangeThumb} ${min > PRICE_MAX / 2 ? "z-10" : ""}`}
+          className={`${rangeThumb} ${percent(min) > 50 ? "z-10" : ""}`}
         />
         <input
           type="range"
@@ -199,6 +210,7 @@ export function PriceFilter({ min, max, onChange }: PriceFilterProps) {
 export function CityFilter({ selected, onChange }: ListFilterProps) {
   // Only narrows the list of towns to pick from; it is not a filter on the listings itself.
   const [query, setQuery] = useState("");
+  const cities = useCities();
 
   const visible = cities.filter((city) => city.toLowerCase().includes(query.trim().toLowerCase()));
 

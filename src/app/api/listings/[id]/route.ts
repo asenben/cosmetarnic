@@ -3,7 +3,7 @@ import { deleteListing, updateListing } from "@/lib/listings";
 
 const NOT_FOUND = "Обявата не е намерена.";
 
-// Saves the owner's changes to a listing. New photos were uploaded beforehand through
+// Saves the changes to a listing, made by its owner or by an administrator. New photos were uploaded beforehand through
 // /api/listings/images; the ones kept from before arrive under the names they already have.
 export async function PATCH(request: Request, { params }: RouteContext<"/api/listings/[id]">) {
   const user = await getCurrentUser();
@@ -20,7 +20,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/lis
   }
 
   try {
-    const result = await updateListing(user.id, (await params).id, body as Record<string, unknown>);
+    const result = await updateListing(user, (await params).id, body as Record<string, unknown>);
     if (!result) return Response.json({ message: NOT_FOUND }, { status: 404 });
     if (!result.ok) {
       return Response.json({ message: "Провери отбелязаните полета.", errors: result.errors }, { status: 400 });
@@ -32,13 +32,13 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/lis
   }
 }
 
-// Deletes the owner's listing for good.
+// Deletes a listing for good, for its owner or for an administrator.
 export async function DELETE(_request: Request, { params }: RouteContext<"/api/listings/[id]">) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ message: "Влез в профила си." }, { status: 401 });
 
   try {
-    if (!(await deleteListing(user.id, (await params).id))) {
+    if (!(await deleteListing(user, (await params).id))) {
       return Response.json({ message: NOT_FOUND }, { status: 404 });
     }
     return Response.json({ ok: true });

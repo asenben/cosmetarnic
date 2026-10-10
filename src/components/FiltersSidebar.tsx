@@ -61,7 +61,7 @@ type FiltersSidebarProps = {
 export const activeFilterCount = (filters: Filters) =>
   Number(filters.categories.length > 0) +
   Number(filters.condition !== "all") +
-  Number(filters.priceMin !== noFilters.priceMin || filters.priceMax !== noFilters.priceMax) +
+  Number(filters.priceMin !== null || filters.priceMax !== null) +
   Number(filters.cities.length > 0);
 
 export default function FiltersSidebar({ filters, onChange, open, onOpenChange }: FiltersSidebarProps) {

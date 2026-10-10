@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { categories } from "@/data/listingOptions";
+import { getCategories } from "@/lib/categories";
 import { sql } from "@/lib/db";
 import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
 import { LISTING_IMAGE_PATTERN, MAX_LISTING_PHOTOS, listingImageKey } from "@/lib/listings/images";
@@ -69,7 +69,8 @@ type SaveResult = { ok: true; id: string } | { ok: false; errors: FieldErrors };
 
 // Checks what the listing form sent. Answers with the values ready to store, or with what is
 // wrong with each field.
-function readListing(input: Record<string, unknown>) {
+async function readListing(input: Record<string, unknown>) {
+  const categories = await getCategories();
   const text = (name: string) => {
     const value = input[name];
     return typeof value === "string" ? value.trim() : "";
@@ -117,7 +118,7 @@ function readListing(input: Record<string, unknown>) {
 }
 
 export async function createListing(userId: string, input: Record<string, unknown>): Promise<SaveResult> {
-  const read = readListing(input);
+  const read = await readListing(input);
   if (!read.ok) return read;
   const v = read.values;
 
@@ -142,47 +143,55 @@ async function discardImages(files: string[]) {
   }
 }
 
-// Saves the owner's changes to a listing. Answers null when there is no such listing of theirs.
+// Who is asking to change a listing: its owner may, and so may an administrator, whoever owns it.
+export type ListingEditor = { id: string; role: string };
+const anyOwner = (editor: ListingEditor) => editor.role === "admin";
+
+// Saves the changes to a listing, made by its owner or by an administrator. Answers null when
+// there is no such listing the editor may change.
 export async function updateListing(
-  userId: string,
+  editor: ListingEditor,
   id: string,
   input: Record<string, unknown>,
 ): Promise<SaveResult | null> {
   if (!LISTING_ID_PATTERN.test(id)) return null;
-  const read = readListing(input);
+  const read = await readListing(input);
   if (!read.ok) return read;
   const v = read.values;
 
-  const [before] = await sql`select images from listings where id = ${id} and user_id = ${userId}`;
+  const [before] = await sql`
+    select images from listings where id = ${id} and (user_id = ${editor.id} or ${anyOwner(editor)})`;
   if (!before) return null;
   await sql`
     update listings
     set title = ${v.title}, brand = ${v.brand}, category = ${v.category}, condition = ${v.condition},
         price = ${v.price}, color = ${v.color}, delivery = ${v.delivery}::text[], phone = ${v.phone},
         city = ${v.city}, description = ${v.description}, images = ${v.images}::text[]
-    where id = ${id} and user_id = ${userId}`;
+    where id = ${id}`;
   // The photos the owner took out of the listing are no longer needed.
   await discardImages((before.images as string[]).filter((file) => !v.images.includes(file)));
   return { ok: true, id };
 }
 
-// Deletes the owner's listing for good, with its photos, views and hearts. Answers false when
-// there is no such listing of theirs.
-export async function deleteListing(userId: string, id: string) {
+// Deletes a listing for good, with its photos, views and hearts, for its owner or for an
+// administrator. Answers false when there is no such listing the editor may delete.
+export async function deleteListing(editor: ListingEditor, id: string) {
   if (!LISTING_ID_PATTERN.test(id)) return false;
-  const [removed] = await sql`delete from listings where id = ${id} and user_id = ${userId} returning images`;
+  const [removed] = await sql`
+    delete from listings where id = ${id} and (user_id = ${editor.id} or ${anyOwner(editor)}) returning images`;
   if (!removed) return false;
   await discardImages(removed.images as string[]);
   return true;
 }
 
-// The owner's listing as it is stored, for the form that edits it; null for anybody else.
-export async function getOwnListing(userId: string, id: string) {
+// The listing as it is stored, for the form that edits it: for its owner or an administrator,
+// null for anybody else.
+export async function getEditableListing(editor: ListingEditor, id: string) {
   if (!LISTING_ID_PATTERN.test(id)) return null;
   const [row] = await sql`
     select l.*, u.username, u.avatar, u.created_at as seller_created_at, 0 as seller_listings
     from listings l join users u on u.id = l.user_id
-    where l.id = ${id} and l.user_id = ${userId}`;
+    where l.id = ${id} and (l.user_id = ${editor.id} or ${anyOwner(editor)})`;
   return row ? toListing(row) : null;
 }
 
@@ -198,6 +207,7 @@ const searchWords = (search: string) =>
 // The listings on sale, newest first. With `search`, only those where every word typed is part of
 // the title, the brand or the category's name, so "грим dior", "dior" and "грим" all work.
 export async function getListings(search = "", limit: number | null = null) {
+  const categories = await getCategories();
   const rows = await sql`
     with names as (
       select * from unnest(${categories.map(({ value }) => value)}::text[], ${categories.map(({ label }) => label)}::text[])
@@ -207,7 +217,7 @@ export async function getListings(search = "", limit: number | null = null) {
     from listings l
     join users u on u.id = l.user_id
     left join names on names.value = l.category
-    where l.status = 'active'
+    where l.status = 'active' and u.blocked_at is null
       and not exists (
         select 1 from unnest(${searchWords(search)}::text[]) as word
         where position(word in lower(l.title || ' ' || l.brand || ' ' || coalesce(names.label, ''))) = 0
@@ -241,7 +251,8 @@ export const viewerKey = (address: string, userAgent: string) =>
 
 // The listing for its own page, or null when there is none. Opening the page counts
 // as a view the first time a device does it; the seller looking at their own listing is not counted.
-export async function viewListing(id: string, viewer: { key: string; userId?: string }) {
+// A blocked seller's listing is there only for an administrator.
+export async function viewListing(id: string, viewer: { key: string; userId?: string; admin?: boolean }) {
   if (!LISTING_ID_PATTERN.test(id)) return null;
   const [row] = await sql`
     with seen as (
@@ -256,7 +267,7 @@ export async function viewListing(id: string, viewer: { key: string; userId?: st
            -- The view added just above is not visible to this query yet, so it is counted separately.
            (select count(*)::int from listing_views where listing_id = l.id) + (select count(*)::int from seen) as views
     from listings l join users u on u.id = l.user_id
-    where l.id = ${id}`;
+    where l.id = ${id} and (u.blocked_at is null or ${viewer.admin === true})`;
   return row ? toListing(row) : null;
 }
 

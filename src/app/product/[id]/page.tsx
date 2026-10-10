@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Eye, Flag } from "lucide-react";
+import { ChevronRight, Eye, ShieldCheck } from "lucide-react";
 import ProductGallery from "@/components/ProductGallery";
 import ProductSidebar from "@/components/ProductSidebar";
+import ReportButton from "@/components/ReportButton";
 import ListingActions from "@/components/sell/ListingActions";
-import { categories } from "@/data/listingOptions";
+import { getCategories, type Category } from "@/lib/categories";
 import type { ProductDetails } from "@/data/product";
 import { avatarUrl } from "@/lib/auth/avatar";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -18,7 +19,7 @@ const conditionLabels = { new: "Ново", used: "Използвано" };
 const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "numeric" });
 
 // A published listing in the shape the page was built around.
-function toProduct(listing: Listing): ProductDetails {
+function toProduct(listing: Listing, categories: Category[]): ProductDetails {
   const category = categories.find(({ value }) => value === listing.category);
   return {
     id: listing.id,
@@ -60,9 +61,10 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
   const listing = await viewListing(id, {
     key: viewerKey(address, requestHeaders.get("user-agent") ?? ""),
     userId: user?.id,
+    admin: user?.role === "admin",
   });
   if (!listing) notFound();
-  const product = toProduct(listing);
+  const product = toProduct(listing, await getCategories());
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -116,24 +118,36 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
                   <span className="sr-only">Преглеждания:</span>
                   {product.views}
                 </span>
-                <button
-                  type="button"
-                  className="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-brand-rose"
-                >
-                  <Flag className="size-4" aria-hidden />
-                  Докладвай
-                </button>
+                {/* Nobody reports their own listing. */}
+                {user?.id === listing.userId ? <span /> : <ReportButton listingId={listing.id} />}
               </div>
             </section>
           </div>
 
           <div className="order-2 min-w-0 space-y-5 lg:order-none">
-            {/* Only the seller sees these: the buttons for editing and deleting the listing. */}
-            {user?.id === listing.userId && (
+            {/* The buttons for editing and deleting the listing: for the seller, and for an
+                administrator on anybody's listing, with the way to the seller's profile. */}
+            {user?.id === listing.userId ? (
               <section className="rounded-2xl border border-black/5 bg-white p-5">
                 <h2 className="text-base font-bold text-brand-ink">Това е твоя обява</h2>
                 <ListingActions id={listing.id} afterDelete="/profile/listings" className="mt-3" />
               </section>
+            ) : (
+              user?.role === "admin" && (
+                <section className="rounded-2xl border border-brand-rose/30 bg-white p-5">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-brand-ink">
+                    <ShieldCheck className="size-5 text-brand-rose" aria-hidden />
+                    Администратор
+                  </h2>
+                  <p className="mt-1 text-sm text-brand-ink/60">
+                    Обява на{" "}
+                    <Link href={`/admin/users/${listing.userId}`} className="font-semibold text-brand-rose hover:underline">
+                      {listing.seller.username}
+                    </Link>
+                  </p>
+                  <ListingActions id={listing.id} afterDelete="/admin/listings" className="mt-3" />
+                </section>
+              )
             )}
             <ProductSidebar product={product} />
           </div>

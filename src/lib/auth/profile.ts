@@ -14,7 +14,7 @@ import {
   type ProfileLinkKey,
   type ProfileLinks,
 } from "@/lib/auth/profileLinks";
-import { cities } from "@/data/listingOptions";
+import { getCities } from "@/lib/options";
 import { sql } from "@/lib/db";
 
 export const BIO_MAX = 500;
@@ -66,7 +66,12 @@ export async function updateProfile(userId: string, input: Record<string, unknow
   if (fullName.error) errors.full_name = fullName.error;
   if (phone.error) errors.phone = phone.error;
   if (bio.length > BIO_MAX) errors.bio = `Текстът трябва да е до ${BIO_MAX} знака.`;
-  if (city && !cities.includes(city)) errors.city = "Избери град от списъка.";
+  // A town on the site's list, or the one the profile already has, which may have left the list.
+  if (city) {
+    const [current] = await sql`select city from users where id = ${userId}`;
+    const offered = (await getCities()).map(({ name }) => name);
+    if (city !== current?.city && !offered.includes(city)) errors.city = "Избери град от списъка.";
+  }
 
   // Only the links that were filled in are stored.
   const typedLinks = typeof input.links === "object" && input.links !== null ? (input.links as Record<string, unknown>) : {};

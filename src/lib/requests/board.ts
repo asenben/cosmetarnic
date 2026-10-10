@@ -1,12 +1,13 @@
 import type { BoardRequest } from "@/components/search/RequestBoard";
-import { categories } from "@/data/listingOptions";
+import type { Category } from "@/lib/categories";
 import { postedAgo } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
 import type { ProductRequest } from "@/lib/requests";
 
-// A stored "Търся" post in the shape its card shows. `viewerId` is the signed-in user, who gets
-// the buttons for editing and deleting on their own posts.
-export function toBoardRequest(request: ProductRequest, viewerId?: string | null): BoardRequest {
+// A stored "Търся" post in the shape its card shows. `categories` gives the category its name,
+// and `viewerId` is the signed-in user, who gets the buttons for editing and deleting on their
+// own posts.
+export function toBoardRequest(request: ProductRequest, categories: Category[], viewerId?: string | null): BoardRequest {
   return {
     id: request.id,
     title: request.title,

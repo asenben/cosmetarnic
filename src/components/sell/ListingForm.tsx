@@ -22,7 +22,7 @@ import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
-import { categories, cities } from "@/data/listingOptions";
+import { useCategories, useCities } from "@/components/SiteOptionsProvider";
 import { MAX_LISTING_PHOTOS, listingImageUrl } from "@/lib/listings/images";
 
 const conditions = [
@@ -199,6 +199,8 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
     () => listing?.images.map((stored) => ({ stored, url: listingImageUrl(stored) })) ?? [],
   );
   const [selected, setSelected] = useState(0);
+  const categories = useCategories();
+  const cities = useCities();
   const [photoError, setPhotoError] = useState<string>();
   const [errors, setErrors] = useState<Errors>({});
   // "sending" while the photos and the listing are on their way, "done" once it is saved.

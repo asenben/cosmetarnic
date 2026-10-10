@@ -9,6 +9,11 @@ const PHONE_PATTERN = /^\+?\d{7,15}$/;
 
 type Checked = { value: string; error?: string };
 
+// The administrator's account is made directly in the database and has no mailbox: everything
+// for it happens inside the site. The column cannot be empty, so it holds an address in
+// ".invalid", a domain that never exists; such an address is never shown.
+export const hasMailbox = (email: string) => !email.toLowerCase().endsWith(".invalid");
+
 export const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 export function checkUsername(input: unknown): Checked {

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { RequestCard } from "@/components/search/RequestBoard";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getCategories } from "@/lib/categories";
 import { getRequests } from "@/lib/requests";
 import { toBoardRequest } from "@/lib/requests/board";
 
@@ -16,8 +17,9 @@ export default async function ProfileRequests() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
 
+  const categories = await getCategories();
   const requests = (await getRequests({ viewerId: user.id, authorId: user.id })).map((request) =>
-    toBoardRequest(request, user.id),
+    toBoardRequest(request, categories, user.id),
   );
 
   return (

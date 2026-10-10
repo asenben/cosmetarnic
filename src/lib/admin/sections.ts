@@ -2,7 +2,6 @@ import {
   CreditCard,
   FileLock,
   FileUp,
-  Heart,
   Image as ImageIcon,
   Inbox,
   Mail,
@@ -35,7 +34,6 @@ export const adminGroups: { title: string; sections: AdminSection[] }[] = [
       { slug: "listings", label: "Обяви", icon: FileUp },
       { slug: "requests", label: "Търся", icon: Search },
       { slug: "categories", label: "Категории", icon: Shapes },
-      { slug: "brands", label: "Марки", icon: Heart },
       { slug: "messages", label: "Съобщения", icon: MessageSquare },
       { slug: "payments", label: "Плащания", icon: CreditCard },
       { slug: "reviews", label: "Ревюта и сигнали", icon: Star },
@@ -68,6 +66,3 @@ export const adminGroups: { title: string; sections: AdminSection[] }[] = [
 ];
 
 export const adminSections = adminGroups.flatMap(({ sections }) => sections);
-
-// The section the panel opens on.
-export const FIRST_ADMIN_SECTION = adminSections[0].slug;

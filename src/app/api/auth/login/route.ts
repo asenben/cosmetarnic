@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const input = body as Record<string, unknown>;
     const result = await loginUser(input, new URL(request.url).origin);
     if (!result.ok) {
-      return Response.json({ message: result.message }, { status: result.reason === "unverified" ? 403 : 401 });
+      return Response.json({ message: result.message }, { status: result.reason === "invalid" ? 401 : 403 });
     }
 
     await createSession(result.user.id, input.remember === true, request.headers.get("user-agent"));

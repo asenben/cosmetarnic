@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/requ
   }
 }
 
-// Saves the author's changes to their post.
+// Saves the changes to a post, made by its author or by an administrator.
 export async function PATCH(request: Request, { params }: RouteContext<"/api/requests/[id]">) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ message: "Влез в профила си." }, { status: 401 });
@@ -35,7 +35,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/req
   }
 
   try {
-    const result = await updateRequest(user.id, (await params).id, body as Record<string, unknown>);
+    const result = await updateRequest(user, (await params).id, body as Record<string, unknown>);
     if (!result) return Response.json({ message: NOT_FOUND }, { status: 404 });
     if (!result.ok) {
       return Response.json({ message: "Провери отбелязаните полета.", errors: result.errors }, { status: 400 });
@@ -47,13 +47,13 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/req
   }
 }
 
-// Deletes the author's own post.
+// Deletes a post, for its author or for an administrator.
 export async function DELETE(_request: Request, { params }: RouteContext<"/api/requests/[id]">) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ message: "Влез в профила си." }, { status: 401 });
 
   try {
-    if (!(await deleteRequest(user.id, (await params).id))) {
+    if (!(await deleteRequest(user, (await params).id))) {
       return Response.json({ message: NOT_FOUND }, { status: 404 });
     }
     return Response.json({ ok: true });

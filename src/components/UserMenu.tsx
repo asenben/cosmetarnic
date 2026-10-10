@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { hasMailbox } from "@/lib/auth/accountFields";
 
 type MenuLink = { href: string; label: string; icon: LucideIcon };
 
@@ -90,7 +91,9 @@ export default function UserMenu() {
           <Avatar name={user.username} src={user.avatar} className="size-10 text-base" />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-brand-ink">{user.username}</p>
-            <p className="truncate text-xs text-brand-ink/60">{user.email}</p>
+            <p className="truncate text-xs text-brand-ink/60">
+              {hasMailbox(user.email) ? user.email : user.role === "admin" ? "Администратор" : ""}
+            </p>
           </div>
         </div>
 

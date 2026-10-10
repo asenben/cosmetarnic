@@ -21,9 +21,10 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import AvatarUpload from "@/components/profile/AvatarUpload";
 import LinkMark from "@/components/profile/LinkMark";
 import SecuritySettings, { type SessionRow } from "@/components/profile/SecuritySettings";
-import { cities } from "@/data/listingOptions";
+import { useCities } from "@/components/SiteOptionsProvider";
 import type { ProfileDetails, ProfileErrors, ProfileField } from "@/lib/auth/profile";
 import { profileLinks } from "@/lib/auth/profileLinks";
+import { hasMailbox } from "@/lib/auth/accountFields";
 
 // Kept in step with BIO_MAX in src/lib/auth/profile.ts, which the server enforces.
 const BIO_MAX = 500;
@@ -37,8 +38,6 @@ const tabs = [
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
-
-const cityOptions = cities.map((city) => ({ value: city, label: city }));
 
 const control =
   "w-full rounded-xl border border-black/10 bg-white text-sm text-brand-ink transition-colors outline-none placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500 disabled:bg-zinc-50 disabled:text-brand-ink/60";
@@ -116,6 +115,11 @@ export default function SettingsForm({ profile, sessions }: SettingsFormProps) {
   const router = useRouter();
   const { updateUser } = useAuth();
   const bioId = useId();
+  // The town the profile already has stays on offer even if it has left the site's list since.
+  const cityOptions = [...new Set([...useCities(), ...(profile.city ? [profile.city] : [])])].map((city) => ({
+    value: city,
+    label: city,
+  }));
   const [tab, setTab] = useState<TabId>("profile");
   const [bioLength, setBioLength] = useState(profile.bio.length);
   const [errors, setErrors] = useState<ProfileErrors>({});
@@ -235,15 +239,18 @@ export default function SettingsForm({ profile, sessions }: SettingsFormProps) {
                 error={errors.username}
                 onChange={touched("username")}
               />
-              <Field
-                label="Имейл адрес"
-                icon={Mail}
-                type="email"
-                value={profile.email}
-                disabled
-                readOnly
-                note="Имейлът засега не може да се сменя оттук."
-              />
+              {/* An account without a mailbox, like the administrator's, has no address to show. */}
+              {hasMailbox(profile.email) && (
+                <Field
+                  label="Имейл адрес"
+                  icon={Mail}
+                  type="email"
+                  value={profile.email}
+                  disabled
+                  readOnly
+                  note="Имейлът засега не може да се сменя оттук."
+                />
+              )}
               <Field
                 label="Телефонен номер"
                 icon={Phone}

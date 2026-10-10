@@ -1,4 +1,4 @@
-import { categories } from "@/data/listingOptions";
+import { getCategories } from "@/lib/categories";
 import { sql } from "@/lib/db";
 import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
 import { LISTING_IMAGE_PATTERN, listingImageKey } from "@/lib/listings/images";
@@ -70,7 +70,8 @@ type SaveResult = { ok: true; id: string } | { ok: false; errors: FieldErrors };
 
 // Checks what the form sent. Answers with the values ready to store, or with what is wrong with
 // each field.
-function readRequest(input: Record<string, unknown>) {
+async function readRequest(input: Record<string, unknown>) {
+  const categories = await getCategories();
   const text = (name: string) => {
     const value = input[name];
     return typeof value === "string" ? value.trim() : "";
@@ -123,7 +124,7 @@ async function discardImage(file: string | null) {
 }
 
 export async function createRequest(userId: string, input: Record<string, unknown>): Promise<SaveResult> {
-  const read = readRequest(input);
+  const read = await readRequest(input);
   if (!read.ok) return read;
   const v = read.values;
 
@@ -135,40 +136,49 @@ export async function createRequest(userId: string, input: Record<string, unknow
   return { ok: true, id: row.id };
 }
 
-// Saves the author's changes to a post. Answers null when there is no such post of theirs.
+// Who is asking to change a post: its author may, and so may an administrator, whoever wrote it.
+export type RequestEditor = { id: string; role: string };
+const anyAuthor = (editor: RequestEditor) => editor.role === "admin";
+
+// Saves the changes to a post, made by its author or by an administrator. Answers null when
+// there is no such post the editor may change.
 export async function updateRequest(
-  userId: string,
+  editor: RequestEditor,
   id: string,
   input: Record<string, unknown>,
 ): Promise<SaveResult | null> {
   if (!ID_PATTERN.test(id)) return null;
-  const read = readRequest(input);
+  const read = await readRequest(input);
   if (!read.ok) return read;
   const v = read.values;
 
-  const [before] = await sql`select image from requests where id = ${id} and user_id = ${userId}`;
+  const [before] = await sql`
+    select image from requests where id = ${id} and (user_id = ${editor.id} or ${anyAuthor(editor)})`;
   if (!before) return null;
   await sql`
     update requests
     set title = ${v.title}, brand = ${v.brand}, category = ${v.category}, condition = ${v.condition},
         budget = ${v.budget}, city = ${v.city}, phone = ${v.phone}, description = ${v.description}, image = ${v.image}
-    where id = ${id} and user_id = ${userId}`;
+    where id = ${id}`;
   // A picture the author replaced or took out is no longer needed.
   if (before.image !== v.image) await discardImage(before.image as string | null);
   return { ok: true, id };
 }
 
-// The author's own post with its phone number, for the form that edits it; null for anybody else.
-export async function getOwnRequest(userId: string, id: string) {
+// The post with its phone number, for the form that edits it: for its author or an
+// administrator, null for anybody else.
+export async function getEditableRequest(editor: RequestEditor, id: string) {
   if (!ID_PATTERN.test(id)) return null;
   const [row] = await sql`
     select r.*, u.username, u.avatar
     from requests r join users u on u.id = r.user_id
-    where r.id = ${id} and r.user_id = ${userId}`;
+    where r.id = ${id} and (r.user_id = ${editor.id} or ${anyAuthor(editor)})`;
   return row ? { ...toRequest(row), phone: row.phone as string } : null;
 }
 
 type RequestQuery = {
+  // The posts of blocked accounts too: for the administrator's lists only.
+  includeBlocked?: boolean;
   // The signed-in user, whose hearts are marked on the posts.
   viewerId?: string | null;
   // Only this user's own posts.
@@ -179,7 +189,12 @@ type RequestQuery = {
 
 // The "Търся" posts, newest first. The phone numbers are left out: they are given only to
 // signed-in users, one post at a time (see getRequestPhone).
-export async function getRequests({ viewerId = null, authorId = null, favoritesOnly = false }: RequestQuery = {}) {
+export async function getRequests({
+  viewerId = null,
+  authorId = null,
+  favoritesOnly = false,
+  includeBlocked = false,
+}: RequestQuery = {}) {
   const rows = await sql`
     select r.id, r.user_id, r.title, r.brand, r.category, r.condition, r.budget, r.city, r.description,
            r.image, r.created_at, u.username, u.avatar, f.user_id is not null as favorite
@@ -188,20 +203,22 @@ export async function getRequests({ viewerId = null, authorId = null, favoritesO
     left join request_favorites f on f.request_id = r.id and f.user_id = ${viewerId}
     where (${authorId}::uuid is null or r.user_id = ${authorId})
       and (not ${favoritesOnly} or f.user_id is not null)
+      and (u.blocked_at is null or ${includeBlocked})
     order by r.created_at desc`;
   return rows.map(toRequest);
 }
 
 // One post for its own page, with the viewer's heart marked and how long the author has been a
-// member; null when there is no such post. The phone number is left out here too.
-export async function getRequest(id: string, viewerId: string | null = null) {
+// member; null when there is no such post. The phone number is left out here too. A blocked
+// author's post is there only for an administrator (`includeBlocked`).
+export async function getRequest(id: string, viewerId: string | null = null, includeBlocked = false) {
   if (!ID_PATTERN.test(id)) return null;
   const [row] = await sql`
     select r.id, r.user_id, r.title, r.brand, r.category, r.condition, r.budget, r.city, r.description,
            r.image, r.created_at, u.username, u.avatar, u.created_at as author_created_at,
            exists (select 1 from request_favorites f where f.request_id = r.id and f.user_id = ${viewerId}) as favorite
     from requests r join users u on u.id = r.user_id
-    where r.id = ${id}`;
+    where r.id = ${id} and (u.blocked_at is null or ${includeBlocked})`;
   return row ? { ...toRequest(row), authorSince: new Date(row.author_created_at as string) } : null;
 }
 
@@ -212,10 +229,12 @@ export async function getRequestPhone(id: string) {
   return (row?.phone as string | undefined) ?? null;
 }
 
-// Deletes the author's own post. Answers false when there is no such post of theirs.
-export async function deleteRequest(userId: string, id: string) {
+// Deletes a post, for its author or for an administrator. Answers false when there is no such
+// post the editor may delete.
+export async function deleteRequest(editor: RequestEditor, id: string) {
   if (!ID_PATTERN.test(id)) return false;
-  const [removed] = await sql`delete from requests where id = ${id} and user_id = ${userId} returning image`;
+  const [removed] = await sql`
+    delete from requests where id = ${id} and (user_id = ${editor.id} or ${anyAuthor(editor)}) returning image`;
   if (!removed) return false;
   await discardImage(removed.image as string | null);
   return true;

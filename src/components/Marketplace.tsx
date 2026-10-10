@@ -6,7 +6,7 @@ import { SearchX, X } from "lucide-react";
 import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
 import ProductCard, { type Product } from "@/components/ProductCard";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
-import { PRICE_MAX, noFilters, type Filters } from "@/components/SortBar";
+import { noFilters, type Filters } from "@/components/SortBar";
 
 // A listing as the marketplace needs it: what its card shows, plus what the filters match on.
 export type MarketplaceListing = Product & { category: string };
@@ -14,9 +14,9 @@ export type MarketplaceListing = Product & { category: string };
 function matches(listing: MarketplaceListing, filters: Filters) {
   if (filters.categories.length > 0 && !filters.categories.includes(listing.category)) return false;
   if (filters.condition !== "all" && listing.condition !== filters.condition) return false;
-  if (listing.price < filters.priceMin) return false;
-  // The slider's top means "and above", so dearer listings are not cut off.
-  if (filters.priceMax < PRICE_MAX && listing.price > filters.priceMax) return false;
+  // A price left at null does not limit anything (see Filters).
+  if (filters.priceMin !== null && listing.price < filters.priceMin) return false;
+  if (filters.priceMax !== null && listing.price > filters.priceMax) return false;
   if (filters.cities.length > 0 && !filters.cities.includes(listing.city)) return false;
   return true;
 }

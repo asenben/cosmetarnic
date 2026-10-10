@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import FavoriteCards from "@/components/profile/FavoriteCards";
 import { FavoriteRequests } from "@/components/search/RequestBoard";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getCategories } from "@/lib/categories";
 import { postedAgo } from "@/lib/listings";
 import { getFavoriteListings } from "@/lib/listings/favorites";
 import { listingImageUrl } from "@/lib/listings/images";
@@ -16,9 +17,10 @@ export const metadata: Metadata = {
 export default async function ProfileFavorites() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  const [listings, requests] = await Promise.all([
+  const [listings, requests, categories] = await Promise.all([
     getFavoriteListings(user.id),
     getRequests({ viewerId: user.id, favoritesOnly: true }),
+    getCategories(),
   ]);
 
   return (
@@ -44,7 +46,7 @@ export default async function ProfileFavorites() {
 
       {/* The posts from "Търся" that carry the user's heart. */}
       <FavoriteRequests
-        requests={requests.map((request) => toBoardRequest(request, user.id))}
+        requests={requests.map((request) => toBoardRequest(request, categories, user.id))}
         emptyNote={listings.length === 0 ? "Все още нямаш любими." : undefined}
       />
     </div>

@@ -6,7 +6,7 @@ import { sql } from "@/lib/db";
 
 export type LoginResult =
   | { ok: true; user: SessionUser }
-  | { ok: false; reason: "invalid" | "unverified"; message: string };
+  | { ok: false; reason: "invalid" | "unverified" | "blocked"; message: string };
 
 // One message for both a wrong name and a wrong password, so the form doesn't reveal which accounts exist.
 const INVALID = "Грешно потребителско име или парола.";
@@ -26,7 +26,7 @@ export async function loginUser(input: Record<string, unknown>, origin: string):
 
   // The same field accepts the username or the email the account was registered with.
   const [row] = await sql`
-    select id, username, email, role, avatar, password_hash, email_verified_at
+    select id, username, email, role, avatar, password_hash, email_verified_at, blocked_at
     from users
     where lower(username) = lower(${identifier}) or lower(email) = lower(${identifier})
     limit 1
@@ -41,7 +41,10 @@ export async function loginUser(input: Record<string, unknown>, origin: string):
     return { ok: false, reason: "invalid", message: INVALID };
   }
 
-  // Only reached with the right password, so this doesn't reveal anything to a stranger.
+  // Only reached with the right password, so neither of these reveals anything to a stranger.
+  if (row.blocked_at) {
+    return { ok: false, reason: "blocked", message: "Този профил е блокиран от администратор." };
+  }
   if (!row.email_verified_at) {
     let sent = false;
     try {

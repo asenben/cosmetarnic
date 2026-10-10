@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import ListingForm from "@/components/sell/ListingForm";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getOwnListing } from "@/lib/listings";
+import { getEditableListing } from "@/lib/listings";
 
 export const metadata: Metadata = {
   title: "Редактиране на обява",
@@ -16,8 +16,8 @@ export default async function EditListingPage({ params }: PageProps<"/sell/[id]"
   if (!user) redirect("/");
 
   const { id } = await params;
-  // Somebody else's listing is treated like one that does not exist.
-  const listing = await getOwnListing(user.id, id);
+  // Somebody else's listing is treated like one that does not exist, except for an administrator.
+  const listing = await getEditableListing(user, id);
   if (!listing) notFound();
 
   return (

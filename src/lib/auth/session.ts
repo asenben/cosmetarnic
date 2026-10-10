@@ -55,7 +55,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     select users.id, users.username, users.email, users.role, users.avatar
     from sessions
     join users on users.id = sessions.user_id
-    where sessions.token_hash = ${hashToken(token)} and sessions.expires_at > now()
+    where sessions.token_hash = ${hashToken(token)} and sessions.expires_at > now() and users.blocked_at is null
   `;
   if (!user) return null;
   return { id: user.id, username: user.username, email: user.email, role: user.role, avatar: avatarUrl(user.avatar) };

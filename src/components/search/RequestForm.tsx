@@ -8,7 +8,7 @@ import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
-import { categories, cities } from "@/data/listingOptions";
+import { useCategories, useCities } from "@/components/SiteOptionsProvider";
 import { listingImageUrl } from "@/lib/listings/images";
 
 const conditions = [
@@ -116,8 +116,16 @@ function SpecRow({ icon: Icon, label, error, children }: SpecRowProps) {
 // The form for a "Търся" post: what the user is looking for, so that sellers can get in touch.
 // Laid out like the form for a listing: the picture and the description on the left, the rest in
 // the card on the right. With `request` it edits that post instead of making a new one.
-export default function RequestForm({ request }: { request?: EditedRequest }) {
+type RequestFormProps = {
+  request?: EditedRequest;
+  // Where to go once the post is saved; the user's own posts unless said otherwise.
+  returnTo?: string;
+};
+
+export default function RequestForm({ request, returnTo = "/profile/search" }: RequestFormProps) {
   const router = useRouter();
+  const categories = useCategories();
+  const cities = useCities();
   const [errors, setErrors] = useState<Errors>({});
   // "sending" while the post is on its way, "done" once it is saved.
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
@@ -192,7 +200,7 @@ export default function RequestForm({ request }: { request?: EditedRequest }) {
         setStatus("done");
         // Leaves the confirmation on the button for a moment, then shows the user's posts.
         setTimeout(() => {
-          router.push("/profile/search");
+          router.push(returnTo);
           router.refresh();
         }, 1500);
         return;

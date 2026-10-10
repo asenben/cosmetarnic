@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import RequestForm from "@/components/search/RequestForm";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getOwnRequest } from "@/lib/requests";
+import { getEditableRequest } from "@/lib/requests";
 
 export const metadata: Metadata = {
   title: "Редактиране на публикация",
@@ -16,8 +16,8 @@ export default async function EditRequestPage({ params }: PageProps<"/request/[i
   if (!user) redirect("/search");
 
   const { id } = await params;
-  // Somebody else's post is treated like one that does not exist.
-  const request = await getOwnRequest(user.id, id);
+  // Somebody else's post is treated like one that does not exist, except for an administrator.
+  const request = await getEditableRequest(user, id);
   if (!request) notFound();
 
   return (
@@ -44,6 +44,7 @@ export default async function EditRequestPage({ params }: PageProps<"/request/[i
         </nav>
 
         <RequestForm
+          returnTo={request.userId === user.id ? undefined : "/admin/requests"}
           request={{
             id: request.id,
             title: request.title,

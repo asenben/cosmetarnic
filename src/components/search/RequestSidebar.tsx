@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, Heart, LayoutGrid, MapPin, Phone, Sparkles, Tag } from "lucide-react";
+import { CalendarDays, Heart, LayoutGrid, MapPin, Phone, ShieldCheck, Sparkles, Tag } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import MessageButton from "@/components/messages/MessageButton";
+import RequestActions from "@/components/search/RequestActions";
 
 // A "Търся" post as its own page shows it beside the picture.
 export type RequestDetails = {
@@ -33,7 +34,14 @@ const phoneButton =
 
 // The card beside the picture on a post's page, built like the one on a listing's page: what is
 // wanted and for how much, the details, the way to get in touch, and who is looking.
-export default function RequestSidebar({ request }: { request: RequestDetails }) {
+type RequestSidebarProps = {
+  request: RequestDetails;
+  // Set for an administrator looking at somebody else's post: gives the buttons for editing and
+  // deleting it and the way to the author's page in the panel.
+  adminOf?: { authorId: string };
+};
+
+export default function RequestSidebar({ request, adminOf }: RequestSidebarProps) {
   const { requireAuth } = useAuth();
   const [favorite, setFavorite] = useState(request.favorite);
   const [phone, setPhone] = useState<string>();
@@ -80,6 +88,21 @@ export default function RequestSidebar({ request }: { request: RequestDetails })
 
   return (
     <aside className="order-2 min-w-0 space-y-5 lg:order-none">
+      {adminOf && (
+        <section className="rounded-2xl border border-brand-rose/30 bg-white p-5">
+          <h2 className="flex items-center gap-2 text-base font-bold text-brand-ink">
+            <ShieldCheck className="size-5 text-brand-rose" aria-hidden />
+            Администратор
+          </h2>
+          <p className="mt-1 text-sm text-brand-ink/60">
+            Публикация на{" "}
+            <Link href={`/admin/users/${adminOf.authorId}`} className="font-semibold text-brand-rose hover:underline">
+              {request.author.username}
+            </Link>
+          </p>
+          <RequestActions id={request.id} afterDelete="/admin/requests" className="mt-3" />
+        </section>
+      )}
       <section className="rounded-2xl border border-black/5 bg-white">
         <div className="p-5">
           <div className="flex items-start justify-between gap-3">

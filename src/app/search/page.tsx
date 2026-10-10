@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import RequestBoard from "@/components/search/RequestBoard";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getCategories } from "@/lib/categories";
 import { getRequests } from "@/lib/requests";
 import { toBoardRequest } from "@/lib/requests/board";
 
@@ -11,8 +12,10 @@ export const metadata: Metadata = {
 // The "Търся" page: posts by registered users about products they are looking for, with the same
 // filters, sorting and views as the marketplace. These are not listings; nothing here is on sale.
 export default async function Search() {
-  const user = await getCurrentUser();
-  const requests = (await getRequests({ viewerId: user?.id })).map((request) => toBoardRequest(request, user?.id));
+  const [user, categories] = await Promise.all([getCurrentUser(), getCategories()]);
+  const requests = (await getRequests({ viewerId: user?.id })).map((request) =>
+    toBoardRequest(request, categories, user?.id),
+  );
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">

@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type SubmitEvent } from "react";
 import { Search, X } from "lucide-react";
 import type { SearchResult } from "@/app/api/search/route";
+import { formatPrice } from "@/lib/format";
 
 // How long to wait after the last keystroke before asking the server.
 const DELAY_MS = 200;
-
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 // The search field in the navigation. While the visitor types a brand, a category, a product's
 // name or several of them, the listings found so far are offered in a list underneath; Enter
@@ -172,7 +171,7 @@ export default function SearchBox({
                           <span className="font-medium text-brand-rose">{result.brand}</span> · {result.category}
                         </span>
                       </span>
-                      <span className="shrink-0 text-sm font-bold text-brand-ink">{priceFormat.format(result.price)}</span>
+                      <span className="shrink-0 text-sm font-bold text-brand-ink">{formatPrice(result.price)}</span>
                     </Link>
                   </li>
                 ))}

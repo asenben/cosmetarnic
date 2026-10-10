@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, Heart, MapPin, Truck } from "lucide-react";
 import { useFavorite } from "@/components/FavoritesProvider";
+import { formatPrice } from "@/lib/format";
 
 const conditions = {
   new: { label: "Ново", className: "bg-emerald-50 text-emerald-700" },
@@ -24,8 +25,6 @@ function deliveryBadges(delivery: Delivery[]) {
       : []),
   ];
 }
-
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 export type Product = {
   // The listing's id, which its heart is saved under.
@@ -65,7 +64,7 @@ export default function ProductCard({
         {/* Only the picture opens the listing; the details under it are not a link. */}
         <Link
           href={href}
-          aria-label={`${brand}, ${priceFormat.format(price)}`}
+          aria-label={`${brand}, ${formatPrice(price)}`}
           className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
         >
           {image ? (
@@ -111,7 +110,7 @@ export default function ProductCard({
 
         <div className="flex items-center justify-between gap-2 listview:contents">
           <p className="text-base font-bold text-brand-ink listview:col-start-1 listview:row-start-2 listview:text-xl">
-            {priceFormat.format(price)}
+            {formatPrice(price)}
           </p>
           <ul className="hidden items-center gap-1.5 text-brand-ink/50 sm:flex listview:col-span-2 listview:row-start-4 listview:mt-2 listview:flex-wrap listview:gap-x-4 listview:gap-y-1 listview:border-t listview:border-black/5 listview:pt-3 listview:text-sm listview:text-brand-ink">
             {deliveryBadges(delivery).map(({ key, label, icon: Icon }) => (

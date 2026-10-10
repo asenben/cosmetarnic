@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode, type SubmitEvent } from "react";
 import {
   CircleCheck,
+  Gift,
   ImagePlus,
   LayoutGrid,
   MapPin,
@@ -91,6 +92,7 @@ async function publish(data: FormData, photos: Photo[], editedId?: string) {
     body: JSON.stringify({
       ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
       color: data.get("color"),
+      free: data.get("free") === "on",
       delivery: data.getAll("delivery"),
       images,
     }),
@@ -123,7 +125,10 @@ function validate(data: FormData) {
     errors.description = `Опиши продукта с поне ${DESCRIPTION_MIN} знака.`;
   }
   if (text("title").length < 3) errors.title = "Заглавието трябва да е поне 3 знака.";
-  if (!(price > 0 && price <= PRICE_MAX)) errors.price = "Въведи цена, по-голяма от 0.";
+  // A listing marked as free has no price to check.
+  if (data.get("free") !== "on" && !(price > 0 && price <= PRICE_MAX)) {
+    errors.price = "Въведи цена, по-голяма от 0, или отбележи „Безплатно“.";
+  }
   if (text("brand").length < 2) errors.brand = "Въведи марката на продукта.";
   if (!text("category")) errors.category = "Избери категория.";
   if (!text("condition")) errors.condition = "Избери състояние.";
@@ -201,6 +206,8 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
   const [selected, setSelected] = useState(0);
   const categories = useCategories();
   const cities = useCities();
+  // A listing given away for nothing: its price is 0 and the price field is switched off.
+  const [free, setFree] = useState(listing?.price === 0);
   const [photoError, setPhotoError] = useState<string>();
   const [errors, setErrors] = useState<Errors>({});
   // "sending" while the photos and the listing are on their way, "done" once it is saved.
@@ -454,31 +461,54 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
 
             {/* One bordered box holding the amount and the currency; the border lights up
                 for the whole box when the amount inside is focused or invalid. */}
-            <label className="mt-4 flex h-11 w-48 cursor-text items-center overflow-hidden rounded-xl border border-black/10 bg-white transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500">
-              <input
-                // A text field, because a number field refuses the decimal comma in some browsers.
-                type="text"
-                name="price"
-                defaultValue={listing && String(listing.price).replace(".", ",")}
-                aria-label="Цена в евро"
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="0,00"
-                onInput={(event) => {
-                  // Only digits, one decimal comma and two digits after it are kept.
-                  const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
-                  event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
-                }}
-                aria-invalid={Boolean(errors.price)}
-                className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-lg font-bold text-brand-ink outline-none placeholder:text-brand-ink/30`}
-              />
-              <span
-                aria-hidden
-                className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-3.5 text-base font-bold text-brand-rose"
+            <div className="mt-4 flex items-center gap-3">
+              <label
+                className={`flex h-11 min-w-0 flex-1 items-center overflow-hidden rounded-xl border border-black/10 transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500 ${
+                  free ? "bg-zinc-100" : "cursor-text bg-white"
+                }`}
               >
-                €
-              </span>
-            </label>
+                <input
+                  // A text field, because a number field refuses the decimal comma in some browsers.
+                  type="text"
+                  name="price"
+                  defaultValue={listing && listing.price > 0 ? String(listing.price).replace(".", ",") : undefined}
+                  // Switched off while the listing is free, and so left out of what is sent.
+                  disabled={free}
+                  aria-label="Цена в евро"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder={free ? "Безплатно" : "0,00"}
+                  onInput={(event) => {
+                    // Only digits, one decimal comma and two digits after it are kept.
+                    const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
+                    event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
+                  }}
+                  aria-invalid={Boolean(errors.price)}
+                  className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-lg font-bold text-brand-ink outline-none placeholder:text-brand-ink/30 disabled:placeholder:text-base disabled:placeholder:text-brand-ink/50`}
+                />
+                <span
+                  aria-hidden
+                  className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-3.5 text-base font-bold text-brand-rose"
+                >
+                  €
+                </span>
+              </label>
+              {/* Gives the product away: no price is asked for, and the listing says "Безплатно". */}
+              <label className={`${chip} h-11 shrink-0 gap-2 rounded-xl px-4`}>
+                <input
+                  type="checkbox"
+                  name="free"
+                  checked={free}
+                  onChange={(event) => {
+                    setFree(event.target.checked);
+                    setErrors({ ...errors, price: undefined });
+                  }}
+                  className="sr-only"
+                />
+                <Gift className="size-4" aria-hidden />
+                Безплатно
+              </label>
+            </div>
             <FieldError message={errors.price} />
           </div>
 

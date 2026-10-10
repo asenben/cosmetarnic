@@ -4,8 +4,8 @@ import { Eye } from "lucide-react";
 import ListingActions from "@/components/sell/ListingActions";
 import type { AdminListing } from "@/lib/admin";
 import { listingImageUrl } from "@/lib/listings/images";
+import { formatPrice } from "@/lib/format";
 
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 const dateFormat = new Intl.DateTimeFormat("bg-BG", {
   day: "numeric",
   month: "short",
@@ -66,7 +66,7 @@ export default function ListingsTable({ listings, showSeller = true }: ListingsT
             <Eye className="size-4" aria-hidden />
             {listing.views}
           </p>
-          <p className="w-20 shrink-0 text-right text-sm font-bold text-brand-ink">{priceFormat.format(listing.price)}</p>
+          <p className="w-20 shrink-0 text-right text-sm font-bold text-brand-ink">{formatPrice(listing.price)}</p>
 
           <ListingActions id={listing.id} className="w-56 shrink-0" />
         </li>

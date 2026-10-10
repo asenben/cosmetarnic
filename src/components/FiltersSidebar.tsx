@@ -82,7 +82,7 @@ export default function FiltersSidebar({ filters, onChange, open, onOpenChange }
       aria-label="Филтри"
       // One panel in two shapes: beside the list on wide screens, and over the whole page on
       // narrow ones while it is open.
-      className={`bg-white lg:sticky lg:top-6 lg:z-auto lg:block lg:w-64 lg:shrink-0 lg:overflow-visible lg:rounded-2xl lg:border lg:border-black/5 ${
+      className={`bg-white lg:z-auto lg:block lg:w-64 lg:shrink-0 lg:overflow-visible lg:rounded-2xl lg:border lg:border-black/5 ${
         open ? "fixed inset-0 z-50 overflow-y-auto overscroll-contain lg:inset-auto" : "hidden"
       }`}
     >

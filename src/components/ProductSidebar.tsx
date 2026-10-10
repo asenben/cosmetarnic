@@ -18,6 +18,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavorite } from "@/components/FavoritesProvider";
 import MessageButton from "@/components/messages/MessageButton";
 import type { ProductDetails } from "@/data/product";
+import { formatPrice } from "@/lib/format";
 
 const conditionLabels = { new: "Ново", used: "Използвано" };
 
@@ -30,8 +31,6 @@ const deliveryLabels = {
 
 const phoneButton =
   "mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-brand-rose text-sm font-semibold text-brand-rose transition-colors hover:bg-brand-rose/10";
-
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 export default function ProductSidebar({ product }: { product: ProductDetails }) {
   const { title, brand, price, city, postedAgo, condition, color, phone, delivery = [], sellerProfile: seller } = product;
@@ -67,7 +66,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
           <p className="mt-1 text-sm text-brand-ink/60">
             {conditionLabels[condition]} · <span className="font-medium text-brand-rose">{brand}</span>
           </p>
-          <p className="mt-4 text-2xl font-bold text-brand-ink">{priceFormat.format(price)}</p>
+          <p className="mt-4 text-2xl font-bold text-brand-ink">{formatPrice(price)}</p>
         </div>
 
         <dl className="border-t border-black/5 px-5">

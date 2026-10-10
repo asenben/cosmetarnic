@@ -88,7 +88,9 @@ async function readListing(input: Record<string, unknown>) {
   const color = text("color").slice(0, 40);
   const phone = text("phone");
   const city = text("city");
-  const price = Math.round(Number(text("price").replace(",", ".")) * 100) / 100;
+  // A listing marked as free has no price to check; it is stored as 0.
+  const free = input.free === true;
+  const price = free ? 0 : Math.round(Number(text("price").replace(",", ".")) * 100) / 100;
   const offered = list("delivery");
   const delivery = DELIVERIES.filter((value) => offered.includes(value));
   const images = [...new Set(list("images"))];
@@ -99,7 +101,7 @@ async function readListing(input: Record<string, unknown>) {
     errors.description = `Опиши продукта с поне ${DESCRIPTION_MIN} знака.`;
   }
   if (title.length < 3 || title.length > 120) errors.title = "Заглавието трябва да е поне 3 знака.";
-  if (!(price > 0 && price <= PRICE_MAX)) errors.price = "Въведи цена, по-голяма от 0.";
+  if (!free && !(price > 0 && price <= PRICE_MAX)) errors.price = "Въведи цена, по-голяма от 0, или отбележи „Безплатно“.";
   if (brand.length < 2 || brand.length > 60) errors.brand = "Въведи марката на продукта.";
   if (!categories.some(({ value }) => value === category)) errors.category = "Избери категория.";
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";

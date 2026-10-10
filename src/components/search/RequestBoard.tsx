@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
 import { noFilters, type Filters } from "@/components/SortBar";
+import { formatPrice } from "@/lib/format";
 
 // A "Търся" post as the page shows it: what somebody is looking for.
 export type BoardRequest = {
@@ -38,8 +39,6 @@ const conditions = {
   used: { label: "Използвано", className: "bg-amber-100 text-amber-800" },
   any: { label: "Ново или използвано", className: "bg-zinc-100 text-zinc-700" },
 };
-
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 function matches(request: BoardRequest, filters: Filters) {
   if (filters.categories.length > 0 && !filters.categories.includes(request.category)) return false;
@@ -80,7 +79,7 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string>();
   const condition = conditions[request.condition];
-  const budget = request.budget === null ? "По договаряне" : priceFormat.format(request.budget);
+  const budget = request.budget === null ? "По договаряне" : formatPrice(request.budget);
 
   const toggleFavorite = async () => {
     // Signed-out visitors get the login form instead.

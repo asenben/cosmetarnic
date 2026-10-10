@@ -7,6 +7,7 @@ import Avatar from "@/components/Avatar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import MessageButton from "@/components/messages/MessageButton";
 import RequestActions from "@/components/search/RequestActions";
+import { formatPrice } from "@/lib/format";
 
 // A "Търся" post as its own page shows it beside the picture.
 export type RequestDetails = {
@@ -26,8 +27,6 @@ export type RequestDetails = {
 };
 
 const conditionLabels = { new: "Ново", used: "Използвано", any: "Ново или използвано" };
-
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 
 const phoneButton =
   "flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-brand-rose text-sm font-semibold text-brand-rose transition-colors hover:bg-brand-rose/10 disabled:cursor-default disabled:opacity-60";
@@ -122,7 +121,7 @@ export default function RequestSidebar({ request, adminOf }: RequestSidebarProps
             {request.brand && <span className="font-medium text-brand-rose">{request.brand}</span>}
           </p>
           <p className="mt-4 text-2xl font-bold text-brand-ink">
-            {request.budget === null ? "По договаряне" : priceFormat.format(request.budget)}
+            {request.budget === null ? "По договаряне" : formatPrice(request.budget)}
           </p>
         </div>
 

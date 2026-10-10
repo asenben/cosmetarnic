@@ -3,8 +3,8 @@ import Link from "next/link";
 import RequestActions from "@/components/search/RequestActions";
 import { listingImageUrl } from "@/lib/listings/images";
 import type { ProductRequest } from "@/lib/requests";
+import { formatPrice } from "@/lib/format";
 
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 const dateFormat = new Intl.DateTimeFormat("bg-BG", {
   day: "numeric",
   month: "short",
@@ -62,7 +62,7 @@ export default function RequestsTable({ requests, showAuthor = true }: RequestsT
           </div>
 
           <p className="w-28 shrink-0 text-right text-sm font-bold text-brand-ink">
-            {request.budget === null ? "По договаряне" : priceFormat.format(request.budget)}
+            {request.budget === null ? "По договаряне" : formatPrice(request.budget)}
           </p>
 
           <RequestActions id={request.id} className="w-56 shrink-0" />

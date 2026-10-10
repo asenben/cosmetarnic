@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode, type SubmitEvent } from "react";
-import { CircleCheck, ImagePlus, LayoutGrid, MapPin, Phone, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
+import { CircleCheck, Gift, ImagePlus, LayoutGrid, MapPin, Phone, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
 import Combobox from "@/components/Combobox";
 import Select from "@/components/Select";
 import DescriptionField from "@/components/sell/DescriptionField";
@@ -69,8 +69,10 @@ function validate(data: FormData) {
     errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
   }
   if (text("title").length < 3) errors.title = "Напиши какво търсиш с поне 3 знака.";
-  // The budget may be left empty.
-  if (budget && !(Number(budget) > 0 && Number(budget) <= BUDGET_MAX)) errors.budget = "Въведи сума, по-голяма от 0.";
+  // The budget may be left empty, and is not asked for at all from somebody looking for something free.
+  if (data.get("free") !== "on" && budget && !(Number(budget) > 0 && Number(budget) <= BUDGET_MAX)) {
+    errors.budget = "Въведи сума, по-голяма от 0.";
+  }
   if (!text("category")) errors.category = "Избери категория.";
   if (!PHONE_PATTERN.test(text("phone"))) errors.phone = "Въведи валиден телефонен номер.";
   if (!text("city")) errors.city = "Въведи град.";
@@ -134,6 +136,8 @@ export default function RequestForm({ request, returnTo = "/profile/search" }: R
     request?.image ? { stored: request.image, url: listingImageUrl(request.image) } : null,
   );
   const [photoError, setPhotoError] = useState<string>();
+  // Looking to get the product for free: the budget is 0 and its field is switched off.
+  const [free, setFree] = useState(request?.budget === 0);
 
   // The preview address holds the file in memory until it is released.
   const previewUrl = useRef<string>(undefined);
@@ -193,7 +197,11 @@ export default function RequestForm({ request, returnTo = "/profile/search" }: R
       const response = await fetch(request ? `/api/requests/${request.id}` : "/api/requests", {
         method: request ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...Object.fromEntries(fields.map((field) => [field, data.get(field)])), image }),
+        body: JSON.stringify({
+          ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
+          free: data.get("free") === "on",
+          image,
+        }),
       });
       const result = await response.json();
       if (response.ok) {
@@ -315,35 +323,60 @@ export default function RequestForm({ request, returnTo = "/profile/search" }: R
             <FieldError message={errors.title} />
 
             {/* One bordered box holding the amount and the currency, as for a listing's price. */}
-            <label className="mt-4 flex h-11 w-48 cursor-text items-center overflow-hidden rounded-xl border border-black/10 bg-white transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500">
-              <input
-                // A text field, because a number field refuses the decimal comma in some browsers.
-                type="text"
-                name="budget"
-                defaultValue={request?.budget == null ? undefined : String(request.budget).replace(".", ",")}
-                aria-label="Бюджет в евро"
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="Бюджет"
-                onInput={(event) => {
-                  // Only digits, one decimal comma and two digits after it are kept.
-                  const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
-                  event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
-                }}
-                aria-invalid={Boolean(errors.budget)}
-                className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-lg font-bold text-brand-ink outline-none placeholder:text-brand-ink/30"
-              />
-              <span
-                aria-hidden
-                className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-3.5 text-base font-bold text-brand-rose"
+            <div className="mt-4 flex items-center gap-3">
+              <label
+                className={`flex h-11 min-w-0 flex-1 items-center overflow-hidden rounded-xl border border-black/10 transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500 ${
+                  free ? "bg-zinc-100" : "cursor-text bg-white"
+                }`}
               >
-                €
-              </span>
-            </label>
+                <input
+                  // A text field, because a number field refuses the decimal comma in some browsers.
+                  type="text"
+                  name="budget"
+                  defaultValue={request?.budget ? String(request.budget).replace(".", ",") : undefined}
+                  // Switched off while the product is wanted for free, and so left out of what is sent.
+                  disabled={free}
+                  aria-label="Бюджет в евро"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder={free ? "Безплатно" : "Бюджет"}
+                  onInput={(event) => {
+                    // Only digits, one decimal comma and two digits after it are kept.
+                    const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
+                    event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
+                  }}
+                  aria-invalid={Boolean(errors.budget)}
+                  className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-lg font-bold text-brand-ink outline-none placeholder:text-brand-ink/30"
+                />
+                <span
+                  aria-hidden
+                  className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-3.5 text-base font-bold text-brand-rose"
+                >
+                  €
+                </span>
+              </label>
+              {/* Looking to get it for nothing: no budget is asked for, and the post says "Безплатно". */}
+              <label className={`${chip} h-11 shrink-0 gap-2 rounded-xl px-4`}>
+                <input
+                  type="checkbox"
+                  name="free"
+                  checked={free}
+                  onChange={(event) => {
+                    setFree(event.target.checked);
+                    setErrors({ ...errors, budget: undefined });
+                  }}
+                  className="sr-only"
+                />
+                <Gift className="size-4" aria-hidden />
+                Безплатно
+              </label>
+            </div>
             {errors.budget ? (
               <FieldError message={errors.budget} />
             ) : (
-              <p className="mt-1 text-xs text-brand-ink/60">Най-много колко би платил – по желание.</p>
+              <p className="mt-1 text-xs text-brand-ink/60">
+                {free ? "Търсиш го без да плащаш." : "Най-много колко би платил – по желание."}
+              </p>
             )}
           </div>
 

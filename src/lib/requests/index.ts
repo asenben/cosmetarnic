@@ -87,14 +87,16 @@ async function readRequest(input: Record<string, unknown>) {
   const html = text("description");
   const description = html.length <= DESCRIPTION_MAX_HTML ? sanitizeDescription(html) : "";
   const image = text("image");
-  // The budget is optional; when given it has to be a real amount.
+  // The budget is optional; when given it has to be a real amount. Somebody looking to get the
+  // product for free has a budget of 0.
+  const free = input.free === true;
   const budgetText = text("budget").replace(",", ".");
-  const budget = budgetText ? Math.round(Number(budgetText) * 100) / 100 : null;
+  const budget = free ? 0 : budgetText ? Math.round(Number(budgetText) * 100) / 100 : null;
 
   if (title.length < 3 || title.length > 120) errors.title = "Напиши какво търсиш с поне 3 знака.";
   if (!categories.some(({ value }) => value === category)) errors.category = "Избери категория.";
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
-  if (budget !== null && !(budget > 0 && budget <= BUDGET_MAX)) errors.budget = "Въведи сума, по-голяма от 0.";
+  if (!free && budget !== null && !(budget > 0 && budget <= BUDGET_MAX)) errors.budget = "Въведи сума, по-голяма от 0.";
   if (!city || city.length > 60) errors.city = "Въведи град.";
   if (!PHONE_PATTERN.test(phone)) errors.phone = "Въведи валиден телефонен номер.";
   if (descriptionText(description).length < DESCRIPTION_MIN) {

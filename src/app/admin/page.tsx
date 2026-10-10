@@ -6,13 +6,13 @@ import Avatar from "@/components/Avatar";
 import { getAdmin, getAdminCounts, listListings, listUsers } from "@/lib/admin";
 import { avatarUrl } from "@/lib/auth/avatar";
 import { listReports } from "@/lib/reports";
+import { formatPrice } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Табло",
 };
 
 const card = "rounded-2xl border border-black/5 bg-white p-5 sm:p-6";
-const priceFormat = new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" });
 const dateFormat = new Intl.DateTimeFormat("bg-BG", { day: "numeric", month: "short", timeZone: "Europe/Sofia" });
 
 // How many of the newest things each list on the page shows.
@@ -134,7 +134,7 @@ export default async function AdminDashboard() {
                         {listing.seller.username} · {dateFormat.format(listing.createdAt)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-sm font-bold text-brand-ink">{priceFormat.format(listing.price)}</span>
+                    <span className="shrink-0 text-sm font-bold text-brand-ink">{formatPrice(listing.price)}</span>
                   </Link>
                 </li>
               ))}

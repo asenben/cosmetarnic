@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import RequestForm from "@/components/search/RequestForm";
+import { getProfile } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -12,7 +13,9 @@ export const metadata: Metadata = {
 // The form for a new "Търся" post, laid out like the page for a new listing (/sell).
 export default async function NewRequestPage() {
   // Only signed-in users can write a "Търся" post.
-  if (!(await getCurrentUser())) redirect("/search");
+  const user = await getCurrentUser();
+  if (!user) redirect("/search");
+  const profile = await getProfile(user.id);
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -37,7 +40,7 @@ export default async function NewRequestPage() {
           </ol>
         </nav>
 
-        <RequestForm />
+        <RequestForm phone={profile?.phone} />
       </div>
     </main>
   );

@@ -80,7 +80,10 @@ export default async function RequestPage({ params }: PageProps<"/search/[id]">)
               id: request.id,
               title: request.title,
               brand: request.brand,
-              categoryLabel: categories.find(({ value }) => value === request.category)?.label ?? "",
+              categoryLabel: categories
+                .filter(({ value }) => request.categories.includes(value))
+                .map(({ label }) => label)
+                .join(", "),
               condition: request.condition,
               budget: request.budget,
               city: request.city,

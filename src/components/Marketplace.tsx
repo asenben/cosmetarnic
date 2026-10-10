@@ -9,10 +9,10 @@ import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
 import { noFilters, type Filters } from "@/components/SortBar";
 
 // A listing as the marketplace needs it: what its card shows, plus what the filters match on.
-export type MarketplaceListing = Product & { category: string };
+export type MarketplaceListing = Product & { categories: string[] };
 
 function matches(listing: MarketplaceListing, filters: Filters) {
-  if (filters.categories.length > 0 && !filters.categories.includes(listing.category)) return false;
+  if (filters.categories.length > 0 && !listing.categories.some((value) => filters.categories.includes(value))) return false;
   if (filters.condition !== "all" && listing.condition !== filters.condition) return false;
   // A price left at null does not limit anything (see Filters).
   if (filters.priceMin !== null && listing.price < filters.priceMin) return false;

@@ -9,7 +9,7 @@ export type SearchResult = {
   id: string;
   title: string;
   brand: string;
-  // The category's name, e.g. "Грим".
+  // The names of its categories, e.g. "Грим, Грижа за кожата".
   category: string;
   price: number;
   image: string | null;
@@ -26,7 +26,10 @@ export async function GET(request: Request) {
       id: listing.id,
       title: listing.title,
       brand: listing.brand,
-      category: categories.find(({ value }) => value === listing.category)?.label ?? "",
+      category: categories
+        .filter(({ value }) => listing.categories.includes(value))
+        .map(({ label }) => label)
+        .join(", "),
       price: listing.price,
       image: listing.images[0] ? listingImageUrl(listing.images[0]) : null,
     }));

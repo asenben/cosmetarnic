@@ -15,8 +15,8 @@ import { formatPrice } from "@/lib/format";
 export type BoardRequest = {
   id: string;
   title: string;
-  // The category's value, which the filter matches on, and its name, which is shown.
-  category: string;
+  // The values of its categories, which the filter matches on, and their names, which are shown.
+  categories: string[];
   categoryLabel: string;
   condition: "new" | "used" | "any";
   // The most the person would pay, in euro; null when they did not say.
@@ -41,7 +41,7 @@ const conditions = {
 };
 
 function matches(request: BoardRequest, filters: Filters) {
-  if (filters.categories.length > 0 && !filters.categories.includes(request.category)) return false;
+  if (filters.categories.length > 0 && !request.categories.some((value) => filters.categories.includes(value))) return false;
   // Somebody who takes either condition matches both choices.
   if (filters.condition !== "all" && request.condition !== "any" && request.condition !== filters.condition) {
     return false;
@@ -112,7 +112,7 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
 
   return (
     <article className="relative flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex-row">
-      <div className="relative aspect-4/5 shrink-0 listview:m-2.5 listview:aspect-auto listview:min-h-28 listview:w-24 listview:sm:w-36">
+      <div className="relative aspect-square shrink-0 listview:m-2.5 listview:aspect-auto listview:min-h-28 listview:w-24 listview:sm:w-36">
         {/* Only the picture opens the post; the details under it are not a link. */}
         <Link
           href={`/search/${request.id}`}
@@ -120,7 +120,8 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
           className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
         >
           {request.image ? (
-            // The picture fills the frame from its middle, with nothing empty around it.
+            // The photo fills the square from its middle, with nothing empty beside it; the little that
+            // does not fit above and below is seen on the page it opens.
             <Image
               src={request.image}
               alt=""

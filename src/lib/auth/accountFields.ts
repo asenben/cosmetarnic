@@ -38,6 +38,12 @@ export function checkPhone(input: unknown): Checked {
 }
 
 export const USERNAME_TAKEN = "Това потребителско име вече е заето.";
+export const PHONE_TAKEN = "Вече има профил с този телефонен номер.";
+
+// A number written with the country code and the same number written with a leading zero are
+// one number: "+359888123456" and "00359888123456" are compared as "0888123456". The queries
+// that look for a number already in use do the same to the stored one.
+export const samePhone = (phone: string) => phone.replace(/^([+]|00)359/, "0");
 
 // True for the database error raised when a unique value, such as a username, is already in use.
 export const isUniqueViolation = (error: unknown): error is { code: string; constraint?: string } =>

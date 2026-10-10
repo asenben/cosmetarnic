@@ -1,4 +1,4 @@
-import { USERNAME_TAKEN, checkFullName, checkPhone, checkUsername, isUniqueViolation, text } from "@/lib/auth/accountFields";
+import { PHONE_TAKEN, USERNAME_TAKEN, checkFullName, checkPhone, checkUsername, isUniqueViolation, samePhone, text } from "@/lib/auth/accountFields";
 import { sendVerificationEmail } from "@/lib/auth/emailVerification";
 import { hashPassword, passwordProblem } from "@/lib/auth/password";
 import { sql } from "@/lib/db";
@@ -46,6 +46,7 @@ function validate(input: Record<string, unknown>) {
 const TAKEN: RegisterErrors = {
   username: USERNAME_TAKEN,
   email: "Вече има профил с този имейл.",
+  phone: PHONE_TAKEN,
 };
 
 // `origin` is the site address used for the confirmation link in the email.
@@ -54,14 +55,18 @@ export async function registerUser(input: Record<string, unknown>, origin: strin
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 
   const existing = await sql`
-    select lower(username) = lower(${username}) as username_taken, lower(email) = ${email} as email_taken
+    select lower(username) = lower(${username}) as username_taken, lower(email) = ${email} as email_taken,
+           coalesce(regexp_replace(phone, '^([+]|00)359', '0') = ${samePhone(phone)}, false) as phone_taken
     from users
     where lower(username) = lower(${username}) or lower(email) = ${email}
+       or regexp_replace(phone, '^([+]|00)359', '0') = ${samePhone(phone)}
   `;
   if (existing.length > 0) {
     const taken: RegisterErrors = {};
     if (existing.some((row) => row.username_taken)) taken.username = TAKEN.username;
     if (existing.some((row) => row.email_taken)) taken.email = TAKEN.email;
+    // One account per phone number, so that nobody registers a second time.
+    if (existing.some((row) => row.phone_taken)) taken.phone = TAKEN.phone;
     return { ok: false, errors: taken };
   }
 

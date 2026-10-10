@@ -1,4 +1,12 @@
-import { USERNAME_TAKEN, checkPhone, checkUsername, isUniqueViolation, text } from "@/lib/auth/accountFields";
+import {
+  PHONE_TAKEN,
+  USERNAME_TAKEN,
+  checkPhone,
+  checkUsername,
+  isUniqueViolation,
+  samePhone,
+  text,
+} from "@/lib/auth/accountFields";
 import { avatarKey } from "@/lib/auth/avatar";
 import { BIO_MAX } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -136,7 +144,8 @@ const NOT_FOUND: ManageResult = { ok: false, message: "Профилът не е 
 const OWN_ACCOUNT: ManageResult = { ok: false, message: "Това не може да се направи със собствения ти профил." };
 
 // Saves the administrator's changes to an account's details. Unlike the owner's own settings,
-// the name and the phone may be left empty here.
+// the name and the phone may be left empty here, and the phone may be changed: only an
+// administrator does that. It still has to be a number no other account has.
 export async function updateUser(id: string, input: Record<string, unknown>): Promise<ManageResult> {
   if (!ID_PATTERN.test(id)) return NOT_FOUND;
   const username = checkUsername(input.username);
@@ -151,6 +160,13 @@ export async function updateUser(id: string, input: Record<string, unknown>): Pr
   if ("error" in phone && phone.error) errors.phone = phone.error;
   if (bio.length > BIO_MAX) errors.bio = `Текстът трябва да е до ${BIO_MAX} знака.`;
   if (Object.keys(errors).length > 0) return { ok: false, message: "Провери отбелязаните полета.", errors };
+
+  if (phone.value) {
+    const [used] = await sql`
+      select 1 from users
+      where regexp_replace(phone, '^([+]|00)359', '0') = ${samePhone(phone.value)} and id <> ${id} limit 1`;
+    if (used) return { ok: false, message: "Провери отбелязаните полета.", errors: { phone: PHONE_TAKEN } };
+  }
 
   try {
     const changed = await sql`

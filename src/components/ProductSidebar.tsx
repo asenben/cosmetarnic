@@ -23,10 +23,12 @@ import { formatPrice } from "@/lib/format";
 const conditionLabels = { new: "Ново", used: "Използвано" };
 
 const deliveryLabels = {
-  // Short, so that all three ways fit on one line beside "Изпращане"; the map pin says the rest.
+  // Short, so that the ways fit beside "Изпращане"; the map pin says the rest.
   pickup: "Лично",
   speedy: "Спиди",
   econt: "Еконт",
+  boxnow: "BoxNow",
+  pigeon: "Pigeon",
 };
 
 const phoneButton =
@@ -83,7 +85,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             </div>
           ))}
           {/* Each way of handing over with its own mark: a map pin for meeting in person, a parcel
-              for a courier. Smaller on phones, so that all three stay on one line. */}
+              for a courier. Smaller on phones; they go on a second line when many are offered. */}
           {delivery.length > 0 && (
             <div className="flex items-center justify-between gap-2 py-3 text-sm sm:gap-4">
               <dt className="flex shrink-0 items-center gap-2.5 text-brand-ink/60">
@@ -91,7 +93,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
                 Изпращане
               </dt>
               <dd>
-                <ul className="flex justify-end gap-x-2 gap-y-1 text-[0.6875rem] font-semibold text-brand-ink max-[359px]:flex-wrap sm:gap-x-3.5 sm:text-sm">
+                <ul className="flex flex-wrap justify-end gap-x-2 gap-y-1 text-[0.6875rem] font-semibold text-brand-ink sm:gap-x-3.5 sm:text-sm">
                   {delivery.map((key) => {
                     const Icon = key === "pickup" ? MapPin : Package;
                     return (

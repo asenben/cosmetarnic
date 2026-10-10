@@ -24,11 +24,11 @@ export async function loginUser(input: Record<string, unknown>, origin: string):
     return { ok: false, reason: "invalid", message: "Въведи потребителско име и парола." };
   }
 
-  // The same field accepts the username or the email the account was registered with.
+  // Only the username signs in; the email the account was registered with does not.
   const [row] = await sql`
     select id, username, email, role, avatar, password_hash, email_verified_at, blocked_at
     from users
-    where lower(username) = lower(${identifier}) or lower(email) = lower(${identifier})
+    where lower(username) = lower(${identifier})
     limit 1
   `;
 

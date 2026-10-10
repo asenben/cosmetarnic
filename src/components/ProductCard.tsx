@@ -12,7 +12,7 @@ const conditions = {
 };
 
 // The ways a seller can hand over the product, in the order the cards show them.
-const couriers = { speedy: "Спиди", econt: "Еконт" };
+const couriers = { speedy: "Спиди", econt: "Еконт", boxnow: "BoxNow", pigeon: "Pigeon" };
 type Delivery = "pickup" | keyof typeof couriers;
 
 // One entry for handing over in person and one for shipping, however many couriers are offered.
@@ -58,9 +58,8 @@ export default function ProductCard({
     // last row out to fit.
     <article className="@container relative overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex">
       {/* Not a positioning anchor in the list view, so the heart there moves to the card's top right corner. */}
-      {/* A tall frame, close to the shape of a photo taken with a phone held upright, so little
-          of it is left outside. */}
-      <div className="relative aspect-3/5 listview:static listview:m-2.5 listview:aspect-auto listview:w-24 listview:shrink-0 listview:sm:w-36">
+      {/* A square frame, whatever the shape of the photo in it. */}
+      <div className="relative aspect-square listview:static listview:m-2.5 listview:aspect-auto listview:w-24 listview:shrink-0 listview:sm:w-36">
         {/* Only the picture opens the listing; the details under it are not a link. */}
         <Link
           href={href}
@@ -68,8 +67,8 @@ export default function ProductCard({
           className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
         >
           {image ? (
-            // The photo fills the frame from its middle, with nothing empty around it; whatever does
-            // not fit at its edges is seen on the listing's own page.
+            // The photo fills the square from its middle, with nothing empty beside it; the little that
+            // does not fit above and below is seen on the page it opens.
             <Image
               src={image}
               alt=""

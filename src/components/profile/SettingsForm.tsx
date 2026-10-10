@@ -97,7 +97,7 @@ function Field({ label, icon: Icon, error, note, ...input }: FieldProps) {
         <span className="pointer-events-none absolute inset-y-px left-px flex w-10 items-center justify-center rounded-l-xl border-r border-black/10 bg-zinc-50 text-brand-ink/70">
           <Icon className="size-4" aria-hidden />
         </span>
-        <input id={id} aria-invalid={Boolean(error)} {...input} className={`${control} h-11 pr-3.5 pl-13`} />
+        <input id={id} aria-invalid={Boolean(error)} {...input} className={`${control} h-11 pr-3.5 pl-13 read-only:cursor-not-allowed read-only:bg-zinc-100 read-only:text-brand-ink/60`} />
       </div>
       {error && (
         <p role="alert" className="mt-1 text-xs text-red-600">
@@ -259,6 +259,9 @@ export default function SettingsForm({ profile, sessions }: SettingsFormProps) {
                 autoComplete="tel"
                 required
                 defaultValue={profile.phone}
+                // The number the account was registered with stays; only an administrator changes it.
+                readOnly={Boolean(profile.phone)}
+                note={profile.phone ? "Телефонният номер се променя само от администратор." : undefined}
                 placeholder="+359 88 123 4567"
                 error={errors.phone}
                 onChange={touched("phone")}

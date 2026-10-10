@@ -26,7 +26,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     postedAgo: postedAgo(listing.createdAt),
     condition: listing.condition,
     delivery: listing.delivery,
-    category: listing.category,
+    categories: listing.categories,
   }));
 
   return (

@@ -88,7 +88,7 @@ export default function FiltersSidebar({ filters, onChange, open, onOpenChange }
     >
       {/* On narrow screens "Изчисти всички" is on the left with the cross across from it; at the
           side of wide screens it is alone, on the right. */}
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-black/5 bg-white px-4 py-3 lg:static lg:justify-end">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-black/5 bg-white px-4 py-3 lg:static lg:justify-end lg:rounded-t-2xl">
         <button
           type="button"
           onClick={() => {

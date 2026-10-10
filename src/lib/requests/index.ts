@@ -22,7 +22,8 @@ export type ProductRequest = {
   title: string;
   // The brand wanted, or "" when any will do.
   brand: string;
-  category: string;
+  // The values of the categories it is in, at least one.
+  categories: string[];
   condition: (typeof CONDITIONS)[number];
   // The most the person would pay, in euro; null when they did not say.
   budget: number | null;
@@ -54,7 +55,7 @@ const toRequest = (row: Record<string, unknown>): ProductRequest => ({
   userId: row.user_id as string,
   title: row.title as string,
   brand: (row.brand as string | null) ?? "",
-  category: row.category as string,
+  categories: row.categories as string[],
   condition: row.condition as ProductRequest["condition"],
   budget: row.budget === null ? null : Number(row.budget),
   city: row.city as string,
@@ -80,7 +81,9 @@ async function readRequest(input: Record<string, unknown>) {
 
   const title = text("title");
   const brand = text("brand").slice(0, 60);
-  const category = text("category");
+  // The categories chosen, in the order the site shows them; anything that is not one is dropped.
+  const picked = Array.isArray(input.categories) ? input.categories : [];
+  const chosen = categories.map(({ value }) => value).filter((value) => picked.includes(value));
   const condition = text("condition");
   const city = text("city");
   const phone = text("phone");
@@ -94,7 +97,7 @@ async function readRequest(input: Record<string, unknown>) {
   const budget = free ? 0 : budgetText ? Math.round(Number(budgetText) * 100) / 100 : null;
 
   if (title.length < 3 || title.length > 120) errors.title = "Напиши какво търсиш с поне 3 знака.";
-  if (!categories.some(({ value }) => value === category)) errors.category = "Избери категория.";
+  if (chosen.length === 0) errors.categories = "Избери поне една категория.";
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
   if (!free && budget !== null && !(budget > 0 && budget <= BUDGET_MAX)) errors.budget = "Въведи сума, по-голяма от 0.";
   if (!city || city.length > 60) errors.city = "Въведи град.";
@@ -107,7 +110,7 @@ async function readRequest(input: Record<string, unknown>) {
 
   return {
     ok: true as const,
-    values: { title, brand: brand || null, category, condition, budget, city, phone, description, image: image || null },
+    values: { title, brand: brand || null, categories: chosen, condition, budget, city, phone, description, image: image || null },
   };
 }
 
@@ -131,8 +134,9 @@ export async function createRequest(userId: string, input: Record<string, unknow
   const v = read.values;
 
   const [row] = await sql`
-    insert into requests (user_id, title, brand, category, condition, budget, city, phone, description, image)
-    values (${userId}, ${v.title}, ${v.brand}, ${v.category}, ${v.condition}, ${v.budget}, ${v.city}, ${v.phone},
+    insert into requests (user_id, title, brand, category, categories, condition, budget, city, phone, description, image)
+    values (${userId}, ${v.title}, ${v.brand}, ${v.categories[0]}, ${v.categories}::text[], ${v.condition}, ${v.budget},
+            ${v.city}, ${v.phone},
             ${v.description}, ${v.image})
     returning id`;
   return { ok: true, id: row.id };
@@ -159,8 +163,8 @@ export async function updateRequest(
   if (!before) return null;
   await sql`
     update requests
-    set title = ${v.title}, brand = ${v.brand}, category = ${v.category}, condition = ${v.condition},
-        budget = ${v.budget}, city = ${v.city}, phone = ${v.phone}, description = ${v.description}, image = ${v.image}
+    set title = ${v.title}, brand = ${v.brand}, category = ${v.categories[0]}, categories = ${v.categories}::text[],
+        condition = ${v.condition}, budget = ${v.budget}, city = ${v.city}, phone = ${v.phone}, description = ${v.description}, image = ${v.image}
     where id = ${id}`;
   // A picture the author replaced or took out is no longer needed.
   if (before.image !== v.image) await discardImage(before.image as string | null);
@@ -198,7 +202,7 @@ export async function getRequests({
   includeBlocked = false,
 }: RequestQuery = {}) {
   const rows = await sql`
-    select r.id, r.user_id, r.title, r.brand, r.category, r.condition, r.budget, r.city, r.description,
+    select r.id, r.user_id, r.title, r.brand, r.categories, r.condition, r.budget, r.city, r.description,
            r.image, r.created_at, u.username, u.avatar, f.user_id is not null as favorite
     from requests r
     join users u on u.id = r.user_id
@@ -216,7 +220,7 @@ export async function getRequests({
 export async function getRequest(id: string, viewerId: string | null = null, includeBlocked = false) {
   if (!ID_PATTERN.test(id)) return null;
   const [row] = await sql`
-    select r.id, r.user_id, r.title, r.brand, r.category, r.condition, r.budget, r.city, r.description,
+    select r.id, r.user_id, r.title, r.brand, r.categories, r.condition, r.budget, r.city, r.description,
            r.image, r.created_at, u.username, u.avatar, u.created_at as author_created_at,
            exists (select 1 from request_favorites f where f.request_id = r.id and f.user_id = ${viewerId}) as favorite
     from requests r join users u on u.id = r.user_id

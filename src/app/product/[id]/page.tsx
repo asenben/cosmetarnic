@@ -20,7 +20,7 @@ const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "nu
 
 // A published listing in the shape the page was built around.
 function toProduct(listing: Listing, categories: Category[]): ProductDetails {
-  const category = categories.find(({ value }) => value === listing.category);
+  const labels = categories.filter(({ value }) => listing.categories.includes(value)).map(({ label }) => label);
   return {
     id: listing.id,
     number: listing.number,
@@ -32,8 +32,7 @@ function toProduct(listing: Listing, categories: Category[]): ProductDetails {
     delivery: listing.delivery,
     images: listing.images.map(listingImageUrl),
     title: listing.title,
-    category: listing.category,
-    categories: ["Красота и козметика", ...(category ? [category.label] : [])],
+    categories: ["Красота и козметика", ...(labels.length > 0 ? [labels.join(", ")] : [])],
     sellerProfile: {
       name: listing.seller.username,
       handle: listing.seller.username,

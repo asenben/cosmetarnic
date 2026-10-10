@@ -1,9 +1,11 @@
 import {
   USERNAME_TAKEN,
   checkFullName,
+  PHONE_TAKEN,
   checkPhone,
   checkUsername,
   isUniqueViolation,
+  samePhone,
   text,
 } from "@/lib/auth/accountFields";
 import {
@@ -53,10 +55,14 @@ export async function getProfile(userId: string): Promise<ProfileDetails> {
 }
 
 // The email is not changed here: a new address would first have to be confirmed by its owner.
+// Nor is the phone number the account was registered with: there is one account per number, and
+// only an administrator changes it (see updateUser in src/lib/admin). An account from before the
+// phone was asked for adds its number here once.
 export async function updateProfile(userId: string, input: Record<string, unknown>): Promise<UpdateProfileResult> {
   const username = checkUsername(input.username);
   const fullName = checkFullName(input.full_name);
-  const phone = checkPhone(input.phone);
+  const [stored] = await sql`select phone from users where id = ${userId}`;
+  const phone: { value: string; error?: string } = stored?.phone ? { value: stored.phone } : checkPhone(input.phone);
   // Line breaks are kept; only the space around the whole text is dropped.
   const bio = text(input.bio).trim();
   const city = text(input.city).trim();
@@ -89,6 +95,13 @@ export async function updateProfile(userId: string, input: Record<string, unknow
     select 1 from users where lower(username) = lower(${username.value}) and id <> ${userId} limit 1
   `;
   if (taken) return { ok: false, errors: { username: USERNAME_TAKEN } };
+  if (!stored?.phone) {
+    const [used] = await sql`
+      select 1 from users
+      where regexp_replace(phone, '^([+]|00)359', '0') = ${samePhone(phone.value)} and id <> ${userId} limit 1
+    `;
+    if (used) return { ok: false, errors: { phone: PHONE_TAKEN } };
+  }
 
   try {
     await sql`

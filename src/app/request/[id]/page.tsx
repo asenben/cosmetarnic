@@ -49,7 +49,7 @@ export default async function EditRequestPage({ params }: PageProps<"/request/[i
             id: request.id,
             title: request.title,
             description: request.description,
-            category: request.category,
+            categories: request.categories,
             brand: request.brand,
             condition: request.condition,
             budget: request.budget,

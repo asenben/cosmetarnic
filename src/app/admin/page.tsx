@@ -44,9 +44,9 @@ export default async function AdminDashboard() {
   const tiles: { href: string; label: string; value: number; icon: LucideIcon; urgent?: boolean }[] = [
     { href: "/admin/users", label: "Потребители", value: counts.users, icon: Users },
     { href: "/admin/listings", label: "Обяви", value: counts.listings, icon: FileUp },
-    { href: "/admin/requests", label: "Публикации в „Търся“", value: counts.requests, icon: Search },
+    { href: "/admin/requests", label: "Търся", value: counts.requests, icon: Search },
     { href: "/admin/messages", label: "Разговори", value: counts.messages, icon: MessageSquare },
-    { href: "/admin/reviews", label: "Чакащи сигнали", value: counts.reviews, icon: Flag, urgent: counts.reviews > 0 },
+    { href: "/admin/reviews", label: "Сигнали", value: counts.reviews, icon: Flag, urgent: counts.reviews > 0 },
   ];
 
   return (
@@ -55,18 +55,38 @@ export default async function AdminDashboard() {
         <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">Табло</h1>
         <p className="mt-1 text-sm text-brand-ink/60">Здравей, {admin.username}. Ето какво има в сайта в момента.</p>
 
+        {/* Each tile: what is counted and its picture on one line, the number under them. The one
+            for reports is filled in while some are waiting. */}
         <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           {tiles.map(({ href, label, value, icon: Icon, urgent }) => (
             <li key={href}>
               <Link
                 href={href}
-                className={`flex h-full flex-col gap-2 rounded-2xl p-4 transition-colors ${
-                  urgent ? "bg-brand-rose text-white hover:bg-brand" : "bg-brand-rose/5 text-brand-ink hover:bg-brand-rose/10"
+                className={`group flex h-full flex-col justify-between gap-4 rounded-2xl border p-4 transition ${
+                  urgent
+                    ? "border-brand-rose bg-brand-rose text-white hover:bg-brand"
+                    : "border-black/5 bg-white text-brand-ink hover:border-brand-rose/40 hover:shadow-lg hover:shadow-brand-ink/5"
                 }`}
               >
-                <Icon className={`size-5 ${urgent ? "" : "text-brand-rose"}`} aria-hidden />
-                <span className="text-3xl leading-8 font-bold tabular-nums">{value}</span>
-                <span className={`text-sm ${urgent ? "text-white/90" : "text-brand-ink/60"}`}>{label}</span>
+                <span className="flex items-start justify-between gap-2">
+                  <span className={`text-sm leading-5 font-medium ${urgent ? "text-white/90" : "text-brand-ink/60"}`}>
+                    {label}
+                  </span>
+                  <span
+                    className={`flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                      urgent ? "bg-white/20" : "bg-brand-rose/10 text-brand-rose group-hover:bg-brand-rose group-hover:text-white"
+                    }`}
+                  >
+                    <Icon className="size-4.5" aria-hidden />
+                  </span>
+                </span>
+                <span className="flex items-end justify-between gap-2">
+                  <span className="text-3xl leading-8 font-bold tabular-nums">{value}</span>
+                  <ChevronRight
+                    className={`size-4 transition-transform group-hover:translate-x-0.5 ${urgent ? "text-white/80" : "text-brand-ink/30"}`}
+                    aria-hidden
+                  />
+                </span>
               </Link>
             </li>
           ))}

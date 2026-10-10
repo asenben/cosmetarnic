@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import ListingForm from "@/components/sell/ListingForm";
+import { getProfile } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
 
 export default async function SellPage() {
   // Only signed-in users can publish listings.
-  if (!(await getCurrentUser())) redirect("/");
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+  const profile = await getProfile(user.id);
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -30,7 +33,7 @@ export default async function SellPage() {
           </ol>
         </nav>
 
-        <ListingForm />
+        <ListingForm phone={profile?.phone} />
       </div>
     </main>
   );

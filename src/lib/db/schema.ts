@@ -93,6 +93,10 @@ export const schema = [
   // From when listings could be marked as sold; no longer used, since a sold product's listing
   // is deleted instead. Left in place so that nothing stored is lost.
   `alter table listings add column if not exists sold_at timestamptz`,
+  // A listing can be in several categories. `category` keeps the first of them, as it did when
+  // there was only one.
+  `alter table listings add column if not exists categories text[] not null default '{}'`,
+  `update listings set categories = array[category] where categories = '{}'`,
   // The "Търся" posts: what a registered user is looking for, so that sellers can get in touch.
   // Not listings: nothing is on sale and there are no photos (see src/lib/requests).
   `create table if not exists requests (
@@ -111,6 +115,10 @@ export const schema = [
   `create index if not exists requests_created_at_idx on requests (created_at desc)`,
   // A picture of the product wanted, if the author added one: its file name in the bucket.
   `alter table requests add column if not exists image text`,
+  // A post can be in several categories. `category` keeps the first of them, as it did when
+  // there was only one.
+  `alter table requests add column if not exists categories text[] not null default '{}'`,
+  `update requests set categories = array[category] where categories = '{}'`,
   // The "Търся" posts each user marked with the heart.
   `create table if not exists request_favorites (
     user_id uuid not null references users (id) on delete cascade,

@@ -7,7 +7,7 @@ import { deleteImage } from "@/lib/storage/deleteImage";
 
 // The same limits the form in src/components/sell/ListingForm.tsx checks before sending.
 const CONDITIONS = ["new", "used"] as const;
-const DELIVERIES = ["pickup", "speedy", "econt"] as const;
+const DELIVERIES = ["pickup", "speedy", "econt", "boxnow", "pigeon"] as const;
 const PRICE_MAX = 100000;
 const DESCRIPTION_MIN = 20;
 const DESCRIPTION_MAX_HTML = 20000;
@@ -22,7 +22,8 @@ export type Listing = {
   number: number;
   title: string;
   brand: string;
-  category: string;
+  // The values of the categories it is in, at least one.
+  categories: string[];
   condition: (typeof CONDITIONS)[number];
   price: number;
   color: string;
@@ -45,7 +46,7 @@ const toListing = (row: Record<string, unknown>): Listing => ({
   number: Number(row.number),
   title: row.title as string,
   brand: row.brand as string,
-  category: row.category as string,
+  categories: row.categories as string[],
   condition: row.condition as Listing["condition"],
   price: Number(row.price),
   color: (row.color as string | null) ?? "",
@@ -83,7 +84,9 @@ async function readListing(input: Record<string, unknown>) {
 
   const title = text("title");
   const brand = text("brand");
-  const category = text("category");
+  // The categories chosen, in the order the site shows them; anything that is not one is dropped.
+  const picked = Array.isArray(input.categories) ? input.categories : [];
+  const chosen = categories.map(({ value }) => value).filter((value) => picked.includes(value));
   const condition = text("condition");
   const color = text("color").slice(0, 40);
   const phone = text("phone");
@@ -103,7 +106,7 @@ async function readListing(input: Record<string, unknown>) {
   if (title.length < 3 || title.length > 120) errors.title = "Заглавието трябва да е поне 3 знака.";
   if (!free && !(price > 0 && price <= PRICE_MAX)) errors.price = "Въведи цена, по-голяма от 0, или отбележи „Безплатно“.";
   if (brand.length < 2 || brand.length > 60) errors.brand = "Въведи марката на продукта.";
-  if (!categories.some(({ value }) => value === category)) errors.category = "Избери категория.";
+  if (chosen.length === 0) errors.categories = "Избери поне една категория.";
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
   if (delivery.length === 0) errors.delivery = "Избери поне един начин на доставка.";
   if (!PHONE_PATTERN.test(phone)) errors.phone = "Въведи валиден телефонен номер.";
@@ -115,7 +118,7 @@ async function readListing(input: Record<string, unknown>) {
 
   return {
     ok: true as const,
-    values: { title, brand, category, condition, price, color: color || null, delivery, phone, city, description, images },
+    values: { title, brand, categories: chosen, condition, price, color: color || null, delivery, phone, city, description, images },
   };
 }
 
@@ -125,8 +128,9 @@ export async function createListing(userId: string, input: Record<string, unknow
   const v = read.values;
 
   const [row] = await sql`
-    insert into listings (user_id, title, brand, category, condition, price, color, delivery, phone, city, description, images)
-    values (${userId}, ${v.title}, ${v.brand}, ${v.category}, ${v.condition}, ${v.price}, ${v.color},
+    insert into listings (user_id, title, brand, category, categories, condition, price, color, delivery, phone, city,
+                          description, images)
+    values (${userId}, ${v.title}, ${v.brand}, ${v.categories[0]}, ${v.categories}::text[], ${v.condition}, ${v.price}, ${v.color},
             ${v.delivery}::text[], ${v.phone}, ${v.city}, ${v.description}, ${v.images}::text[])
     returning id`;
   return { ok: true, id: row.id };
@@ -166,8 +170,8 @@ export async function updateListing(
   if (!before) return null;
   await sql`
     update listings
-    set title = ${v.title}, brand = ${v.brand}, category = ${v.category}, condition = ${v.condition},
-        price = ${v.price}, color = ${v.color}, delivery = ${v.delivery}::text[], phone = ${v.phone},
+    set title = ${v.title}, brand = ${v.brand}, category = ${v.categories[0]}, categories = ${v.categories}::text[],
+        condition = ${v.condition}, price = ${v.price}, color = ${v.color}, delivery = ${v.delivery}::text[], phone = ${v.phone},
         city = ${v.city}, description = ${v.description}, images = ${v.images}::text[]
     where id = ${id}`;
   // The photos the owner took out of the listing are no longer needed.
@@ -207,7 +211,7 @@ const searchWords = (search: string) =>
     .slice(0, 6);
 
 // The listings on sale, newest first. With `search`, only those where every word typed is part of
-// the title, the brand or the category's name, so "грим dior", "dior" and "грим" all work.
+// the title, the brand or the name of one of its categories, so "грим dior", "dior" and "грим" all work.
 export async function getListings(search = "", limit: number | null = null) {
   const categories = await getCategories();
   const rows = await sql`
@@ -218,11 +222,11 @@ export async function getListings(search = "", limit: number | null = null) {
     select l.*, u.username, u.avatar, u.created_at as seller_created_at, 0 as seller_listings
     from listings l
     join users u on u.id = l.user_id
-    left join names on names.value = l.category
     where l.status = 'active' and u.blocked_at is null
       and not exists (
         select 1 from unnest(${searchWords(search)}::text[]) as word
-        where position(word in lower(l.title || ' ' || l.brand || ' ' || coalesce(names.label, ''))) = 0
+        where position(word in lower(l.title || ' ' || l.brand || ' ' || coalesce(
+          (select string_agg(names.label, ' ') from names where names.value = any (l.categories)), ''))) = 0
       )
     order by l.created_at desc
     limit ${limit}`;

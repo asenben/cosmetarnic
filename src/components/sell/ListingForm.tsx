@@ -20,7 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Combobox from "@/components/Combobox";
-import Select from "@/components/Select";
+import MultiSelect from "@/components/MultiSelect";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
 import { useCategories, useCities } from "@/components/SiteOptionsProvider";
@@ -32,9 +32,11 @@ const conditions = [
 ];
 
 const deliveries = [
-  { value: "pickup", label: "Лично предаване", icon: MapPin },
-  { value: "speedy", label: "Спиди", icon: Truck },
-  { value: "econt", label: "Еконт", icon: Truck },
+  { value: "pickup", label: "Лично предаване" },
+  { value: "speedy", label: "Спиди" },
+  { value: "econt", label: "Еконт" },
+  { value: "boxnow", label: "BoxNow" },
+  { value: "pigeon", label: "Pigeon" },
 ];
 
 const MAX_PHOTOS = MAX_LISTING_PHOTOS;
@@ -45,7 +47,7 @@ const DESCRIPTION_MIN = 20;
 const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
 
 // In the order they appear on the page, so the first invalid one can be focused.
-const fields = ["description", "title", "price", "brand", "category", "condition", "delivery", "phone", "city"] as const;
+const fields = ["description", "title", "price", "brand", "categories", "condition", "delivery", "phone", "city"] as const;
 type Field = (typeof fields)[number];
 type Errors = Partial<Record<Field, string>>;
 
@@ -59,7 +61,7 @@ export type EditedListing = {
   title: string;
   price: number;
   brand: string;
-  category: string;
+  categories: string[];
   condition: string;
   color: string;
   delivery: string[];
@@ -92,6 +94,7 @@ async function publish(data: FormData, photos: Photo[], editedId?: string) {
     body: JSON.stringify({
       ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
       color: data.get("color"),
+      categories: data.getAll("categories"),
       free: data.get("free") === "on",
       delivery: data.getAll("delivery"),
       images,
@@ -130,7 +133,7 @@ function validate(data: FormData) {
     errors.price = "Въведи цена, по-голяма от 0, или отбележи „Безплатно“.";
   }
   if (text("brand").length < 2) errors.brand = "Въведи марката на продукта.";
-  if (!text("category")) errors.category = "Избери категория.";
+  if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
   if (!text("condition")) errors.condition = "Избери състояние.";
   if (data.getAll("delivery").length === 0) errors.delivery = "Избери поне един начин на доставка.";
   if (!PHONE_PATTERN.test(text("phone"))) errors.phone = "Въведи валиден телефонен номер.";
@@ -199,7 +202,14 @@ function Chips({ label, name, type, options, chosen = [] }: ChipsProps) {
 }
 
 // The form for a new listing; with `listing` it edits that listing instead.
-export default function ListingForm({ listing }: { listing?: EditedListing }) {
+type ListingFormProps = {
+  listing?: EditedListing;
+  // The phone number from the user's profile, which a new listing starts with; it can be
+  // replaced with another one.
+  phone?: string;
+};
+
+export default function ListingForm({ listing, phone }: ListingFormProps) {
   const [photos, setPhotos] = useState<Photo[]>(
     () => listing?.images.map((stored) => ({ stored, url: listingImageUrl(stored) })) ?? [],
   );
@@ -519,18 +529,19 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
                 defaultValue={listing?.brand}
                 aria-label="Марка"
                 maxLength={50}
-                placeholder="напр. Dior"
+                placeholder="Dior"
                 aria-invalid={Boolean(errors.brand)}
                 className={specInput}
               />
             </SpecRow>
-            <SpecRow icon={LayoutGrid} label="Категория" error={errors.category}>
-              <Select
-                name="category"
-                defaultValue={listing?.category}
+            {/* A product may belong to more than one category, e.g. a set of make-up and skin care. */}
+            <SpecRow icon={LayoutGrid} label="Категория" error={errors.categories}>
+              <MultiSelect
+                name="categories"
+                defaultValue={listing?.categories}
                 label="Категория"
                 options={categories}
-                invalid={Boolean(errors.category)}
+                invalid={Boolean(errors.categories)}
                 className="h-9 w-44"
               />
             </SpecRow>
@@ -554,12 +565,13 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
               />
             </SpecRow>
             <SpecRow icon={Truck} label="Изпращане" error={errors.delivery}>
-              <Chips
-                label="Изпращане"
+              <MultiSelect
                 name="delivery"
-                type="checkbox"
+                defaultValue={listing?.delivery}
+                label="Изпращане"
                 options={deliveries}
-                chosen={listing?.delivery}
+                invalid={Boolean(errors.delivery)}
+                className="h-9 w-44"
               />
             </SpecRow>
           </div>
@@ -573,7 +585,7 @@ export default function ListingForm({ listing }: { listing?: EditedListing }) {
               <input
                 type="tel"
                 name="phone"
-                defaultValue={listing?.phone}
+                defaultValue={listing ? listing.phone : phone}
                 aria-label="Телефон"
                 autoComplete="tel"
                 maxLength={20}

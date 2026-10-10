@@ -212,7 +212,10 @@ export function CityFilter({ selected, onChange }: ListFilterProps) {
   const [query, setQuery] = useState("");
   const cities = useCities();
 
-  const visible = cities.filter((city) => city.toLowerCase().includes(query.trim().toLowerCase()));
+  // In alphabetical order, whatever order the administrator keeps them in.
+  const visible = cities
+    .filter((city) => city.toLowerCase().includes(query.trim().toLowerCase()))
+    .toSorted((a, b) => a.localeCompare(b, "bg"));
 
   return (
     <div>
@@ -231,7 +234,8 @@ export function CityFilter({ selected, onChange }: ListFilterProps) {
         />
       </label>
 
-      <div className="mt-2">
+      {/* Four towns are seen at a time; the rest are reached by scrolling the list. */}
+      <div className="-mx-2 mt-2 max-h-36 scrollbar-soft overflow-y-auto overscroll-contain px-2">
         {visible.map((city) => (
           <OptionRow key={city} icon={MapPin} label={city} active={selected.includes(city)}>
             <input

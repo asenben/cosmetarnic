@@ -24,8 +24,8 @@ export const getCategories = cache(async (): Promise<Category[]> => {
 export async function getCategoryUsage() {
   const rows = await sql`
     select c.value, c.label, c.icon,
-           (select count(*)::int from listings where category = c.value) as listings,
-           (select count(*)::int from requests where category = c.value) as requests
+           (select count(*)::int from listings where c.value = any (categories)) as listings,
+           (select count(*)::int from requests where c.value = any (categories)) as requests
     from categories c order by c.position, c.label`;
   return rows.map((row) => ({
     value: row.value as string,
@@ -77,8 +77,8 @@ export async function addCategory(input: Record<string, unknown>): Promise<Categ
 // listing or post is left without its category.
 export async function deleteCategory(value: string): Promise<CategoryResult> {
   const [used] = await sql`
-    select (select count(*)::int from listings where category = ${value}) +
-           (select count(*)::int from requests where category = ${value}) as count`;
+    select (select count(*)::int from listings where ${value} = any (categories)) +
+           (select count(*)::int from requests where ${value} = any (categories)) as count`;
   if (used.count > 0) return { ok: false, message: "В тази категория има обяви или публикации и не може да се изтрие." };
   const removed = await sql`delete from categories where value = ${value} returning value`;
   return removed.length > 0 ? { ok: true } : { ok: false, message: "Категорията не е намерена." };

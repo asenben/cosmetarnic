@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode, type SubmitEvent } from "react";
 import { CircleCheck, Gift, ImagePlus, LayoutGrid, MapPin, Phone, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
 import Combobox from "@/components/Combobox";
-import Select from "@/components/Select";
+import MultiSelect from "@/components/MultiSelect";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
 import { useCategories, useCities } from "@/components/SiteOptionsProvider";
@@ -25,7 +25,7 @@ const MAX_PHOTO_MB = 5;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // In the order they appear on the page, so the first invalid one can be focused.
-const fields = ["description", "title", "budget", "brand", "category", "condition", "phone", "city"] as const;
+const fields = ["description", "title", "budget", "brand", "categories", "condition", "phone", "city"] as const;
 type Field = (typeof fields)[number];
 type Errors = Partial<Record<Field, string>>;
 
@@ -38,7 +38,7 @@ export type EditedRequest = {
   id: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
   brand: string;
   condition: string;
   budget: number | null;
@@ -73,7 +73,7 @@ function validate(data: FormData) {
   if (data.get("free") !== "on" && budget && !(Number(budget) > 0 && Number(budget) <= BUDGET_MAX)) {
     errors.budget = "Въведи сума, по-голяма от 0.";
   }
-  if (!text("category")) errors.category = "Избери категория.";
+  if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
   if (!PHONE_PATTERN.test(text("phone"))) errors.phone = "Въведи валиден телефонен номер.";
   if (!text("city")) errors.city = "Въведи град.";
   return errors;
@@ -120,11 +120,14 @@ function SpecRow({ icon: Icon, label, error, children }: SpecRowProps) {
 // the card on the right. With `request` it edits that post instead of making a new one.
 type RequestFormProps = {
   request?: EditedRequest;
+  // The phone number from the user's profile, which a new post starts with; it can be replaced
+  // with another one.
+  phone?: string;
   // Where to go once the post is saved; the user's own posts unless said otherwise.
   returnTo?: string;
 };
 
-export default function RequestForm({ request, returnTo = "/profile/search" }: RequestFormProps) {
+export default function RequestForm({ request, phone, returnTo = "/profile/search" }: RequestFormProps) {
   const router = useRouter();
   const categories = useCategories();
   const cities = useCities();
@@ -199,6 +202,7 @@ export default function RequestForm({ request, returnTo = "/profile/search" }: R
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
+          categories: data.getAll("categories"),
           free: data.get("free") === "on",
           image,
         }),
@@ -391,13 +395,14 @@ export default function RequestForm({ request, returnTo = "/profile/search" }: R
                 className={specInput}
               />
             </SpecRow>
-            <SpecRow icon={LayoutGrid} label="Категория" error={errors.category}>
-              <Select
-                name="category"
-                defaultValue={request?.category}
+            {/* What is wanted may belong to more than one category. */}
+            <SpecRow icon={LayoutGrid} label="Категория" error={errors.categories}>
+              <MultiSelect
+                name="categories"
+                defaultValue={request?.categories}
                 label="Категория"
                 options={categories}
-                invalid={Boolean(errors.category)}
+                invalid={Boolean(errors.categories)}
                 className="h-9 w-44"
               />
             </SpecRow>
@@ -428,7 +433,7 @@ export default function RequestForm({ request, returnTo = "/profile/search" }: R
               <input
                 type="tel"
                 name="phone"
-                defaultValue={request?.phone}
+                defaultValue={request ? request.phone : phone}
                 aria-label="Телефон за връзка"
                 autoComplete="tel"
                 maxLength={20}

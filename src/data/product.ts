@@ -15,8 +15,6 @@ export type ProductDetails = Omit<Product, "href" | "image"> & {
   number: number;
   images: string[];
   title: string;
-  // One of the category values from listingOptions.ts; the filters match on it.
-  category: string;
   categories: string[];
   sellerProfile: SellerProfile;
   color: string;

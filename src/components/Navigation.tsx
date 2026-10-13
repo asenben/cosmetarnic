@@ -31,8 +31,9 @@ function CountBadge({ count, ring }: { count: number; ring: string }) {
   );
 }
 
-// How often the number of unread messages is asked for again while a page stays open.
-const UNREAD_REFRESH_MS = 30_000;
+// How often the number of unread messages is asked for again while the page is being looked at,
+// so a new message shows within moments without reloading.
+const UNREAD_REFRESH_MS = 5_000;
 
 // `unreadMessages` is the count when the page was loaded; it is kept up to date from there.
 export default function Navigation({ unreadMessages = 0 }: { unreadMessages?: number }) {
@@ -44,12 +45,14 @@ export default function Navigation({ unreadMessages = 0 }: { unreadMessages?: nu
   const unread = isLoggedIn ? unreadCount : 0;
   const messagesLabel = unread > 0 ? `Съобщения (${unread} непрочетени)` : "Съобщения";
 
-  // Asked again on every page opened, e.g. after reading a conversation, and every so often.
+  // Asked again on every page opened, e.g. after reading a conversation, every few seconds while
+  // the tab is in view, and at once when the visitor comes back to it. A hidden tab asks nothing.
   useEffect(() => {
     if (!isLoggedIn) return;
     const refresh = async () => {
+      if (document.hidden) return;
       try {
-        const response = await fetch("/api/conversations/unread");
+        const response = await fetch("/api/conversations/unread", { cache: "no-store" });
         if (response.ok) setUnreadCount((await response.json()).count);
       } catch {
         // The number stays as it was until the next try.
@@ -57,7 +60,13 @@ export default function Navigation({ unreadMessages = 0 }: { unreadMessages?: nu
     };
     refresh();
     const timer = setInterval(refresh, UNREAD_REFRESH_MS);
-    return () => clearInterval(timer);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
   }, [isLoggedIn, pathname]);
   const onItemPage = pathname.startsWith("/product/") || /^\/search\/[^/]+$/.test(pathname);
   // Links to account-only pages open the login form instead of navigating when signed out.

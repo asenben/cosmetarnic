@@ -1,6 +1,9 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { countUnreadMessages } from "@/lib/messages";
 
+// Counted afresh on every request, never served from a cache.
+export const dynamic = "force-dynamic";
+
 // How many messages the signed-in user has not opened yet, for the number on the messages button
 // of the navigation. A visitor has none.
 export async function GET() {

@@ -8,27 +8,28 @@ export type LoginResult =
   | { ok: true; user: SessionUser }
   | { ok: false; reason: "invalid" | "unverified" | "blocked"; message: string };
 
-// One message for both a wrong name and a wrong password, so the form doesn't reveal which accounts exist.
-const INVALID = "Грешно потребителско име или парола.";
+// One message for both a wrong email and a wrong password, so the form doesn't reveal which accounts exist.
+const INVALID = "Грешен имейл или парола.";
 
-// Checked when no account matches, so an unknown name takes as long to reject as a wrong password.
+// Checked when no account matches, so an unknown email takes as long to reject as a wrong password.
 let decoyHash: Promise<string> | undefined;
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 // `origin` is the site address, needed if a new confirmation email has to be sent.
 export async function loginUser(input: Record<string, unknown>, origin: string): Promise<LoginResult> {
-  const identifier = text(input.username).trim();
+  const email = text(input.email).trim();
   const password = text(input.password);
-  if (!identifier || !password) {
-    return { ok: false, reason: "invalid", message: "Въведи потребителско име и парола." };
+  if (!email || !password) {
+    return { ok: false, reason: "invalid", message: "Въведи имейл и парола." };
   }
 
-  // Only the username signs in; the email the account was registered with does not.
+  // Only the email the account was registered with signs in; the username does not. The
+  // administrator's account without a mailbox signs in with its ".invalid" address.
   const [row] = await sql`
     select id, username, email, role, avatar, password_hash, email_verified_at, blocked_at
     from users
-    where lower(username) = lower(${identifier})
+    where lower(email) = lower(${email})
     limit 1
   `;
 

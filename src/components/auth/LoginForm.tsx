@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type SubmitEvent } from "react";
-import { Lock, User } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { AuthField, AuthHeader, AuthSwitch, submitButton } from "@/components/auth/AuthParts";
 import type { SessionUser } from "@/lib/auth/session";
 
@@ -30,7 +30,7 @@ export default function LoginForm({ notice, onSuccess, onForgotPassword, onRegis
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: data.get("username"),
+          email: data.get("email"),
           password: data.get("password"),
           remember: data.get("remember") === "on",
         }),
@@ -62,10 +62,11 @@ export default function LoginForm({ notice, onSuccess, onForgotPassword, onRegis
 
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
         <AuthField
-          label="Потребителско име"
-          icon={User}
-          name="username"
-          autoComplete="username"
+          label="Имейл"
+          icon={Mail}
+          type="email"
+          name="email"
+          autoComplete="email"
           aria-invalid={Boolean(error)}
           onChange={() => setError(undefined)}
         />

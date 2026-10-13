@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Bell, Heart, MessageSquare, Plus, User } from "lucide-react";
+import { Heart, MessageSquare, Plus, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavoriteCount } from "@/components/FavoritesProvider";
 import SearchBox from "@/components/SearchBox";
@@ -162,7 +162,16 @@ export default function Navigation() {
 
           <SearchBox />
 
+          {/* The same buttons as on phones: the messages, then the favourites. */}
           <div className="flex items-center gap-1 md:grow md:justify-center">
+            <Link
+              href="/profile/messages"
+              aria-label="Съобщения"
+              onClick={guardLink}
+              className={`${iconButton} hidden sm:flex`}
+            >
+              <MessageSquare className="size-5.5" aria-hidden />
+            </Link>
             <Link
               href="/profile/favorites"
               aria-label={favoriteCount > 0 ? `Любими (${favoriteCount})` : "Любими"}
@@ -179,14 +188,6 @@ export default function Navigation() {
                   {favoriteCount > 99 ? "99+" : favoriteCount}
                 </span>
               )}
-            </Link>
-            <Link
-              href="/profile/notifications"
-              aria-label="Известия"
-              onClick={guardLink}
-              className={`${iconButton} hidden sm:flex`}
-            >
-              <Bell className="size-5.5" aria-hidden />
             </Link>
             <span className="mx-2 hidden h-6 w-px bg-brand-ink/15 sm:block" aria-hidden />
             {isLoggedIn ? (

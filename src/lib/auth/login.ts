@@ -24,12 +24,13 @@ export async function loginUser(input: Record<string, unknown>, origin: string):
     return { ok: false, reason: "invalid", message: "Въведи имейл и парола." };
   }
 
-  // Only the email the account was registered with signs in; the username does not. The
-  // administrator's account without a mailbox signs in with its ".invalid" address.
+  // Only the email the account was registered with signs in; the username does not. The one
+  // exception is the administrator's account without a mailbox: it has no email to type, so it
+  // signs in with its username, and its ".invalid" address does not sign in at all.
   const [row] = await sql`
     select id, username, email, role, avatar, password_hash, email_verified_at, blocked_at
     from users
-    where lower(email) = lower(${email})
+    where case when lower(email) like '%.invalid' then lower(username) else lower(email) end = lower(${email})
     limit 1
   `;
 

@@ -13,11 +13,16 @@ type LoginFormProps = {
   onRegister?: () => void;
 };
 
+// The administrator's account has no mailbox and signs in with this name in place of an email,
+// in any letter case (see src/lib/auth/login.ts).
+const ADMIN_USERNAME = "kosmetarnik";
+
 const GENERIC_ERROR = "Нещо се обърка. Опитай отново след малко.";
 
 export default function LoginForm({ notice, onSuccess, onForgotPassword, onRegister }: LoginFormProps) {
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [adminName, setAdminName] = useState(false);
 
   const onSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,11 +69,17 @@ export default function LoginForm({ notice, onSuccess, onForgotPassword, onRegis
         <AuthField
           label="Имейл"
           icon={Mail}
-          type="email"
+          // The browser asks for a real address, as it does for everybody, except while the
+          // administrator's username is what is typed.
+          type={adminName ? "text" : "email"}
+          autoCapitalize="none"
           name="email"
-          autoComplete="email"
+          autoComplete="username"
           aria-invalid={Boolean(error)}
-          onChange={() => setError(undefined)}
+          onChange={(event) => {
+            setAdminName(event.target.value.trim().toLowerCase() === ADMIN_USERNAME);
+            setError(undefined);
+          }}
         />
         <AuthField
           label="Парола"

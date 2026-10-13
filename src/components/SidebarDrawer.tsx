@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { ChevronRight, Menu, X } from "lucide-react";
+import { PanelLeft, X } from "lucide-react";
 
 type SidebarDrawerProps = {
   // What the menu is, e.g. "Профил"; shown as the drawer's heading.
@@ -12,24 +12,25 @@ type SidebarDrawerProps = {
   children: ReactNode;
 };
 
-// On phones and tablets, where there is no room for a sidebar next to the page: a bar above the
-// page that names the open section, and slides the whole menu in from the left when pressed.
+// On phones and tablets, where there is no room for a sidebar next to the page: a button above
+// the page, with the open section's name beside it, that slides the whole menu in from the left.
 export default function SidebarDrawer({ label, current, children }: SidebarDrawerProps) {
   const drawerRef = useRef<HTMLDialogElement>(null);
 
   return (
     <div className="lg:hidden">
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        onClick={() => drawerRef.current?.showModal()}
-        className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 text-sm font-semibold text-brand-ink transition-colors hover:text-brand-rose"
-      >
-        <Menu className="size-5 shrink-0 text-brand-rose" aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-left">{current}</span>
-        <span className="shrink-0 text-xs font-medium text-brand-ink/50">Меню</span>
-        <ChevronRight className="size-4 shrink-0 text-brand-ink/50" aria-hidden />
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label={`Отвори менюто: ${label}`}
+          aria-haspopup="dialog"
+          onClick={() => drawerRef.current?.showModal()}
+          className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-black/5 bg-white text-brand-ink transition-colors hover:border-brand-rose/50 hover:text-brand-rose"
+        >
+          <PanelLeft className="size-5" aria-hidden />
+        </button>
+        <p className="min-w-0 truncate text-sm font-semibold text-brand-ink">{current}</p>
+      </div>
 
       <dialog
         ref={drawerRef}

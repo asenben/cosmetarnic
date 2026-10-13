@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Heart, MessageSquare, Plus, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavoriteCount } from "@/components/FavoritesProvider";
@@ -18,10 +18,47 @@ const links = [
 const iconButton =
   "flex size-10 shrink-0 items-center justify-center rounded-full text-brand-ink transition-colors hover:bg-brand/10 hover:text-brand";
 
-export default function Navigation() {
+// The number in the corner of a button, as on "Любими"; `ring` matches the background around it.
+function CountBadge({ count, ring }: { count: number; ring: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-hidden
+      className={`absolute top-0 right-0 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-brand-rose px-1 text-[0.6875rem] leading-none font-bold text-white ring-2 ${ring}`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+// How often the number of unread messages is asked for again while a page stays open.
+const UNREAD_REFRESH_MS = 30_000;
+
+// `unreadMessages` is the count when the page was loaded; it is kept up to date from there.
+export default function Navigation({ unreadMessages = 0 }: { unreadMessages?: number }) {
   const pathname = usePathname();
   const { isLoggedIn, openLogin, requireAuth } = useAuth();
   const favoriteCount = useFavoriteCount();
+  const [unreadCount, setUnreadCount] = useState(unreadMessages);
+  // Nobody signed in has messages, whatever was counted before signing out.
+  const unread = isLoggedIn ? unreadCount : 0;
+  const messagesLabel = unread > 0 ? `Съобщения (${unread} непрочетени)` : "Съобщения";
+
+  // Asked again on every page opened, e.g. after reading a conversation, and every so often.
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/conversations/unread");
+        if (response.ok) setUnreadCount((await response.json()).count);
+      } catch {
+        // The number stays as it was until the next try.
+      }
+    };
+    refresh();
+    const timer = setInterval(refresh, UNREAD_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [isLoggedIn, pathname]);
   const onItemPage = pathname.startsWith("/product/") || /^\/search\/[^/]+$/.test(pathname);
   // Links to account-only pages open the login form instead of navigating when signed out.
   const guardLink = (event: MouseEvent) => {
@@ -70,8 +107,14 @@ export default function Navigation() {
           </Link>
 
           <div className="flex items-center gap-1">
-            <Link href="/profile/messages" aria-label="Съобщения" onClick={guardLink} className={iconButton}>
+            <Link
+              href="/profile/messages"
+              aria-label={messagesLabel}
+              onClick={guardLink}
+              className={`${iconButton} relative`}
+            >
               <MessageSquare className="size-5.5" aria-hidden />
+              <CountBadge count={unread} ring="ring-zinc-50" />
             </Link>
             <Link
               href="/profile/favorites"
@@ -166,11 +209,13 @@ export default function Navigation() {
           <div className="flex items-center gap-1 md:grow md:justify-center">
             <Link
               href="/profile/messages"
-              aria-label="Съобщения"
+              aria-label={messagesLabel}
               onClick={guardLink}
-              className={`${iconButton} hidden sm:flex`}
+              className={`${iconButton} relative hidden sm:flex`}
             >
               <MessageSquare className="size-5.5" aria-hidden />
+              {/* How many messages wait unread. */}
+              <CountBadge count={unread} ring="ring-white" />
             </Link>
             <Link
               href="/profile/favorites"

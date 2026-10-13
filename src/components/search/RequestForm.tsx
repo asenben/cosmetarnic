@@ -3,12 +3,10 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode, type SubmitEvent } from "react";
-import { CircleCheck, ImagePlus, LayoutGrid, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
-import MultiSelect from "@/components/MultiSelect";
+import { CircleCheck, ImagePlus, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
 import ContactSummary from "@/components/sell/ContactSummary";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
-import { useCategories } from "@/components/SiteOptionsProvider";
 import { listingImageUrl } from "@/lib/listings/images";
 
 const conditions = [
@@ -16,13 +14,12 @@ const conditions = [
   { value: "any", label: "Без значение" },
 ];
 
-const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX = 1000;
 const MAX_PHOTO_MB = 5;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // In the order they appear on the page, so the first invalid one can be focused.
-const fields = ["description", "title", "brand", "categories", "condition"] as const;
+const fields = ["description", "title", "brand", "condition"] as const;
 type Field = (typeof fields)[number];
 // `contact` is what the server says is missing in the profile for publishing.
 type Errors = Partial<Record<Field | "contact", string>>;
@@ -58,12 +55,8 @@ function validate(data: FormData) {
   const text = (name: Field) => String(data.get(name) ?? "").trim();
   const errors: Errors = {};
 
-  // The editor submits the formatted description and, next to it, its plain text for this check.
-  if (String(data.get("description_text") ?? "").trim().length < DESCRIPTION_MIN) {
-    errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
-  }
+  // The description is optional: the title may say all there is to it.
   if (text("title").length < 3) errors.title = "Напиши какво търсиш с поне 3 знака.";
-  if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
   return errors;
 }
 
@@ -120,7 +113,6 @@ type RequestFormProps = {
 
 export default function RequestForm({ request, contact, missing, returnTo = "/profile/search" }: RequestFormProps) {
   const router = useRouter();
-  const categories = useCategories();
   const [errors, setErrors] = useState<Errors>({});
   // "sending" while the post is on its way, "done" once it is saved.
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
@@ -190,7 +182,6 @@ export default function RequestForm({ request, contact, missing, returnTo = "/pr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
-          categories: data.getAll("categories"),
           image,
         }),
       });
@@ -286,7 +277,9 @@ export default function RequestForm({ request, contact, missing, returnTo = "/pr
         </div>
 
         <section className="rounded-2xl border border-black/5 bg-white p-5">
-          <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
+          <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">
+            Описание <span className="font-normal tracking-normal text-brand-ink/50 normal-case">(по желание)</span>
+          </h2>
           <DescriptionField
             id="request-description"
             name="description"
@@ -323,17 +316,6 @@ export default function RequestForm({ request, contact, missing, returnTo = "/pr
                 maxLength={60}
                 placeholder="по желание"
                 className={specInput}
-              />
-            </SpecRow>
-            {/* What is wanted may belong to more than one category. */}
-            <SpecRow icon={LayoutGrid} label="Категория" error={errors.categories}>
-              <MultiSelect
-                name="categories"
-                defaultValue={request?.categories}
-                label="Категория"
-                options={categories}
-                invalid={Boolean(errors.categories)}
-                className="h-9 w-44"
               />
             </SpecRow>
             <SpecRow icon={Sparkles} label="Състояние" error={errors.condition}>

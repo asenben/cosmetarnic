@@ -64,14 +64,17 @@ export default async function RequestPage({ params }: PageProps<"/search/[id]">)
               />
             </div>
 
-            <section className="order-3 min-w-0 rounded-2xl border border-black/5 bg-white p-4 sm:p-5 lg:order-none">
-              <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
-              {/* Cleaned when the post was saved (see src/lib/listings/description.ts). */}
-              <div
-                className="rich-text mt-3 text-base wrap-break-word text-brand-ink/80"
-                dangerouslySetInnerHTML={{ __html: request.description }}
-              />
-            </section>
+            {/* The description is optional on a post; without one there is no box for it. */}
+            {request.description && (
+              <section className="order-3 min-w-0 rounded-2xl border border-black/5 bg-white p-4 sm:p-5 lg:order-none">
+                <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Описание</h2>
+                {/* Cleaned when the post was saved (see src/lib/listings/description.ts). */}
+                <div
+                  className="rich-text mt-3 text-base wrap-break-word text-brand-ink/80"
+                  dangerouslySetInnerHTML={{ __html: request.description }}
+                />
+              </section>
+            )}
           </div>
 
           <RequestSidebar

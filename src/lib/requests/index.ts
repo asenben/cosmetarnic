@@ -1,7 +1,6 @@
 import { contactFor } from "@/lib/auth/profile";
-import { getCategories } from "@/lib/categories";
 import { sql } from "@/lib/db";
-import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
+import { sanitizeDescription } from "@/lib/listings/description";
 import { LISTING_IMAGE_PATTERN, listingImageKey } from "@/lib/listings/images";
 import { deleteImage } from "@/lib/storage/deleteImage";
 
@@ -13,7 +12,6 @@ import { deleteImage } from "@/lib/storage/deleteImage";
 // offered in the form and is only on posts written before that.
 const CONDITIONS = ["new", "used", "any"] as const;
 const PICKABLE_CONDITIONS: string[] = CONDITIONS.filter((value) => value !== "used");
-const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX_HTML = 20000;
 const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,7 +22,7 @@ export type ProductRequest = {
   title: string;
   // The brand wanted, or "" when any will do.
   brand: string;
-  // The values of the categories it is in, at least one.
+  // The values of the categories it is in; none for posts written since the form stopped asking.
   categories: string[];
   condition: (typeof CONDITIONS)[number];
   city: string;
@@ -70,8 +68,8 @@ type SaveResult = { ok: true; id: string } | { ok: false; errors: FieldErrors };
 
 // Checks what the form sent. Answers with the values ready to store, or with what is wrong with
 // each field.
+// The form no longer asks for categories: a new post has none, and one written before keeps its own.
 async function readRequest(input: Record<string, unknown>) {
-  const categories = await getCategories();
   const text = (name: string) => {
     const value = input[name];
     return typeof value === "string" ? value.trim() : "";
@@ -80,26 +78,20 @@ async function readRequest(input: Record<string, unknown>) {
 
   const title = text("title");
   const brand = text("brand").slice(0, 60);
-  // The categories chosen, in the order the site shows them; anything that is not one is dropped.
-  const picked = Array.isArray(input.categories) ? input.categories : [];
-  const chosen = categories.map(({ value }) => value).filter((value) => picked.includes(value));
   const condition = text("condition");
   const html = text("description");
   const description = html.length <= DESCRIPTION_MAX_HTML ? sanitizeDescription(html) : "";
   const image = text("image");
 
   if (title.length < 3 || title.length > 120) errors.title = "Напиши какво търсиш с поне 3 знака.";
-  if (chosen.length === 0) errors.categories = "Избери поне една категория.";
   if (!PICKABLE_CONDITIONS.includes(condition)) errors.condition = "Избери състояние.";
-  if (descriptionText(description).length < DESCRIPTION_MIN) {
-    errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
-  }
+  // The description is optional: the title may say all there is to it.
   if (image && !LISTING_IMAGE_PATTERN.test(image)) errors.image = "Снимката не можа да бъде приета. Добави я отново.";
   if (Object.keys(errors).length > 0) return { ok: false as const, errors };
 
   return {
     ok: true as const,
-    values: { title, brand: brand || null, categories: chosen, condition, description, image: image || null },
+    values: { title, brand: brand || null, condition, description, image: image || null },
   };
 }
 
@@ -124,8 +116,8 @@ export async function createRequest(userId: string, input: Record<string, unknow
   const v = { ...read.values, ...(await contactFor(userId)) };
 
   const [row] = await sql`
-    insert into requests (user_id, title, brand, category, categories, condition, city, phone, description, image)
-    values (${userId}, ${v.title}, ${v.brand}, ${v.categories[0]}, ${v.categories}::text[], ${v.condition},
+    insert into requests (user_id, title, brand, category, condition, city, phone, description, image)
+    values (${userId}, ${v.title}, ${v.brand}, '', ${v.condition},
             ${v.city}, ${v.phone},
             ${v.description}, ${v.image})
     returning id`;
@@ -154,8 +146,7 @@ export async function updateRequest(
   if (!before) return null;
   await sql`
     update requests
-    set title = ${v.title}, brand = ${v.brand}, category = ${v.categories[0]}, categories = ${v.categories}::text[],
-        condition = ${v.condition}, description = ${v.description}, image = ${v.image}
+    set title = ${v.title}, brand = ${v.brand}, condition = ${v.condition}, description = ${v.description}, image = ${v.image}
     where id = ${id}`;
   // A picture the author replaced or took out is no longer needed.
   if (before.image !== v.image) await discardImage(before.image as string | null);

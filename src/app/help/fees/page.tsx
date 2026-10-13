@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Такси и плащане",
 };
 
-const FREE_LISTINGS = 3;
+const FREE_LISTINGS = 5;
 const EXTRA_LISTING_FEE = "€0.80";
 
 const free = [

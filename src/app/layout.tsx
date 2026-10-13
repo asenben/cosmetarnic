@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const owner = (await getCurrentUser())?.username ?? SITE_NAME;
   return {
     title: { default: owner, template: `%s | ${owner}` },
-    description: "Платформа за козметиката. Купувай и продавай продукти.",
+    description: "Твоят свят на козметични находки",
   };
 }
 

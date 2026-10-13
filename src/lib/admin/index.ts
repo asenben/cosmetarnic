@@ -57,6 +57,8 @@ export type AdminUser = {
   verified: boolean;
   // Blocked accounts cannot sign in, and what they published is hidden.
   blocked: boolean;
+  // How many listings past the free ones the seller has paid for and not published yet.
+  paidListings: number;
   createdAt: Date;
   listings: number;
   requests: number;
@@ -74,6 +76,7 @@ const toAdminUser = (row: Record<string, unknown>): AdminUser => ({
   bio: (row.bio as string | null) ?? "",
   verified: row.email_verified_at !== null,
   blocked: row.blocked_at !== null,
+  paidListings: (row.listing_credits as number | null) ?? 0,
   createdAt: new Date(row.created_at as string),
   listings: row.listings as number,
   requests: row.requests as number,

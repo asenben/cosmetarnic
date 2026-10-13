@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Bell, Heart, MessageSquare, Plus, User } from "lucide-react";
+import { Bell, Heart, Plus, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavoriteCount } from "@/components/FavoritesProvider";
+import MessagesMenu from "@/components/messages/MessagesMenu";
 import SearchBox from "@/components/SearchBox";
 import UserMenu from "@/components/UserMenu";
 
@@ -70,9 +71,7 @@ export default function Navigation() {
           </Link>
 
           <div className="flex items-center gap-1">
-            <Link href="/profile/messages" aria-label="Съобщения" onClick={guardLink} className={iconButton}>
-              <MessageSquare className="size-5.5" aria-hidden />
-            </Link>
+            <MessagesMenu ring="ring-zinc-50" />
             <Link
               href="/profile/favorites"
               aria-label={favoriteCount > 0 ? `Любими (${favoriteCount})` : "Любими"}
@@ -163,6 +162,7 @@ export default function Navigation() {
           <SearchBox />
 
           <div className="flex items-center gap-1 md:grow md:justify-center">
+            <MessagesMenu className="hidden sm:block" />
             <Link
               href="/profile/favorites"
               aria-label={favoriteCount > 0 ? `Любими (${favoriteCount})` : "Любими"}

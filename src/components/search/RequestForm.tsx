@@ -10,6 +10,7 @@ import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
 import { useCategories, useCities } from "@/components/SiteOptionsProvider";
 import { listingImageUrl } from "@/lib/listings/images";
+import { isPhone, PHONE_ERROR } from "@/lib/phone";
 
 const conditions = [
   { value: "any", label: "Без значение" },
@@ -20,7 +21,6 @@ const conditions = [
 const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX = 1000;
 const BUDGET_MAX = 100000;
-const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
 const MAX_PHOTO_MB = 5;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -74,7 +74,7 @@ function validate(data: FormData) {
     errors.budget = "Въведи сума, по-голяма от 0.";
   }
   if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
-  if (!PHONE_PATTERN.test(text("phone"))) errors.phone = "Въведи валиден телефонен номер.";
+  if (!isPhone(text("phone"))) errors.phone = PHONE_ERROR;
   if (!text("city")) errors.city = "Въведи град.";
   return errors;
 }
@@ -237,7 +237,7 @@ export default function RequestForm({ request, phone, returnTo = "/profile/searc
         if (errors[name as Field]) setErrors({ ...errors, [name]: undefined });
         setFormError(undefined);
       }}
-      className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]"
+      className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]"
     >
       <div className="space-y-6">
         <div>

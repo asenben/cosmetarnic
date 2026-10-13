@@ -51,6 +51,11 @@ export const schema = [
   `alter table users add column if not exists city text`,
   // Whether the counts of listings, sales and favourites are shown on the user's profile.
   `alter table users add column if not exists show_stats boolean not null default true`,
+  // How many listings past the free ones the seller has paid for and not published yet; each
+  // such listing uses one up (see src/lib/payments).
+  `alter table users add column if not exists listing_credits integer not null default 0`,
+  // From a first version, where a subscription lifted the limit for a period instead.
+  `alter table users drop column if exists subscribed_until`,
   // For the list of signed-in devices in the security settings: an id to refer to a session by
   // without exposing its token hash, and the browser it was started from.
   `alter table sessions add column if not exists id uuid not null default gen_random_uuid()`,
@@ -195,10 +200,23 @@ export const schema = [
    where not exists (select 1 from cities)`,
   // Single values the administrator sets, by key: 'price_range' holds the ends of the price
   // slider in the filters as {"min": 0, "max": 500}.
+  // 'listing_fee' holds what a listing past the free ones costs, which the administrator edits
+  // in "Плащания".
   `create table if not exists settings (
     key text primary key,
     value jsonb not null
   )`,
+  // The card payments for listings past the free ones, one row per Stripe payment that
+  // was made. The payment's id is the key, so a payment is counted once however many times
+  // Stripe or the buyer's browser reports it (see src/lib/payments).
+  `create table if not exists payments (
+    id text primary key,
+    user_id uuid references users (id) on delete set null,
+    username text not null,
+    amount numeric(10, 2) not null,
+    created_at timestamptz not null default now()
+  )`,
+  `create index if not exists payments_created_at_idx on payments (created_at desc)`,
   // Reports sent with the "Докладвай" button on a listing's page, for the administrator. The
   // listing's title and number are written down too, so a report still says what it was about
   // after the listing, its seller or the reporter is deleted (see src/lib/reports).

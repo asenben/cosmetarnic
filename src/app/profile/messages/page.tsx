@@ -29,6 +29,8 @@ export default async function ProfileMessages() {
             <li key={id}>
               <Link
                 href={`/profile/messages/${id}`}
+                // Opening a conversation marks its messages as read, so it is not loaded ahead of the click.
+                prefetch={false}
                 className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-zinc-50"
               >
                 <Avatar name={other.username} src={avatarUrl(other.avatar)} className="size-12 text-lg" />

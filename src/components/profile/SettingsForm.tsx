@@ -33,8 +33,6 @@ const GENERIC_ERROR = "Нещо се обърка. Опитай отново с�
 const tabs = [
   { id: "profile", label: "Профил" },
   { id: "security", label: "Сигурност" },
-  { id: "notifications", label: "Известия" },
-  { id: "privacy", label: "Поверителност" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -425,12 +423,8 @@ export default function SettingsForm({ profile, sessions }: SettingsFormProps) {
             </button>
           </div>
         </form>
-      ) : tab === "security" ? (
-        <SecuritySettings sessions={sessions} />
       ) : (
-        <p role="tabpanel" className="py-12 text-center text-sm text-brand-ink/60">
-          Този раздел още не е готов.
-        </p>
+        <SecuritySettings sessions={sessions} />
       )}
     </div>
   );

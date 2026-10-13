@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
 import { LISTING_IMAGE_PATTERN, MAX_LISTING_PHOTOS, listingImageKey } from "@/lib/listings/images";
 import { deleteImage } from "@/lib/storage/deleteImage";
+import { isPhone, PHONE_ERROR } from "@/lib/phone";
 
 // The same limits the form in src/components/sell/ListingForm.tsx checks before sending.
 const CONDITIONS = ["new", "used"] as const;
@@ -11,7 +12,6 @@ const DELIVERIES = ["pickup", "speedy", "econt", "boxnow", "pigeon"] as const;
 const PRICE_MAX = 100000;
 const DESCRIPTION_MIN = 20;
 const DESCRIPTION_MAX_HTML = 20000;
-const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
 export const LISTING_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type Listing = {
@@ -109,7 +109,7 @@ async function readListing(input: Record<string, unknown>) {
   if (chosen.length === 0) errors.categories = "Избери поне една категория.";
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
   if (delivery.length === 0) errors.delivery = "Избери поне един начин на доставка.";
-  if (!PHONE_PATTERN.test(phone)) errors.phone = "Въведи валиден телефонен номер.";
+  if (!isPhone(phone)) errors.phone = PHONE_ERROR;
   if (!city || city.length > 60) errors.city = "Въведи град.";
   if (images.length > MAX_LISTING_PHOTOS || images.some((file) => !LISTING_IMAGE_PATTERN.test(file))) {
     errors.photos = "Снимките не можаха да бъдат приети. Добави ги отново.";
@@ -233,12 +233,13 @@ export async function getListings(search = "", limit: number | null = null) {
   return rows.map(toListing);
 }
 
-// All of one user's listings, newest first.
-export async function getUserListings(userId: string) {
+// All of one user's listings, newest first; with `activeOnly`, just those on sale, for the
+// public profile.
+export async function getUserListings(userId: string, activeOnly = false) {
   const rows = await sql`
     select l.*, u.username, u.avatar, u.created_at as seller_created_at, 0 as seller_listings
     from listings l join users u on u.id = l.user_id
-    where l.user_id = ${userId}
+    where l.user_id = ${userId} and (l.status = 'active' or ${!activeOnly})
     order by l.created_at desc`;
   return rows.map(toListing);
 }

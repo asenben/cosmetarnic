@@ -14,7 +14,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getListingTitle, postedAgo, viewerKey, viewListing, type Listing } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
 
-const conditionLabels = { new: "Ново", used: "Използвано" };
+const conditionLabels = { new: "Ново", used: "Използвано", mixed: "Комбинирано" };
 
 const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "numeric" });
 
@@ -34,6 +34,7 @@ function toProduct(listing: Listing, categories: Category[]): ProductDetails {
     title: listing.title,
     categories: ["Красота и козметика", ...(labels.length > 0 ? [labels.join(", ")] : [])],
     sellerProfile: {
+      id: listing.userId,
       name: listing.seller.username,
       handle: listing.seller.username,
       memberSince: monthAndYear.format(listing.seller.createdAt).replace(" г.", ""),

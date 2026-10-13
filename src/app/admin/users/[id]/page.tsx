@@ -77,6 +77,11 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
                 {user.verified ? "Потвърден имейл" : "Непотвърден имейл"}
               </span>
               {user.blocked && <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">Блокиран</span>}
+              {user.paidListings > 0 && (
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                  Платени обяви: {user.paidListings}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -100,7 +105,7 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
 
       <UserManager
         // A fresh form after every change, so it shows what is stored now.
-        key={`${user.username}|${user.role}|${user.blocked}`}
+        key={`${user.username}|${user.role}|${user.blocked}|${user.paidListings}`}
         own={user.id === admin.id}
         user={{
           id: user.id,
@@ -111,6 +116,7 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
           bio: user.bio,
           role: user.role,
           blocked: user.blocked,
+          paidListings: user.paidListings,
         }}
       />
 

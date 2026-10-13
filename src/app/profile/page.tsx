@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { CalendarDays, FileText, Heart, MapPin, Package, Pencil, ShoppingBag, Tag } from "lucide-react";
+import { FileText, Heart, Package, Pencil, ShoppingBag, Tag } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import Avatar from "@/components/Avatar";
-import LinkMark from "@/components/profile/LinkMark";
+import ProfileHeader from "@/components/profile/ProfileHeader";
 import { getProfile } from "@/lib/auth/profile";
-import { profileLinks } from "@/lib/auth/profileLinks";
 import { getCurrentUser } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
 import { countUserListings } from "@/lib/listings";
@@ -17,8 +15,6 @@ export const metadata: Metadata = {
 
 const card = "rounded-2xl border border-black/5 bg-white";
 
-const fullDate = new Intl.DateTimeFormat("bg-BG", { day: "numeric", month: "long", year: "numeric" });
-
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
@@ -29,10 +25,6 @@ export default async function ProfilePage() {
     countUserListings(user.id),
     getFavoriteIds(user.id),
   ]);
-  const memberSince = fullDate.format(new Date(account.created_at));
-  // Only the links that were filled in and left switched to "public" in the settings.
-  const shownLinks = profileLinks.filter(({ key }) => profile.links[key].url && profile.links[key].public);
-
   // The counts shown inside the profile card; the visitor can hide them in the settings.
   const highlights = [
     { label: "Активни обяви", value: listingCounts.active, icon: FileText },
@@ -49,72 +41,38 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-4">
-      <section className={`${card} p-6 shadow-sm shadow-brand-ink/5 sm:p-8`}>
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
-          <Avatar name={user.username} src={user.avatar} className="size-36 text-5xl ring-4 ring-brand-pale/50" />
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <h1 className="min-w-0 truncate text-3xl font-bold text-brand-ink">{user.username}</h1>
-              <Link
-                href="/profile/settings"
-                className="ml-auto flex h-11 shrink-0 items-center gap-2 rounded-full bg-brand-pale px-6 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-rose hover:text-white"
-              >
-                <Pencil className="size-4" aria-hidden />
-                Редактирай профила
-              </Link>
-            </div>
-
-            <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-brand-ink/60">
-              {profile.city && (
-                <>
-                  <li className="flex items-center gap-2">
-                    <MapPin className="size-5 shrink-0" aria-hidden />
-                    {profile.city}
-                  </li>
-                  <li aria-hidden className="text-brand-ink/30">
-                    |
-                  </li>
-                </>
-              )}
-              <li className="flex items-center gap-2">
-                <CalendarDays className="size-5 shrink-0" aria-hidden />
-                Член от {memberSince}
-              </li>
-            </ul>
-
-            {/* The public links sit right under the name, with no box around them. */}
-            {shownLinks.length > 0 && (
-              <ul className="mt-4 flex flex-wrap gap-3">
-                {shownLinks.map(({ key, label }) => (
-                  <li key={key}>
-                    <a
-                      href={profile.links[key].url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      aria-label={label}
-                      title={label}
-                      className="block rounded-full transition-opacity hover:opacity-80"
-                    >
-                      <LinkMark site={key} size="lg" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+      <section className={`${card} p-5 shadow-sm shadow-brand-ink/5 sm:p-8`}>
+        <ProfileHeader
+          username={user.username}
+          avatar={user.avatar}
+          city={profile.city}
+          memberSince={new Date(account.created_at)}
+          links={profile.links}
+          action={
+            <Link
+              href="/profile/settings"
+              className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-brand-pale px-6 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-rose hover:text-white sm:ml-auto sm:w-auto"
+            >
+              <Pencil className="size-4" aria-hidden />
+              Редактирай профила
+            </Link>
+          }
+        />
 
         {profile.show_stats && (
-          <ul className="mt-6 grid gap-4 border-t border-black/5 pt-6 sm:grid-cols-3">
+          <ul className="mt-5 grid grid-cols-3 gap-2 border-t border-black/5 pt-5 sm:mt-6 sm:gap-4 sm:pt-6">
             {highlights.map(({ label, value, icon: Icon }) => (
-              <li key={label} className="flex items-center gap-4 rounded-2xl bg-brand-rose/5 p-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-rose/10 text-brand-ink">
-                  <Icon className="size-5.5" aria-hidden />
+              // Three across on phones too: the picture above the number there, beside it from tablets up.
+              <li
+                key={label}
+                className="flex flex-col items-center gap-2 rounded-2xl bg-brand-rose/5 p-3 text-center sm:flex-row sm:gap-4 sm:p-4 sm:text-left"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-rose/10 text-brand-ink sm:size-12">
+                  <Icon className="size-5 sm:size-5.5" aria-hidden />
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-2xl leading-7 font-bold text-brand-ink">{value}</span>
-                  <span className="block truncate text-sm text-brand-ink/60">{label}</span>
+                <span className="w-full min-w-0">
+                  <span className="block text-xl leading-6 font-bold text-brand-ink sm:text-2xl sm:leading-7">{value}</span>
+                  <span className="block text-xs leading-4 text-brand-ink/60 sm:truncate sm:text-sm sm:leading-5">{label}</span>
                 </span>
               </li>
             ))}
@@ -123,12 +81,12 @@ export default async function ProfilePage() {
 
         {profile.bio && (
           <div className={profile.show_stats ? "mt-4" : "mt-6 border-t border-black/5 pt-6"}>
-            <div className="rounded-2xl bg-brand-rose/5 p-5 sm:p-6">
+            <div className="rounded-2xl bg-brand-rose/5 p-4 sm:p-6">
               <h2 className="flex items-center gap-2.5 text-lg font-bold text-brand-ink">
                 <FileText className="size-5 text-brand-ink/60" aria-hidden />
                 За мен
               </h2>
-              <p className="mt-3 max-w-4xl leading-7 whitespace-pre-line text-brand-ink/80">{profile.bio}</p>
+              <p className="mt-3 max-w-4xl text-sm leading-6 wrap-anywhere whitespace-pre-line text-brand-ink/80 sm:text-base sm:leading-7">{profile.bio}</p>
             </div>
           </div>
         )}

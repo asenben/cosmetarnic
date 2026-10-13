@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
 import { LISTING_IMAGE_PATTERN, listingImageKey } from "@/lib/listings/images";
 import { deleteImage } from "@/lib/storage/deleteImage";
+import { isPhone, PHONE_ERROR } from "@/lib/phone";
 
 // A "Търся" post: a registered user describing a product they are looking for, so that sellers
 // who have it can get in touch. It is not a listing: nothing is on sale.
@@ -12,7 +13,6 @@ const CONDITIONS = ["new", "used", "any"] as const;
 const BUDGET_MAX = 100000;
 const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX_HTML = 20000;
-const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
 const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type ProductRequest = {
@@ -101,7 +101,7 @@ async function readRequest(input: Record<string, unknown>) {
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
   if (!free && budget !== null && !(budget > 0 && budget <= BUDGET_MAX)) errors.budget = "Въведи сума, по-голяма от 0.";
   if (!city || city.length > 60) errors.city = "Въведи град.";
-  if (!PHONE_PATTERN.test(phone)) errors.phone = "Въведи валиден телефонен номер.";
+  if (!isPhone(phone)) errors.phone = PHONE_ERROR;
   if (descriptionText(description).length < DESCRIPTION_MIN) {
     errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
   }

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
-import { Ban, CircleCheck, Save, ShieldCheck, ShieldOff, Trash2, Undo2 } from "lucide-react";
+import { Ban, CircleCheck, Minus, Plus, Save, ShieldCheck, ShieldOff, Trash2, Undo2 } from "lucide-react";
 
 // The account's details as the form starts with them.
 export type ManagedUser = {
@@ -14,6 +14,8 @@ export type ManagedUser = {
   bio: string;
   role: string;
   blocked: boolean;
+  // How many listings past the free ones the seller has paid for and not published yet.
+  paidListings: number;
 };
 
 const BIO_MAX = 500;
@@ -38,7 +40,7 @@ export default function UserManager({ user, own }: UserManagerProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   // Which request is on its way, so its button can say so and the others wait.
-  const [busy, setBusy] = useState<"details" | "blocked" | "role" | "delete">();
+  const [busy, setBusy] = useState<"details" | "blocked" | "role" | "paid" | "delete">();
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string>();
 
@@ -74,7 +76,7 @@ export default function UserManager({ user, own }: UserManagerProps) {
     }
   };
 
-  const change = async (kind: "blocked" | "role", body: unknown) => {
+  const change = async (kind: "blocked" | "role" | "paid", body: unknown) => {
     if (await patch(kind, body)) router.refresh();
   };
 
@@ -178,6 +180,31 @@ export default function UserManager({ user, own }: UserManagerProps) {
               {user.role === "admin" ? <ShieldOff className="size-4" aria-hidden /> : <ShieldCheck className="size-4" aria-hidden />}
               {busy === "role" ? "Момент…" : user.role === "admin" ? "Махни администраторските права" : "Направи администратор"}
             </button>
+            {/* Added once the seller has paid for a listing past the free ones (see "Плащания");
+                publishing that listing uses it up. */}
+            <span className="flex h-10 items-center gap-1 rounded-xl border border-black/10 pr-1 pl-4 text-sm font-semibold text-brand-ink">
+              Платени обяви: {busy === "paid" ? "…" : user.paidListings}
+              <button
+                type="button"
+                aria-label="Махни една платена обява"
+                title="Махни една платена обява"
+                disabled={busy !== undefined || user.paidListings === 0}
+                onClick={() => change("paid", { paidListings: -1 })}
+                className="ml-2 flex size-8 cursor-pointer items-center justify-center rounded-lg text-brand-ink/60 transition-colors hover:bg-brand-rose/10 hover:text-brand-rose disabled:cursor-default disabled:opacity-40"
+              >
+                <Minus className="size-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                aria-label="Добави една платена обява"
+                title="Добави една платена обява"
+                disabled={busy !== undefined}
+                onClick={() => change("paid", { paidListings: 1 })}
+                className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-brand-rose transition-colors hover:bg-brand-rose/10 disabled:cursor-default disabled:opacity-40"
+              >
+                <Plus className="size-4" aria-hidden />
+              </button>
+            </span>
             {confirming ? (
               <button
                 type="button"

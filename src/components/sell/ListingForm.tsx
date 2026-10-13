@@ -8,36 +8,26 @@ import {
   Gift,
   ImagePlus,
   LayoutGrid,
-  MapPin,
   Palette,
-  Phone,
   Plus,
   Sparkles,
   Star,
   Tag,
-  Truck,
   X,
   type LucideIcon,
 } from "lucide-react";
-import Combobox from "@/components/Combobox";
 import MultiSelect from "@/components/MultiSelect";
+import ContactSummary from "@/components/sell/ContactSummary";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
-import { useCategories, useCities } from "@/components/SiteOptionsProvider";
+import { useCategories } from "@/components/SiteOptionsProvider";
+import type { Contact } from "@/lib/auth/profile";
 import { MAX_LISTING_PHOTOS, listingImageUrl } from "@/lib/listings/images";
-import { isPhone, PHONE_ERROR } from "@/lib/phone";
 
 const conditions = [
   { value: "new", label: "Ново" },
   { value: "used", label: "Използвано" },
-];
-
-const deliveries = [
-  { value: "pickup", label: "Лично предаване" },
-  { value: "speedy", label: "Спиди" },
-  { value: "econt", label: "Еконт" },
-  { value: "boxnow", label: "BoxNow" },
-  { value: "pigeon", label: "Pigeon" },
+  { value: "mixed", label: "Комбинирано" },
 ];
 
 const MAX_PHOTOS = MAX_LISTING_PHOTOS;
@@ -47,9 +37,10 @@ const PRICE_MAX = 100000;
 const DESCRIPTION_MIN = 20;
 
 // In the order they appear on the page, so the first invalid one can be focused.
-const fields = ["description", "title", "price", "brand", "categories", "condition", "delivery", "phone", "city"] as const;
+const fields = ["description", "title", "price", "brand", "categories", "condition"] as const;
 type Field = (typeof fields)[number];
-type Errors = Partial<Record<Field, string>>;
+// `contact` is what the server says is missing in the profile for publishing.
+type Errors = Partial<Record<Field | "contact", string>>;
 
 // A photo in the form: one just picked from the device (`file`), or one the listing being edited
 // already has in the bucket (`stored`, its file name there).
@@ -64,9 +55,6 @@ export type EditedListing = {
   categories: string[];
   condition: string;
   color: string;
-  delivery: string[];
-  phone: string;
-  city: string;
   // The description as the HTML the editor produced.
   description: string;
   // The photos' file names in the bucket, cover first.
@@ -96,7 +84,6 @@ async function publish(data: FormData, photos: Photo[], editedId?: string) {
       color: data.get("color"),
       categories: data.getAll("categories"),
       free: data.get("free") === "on",
-      delivery: data.getAll("delivery"),
       images,
     }),
   });
@@ -135,9 +122,6 @@ function validate(data: FormData) {
   if (text("brand").length < 2) errors.brand = "Въведи марката на продукта.";
   if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
   if (!text("condition")) errors.condition = "Избери състояние.";
-  if (data.getAll("delivery").length === 0) errors.delivery = "Избери поне един начин на доставка.";
-  if (!isPhone(text("phone"))) errors.phone = PHONE_ERROR;
-  if (!text("city")) errors.city = "Въведи град.";
 
   return errors;
 }
@@ -205,18 +189,19 @@ function Chips({ label, name, type, options, chosen = [] }: ChipsProps) {
 // The form for a new listing; with `listing` it edits that listing instead.
 type ListingFormProps = {
   listing?: EditedListing;
-  // The phone number from the user's profile, which a new listing starts with; it can be
-  // replaced with another one.
-  phone?: string;
+  // The phone, the town and the ways of handing over from the seller's profile. They are not
+  // filled in here: the listing shows what the profile settings say.
+  contact: Contact;
+  // What is still to be set in the profile before a new listing can be published, if anything.
+  missing?: string;
 };
 
-export default function ListingForm({ listing, phone }: ListingFormProps) {
+export default function ListingForm({ listing, contact, missing }: ListingFormProps) {
   const [photos, setPhotos] = useState<Photo[]>(
     () => listing?.images.map((stored) => ({ stored, url: listingImageUrl(stored) })) ?? [],
   );
   const [selected, setSelected] = useState(0);
   const categories = useCategories();
-  const cities = useCities();
   // A listing given away for nothing: its price is 0 and the price field is switched off.
   const [free, setFree] = useState(listing?.price === 0);
   const [photoError, setPhotoError] = useState<string>();
@@ -307,7 +292,7 @@ export default function ListingForm({ listing, phone }: ListingFormProps) {
         setErrors(result.errors);
         focusFirst(result.errors);
       }
-      setFormError(result.message ?? "Не успяхме да качим обявата. Опитай отново.");
+      setFormError(result.errors?.contact ?? result.message ?? "Не успяхме да качим обявата. Опитай отново.");
     } catch {
       setFormError("Не успяхме да качим обявата. Провери връзката си и опитай отново.");
     }
@@ -561,69 +546,25 @@ export default function ListingForm({ listing, phone }: ListingFormProps) {
                 defaultValue={listing?.color}
                 aria-label="Цвят"
                 maxLength={40}
-                placeholder="по желание"
+                placeholder="опционално"
                 className={specInput}
-              />
-            </SpecRow>
-            <SpecRow icon={Truck} label="Изпращане" error={errors.delivery}>
-              <MultiSelect
-                name="delivery"
-                defaultValue={listing?.delivery}
-                label="Изпращане"
-                options={deliveries}
-                invalid={Boolean(errors.delivery)}
-                className="h-9 w-full sm:w-44"
               />
             </SpecRow>
           </div>
 
           <div className="border-t border-black/5 p-5">
-            <div className="relative">
-              <Phone
-                className="pointer-events-none absolute top-1/2 left-4 size-4.5 -translate-y-1/2 text-brand-rose"
-                aria-hidden
-              />
-              <input
-                type="tel"
-                name="phone"
-                defaultValue={listing ? listing.phone : phone}
-                aria-label="Телефон"
-                autoComplete="tel"
-                maxLength={20}
-                placeholder="Телефон за връзка"
-                aria-invalid={Boolean(errors.phone)}
-                className={`${textInput} h-12 pl-11 text-sm font-semibold`}
-              />
-            </div>
-            <FieldError message={errors.phone} />
-
-            <div className="relative mt-3">
-              <MapPin
-                className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-brand-ink"
-                aria-hidden
-              />
-              <Combobox
-                name="city"
-                defaultValue={listing?.city}
-                label="Град"
-                options={cities}
-                maxLength={50}
-                placeholder="Град"
-                invalid={Boolean(errors.city)}
-                className="h-14 w-full rounded-xl border border-transparent bg-zinc-100 pr-4 pl-11 text-sm font-medium text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500"
-              />
-            </div>
-            <FieldError message={errors.city} />
+            {/* A listing being edited already has them; a new one waits until the profile has them. */}
+            <ContactSummary {...contact} missing={listing ? undefined : missing} />
 
             <FieldError message={formError} />
 
             {/* Turns green with a confirmation once the listing is saved; the new listing opens right after. */}
             <button
               type="submit"
-              disabled={status !== "idle"}
+              disabled={status !== "idle" || (!listing && Boolean(missing))}
               className={`mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:cursor-default ${
                 status === "done" ? "bg-emerald-600" : "bg-brand-rose hover:bg-brand disabled:hover:bg-brand-rose"
-              }`}
+              } ${!listing && missing ? "opacity-60" : ""}`}
             >
               {status === "done" && <CircleCheck className="size-4.5" aria-hidden />}
               <span role="status">

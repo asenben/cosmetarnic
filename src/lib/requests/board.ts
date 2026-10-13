@@ -17,7 +17,6 @@ export function toBoardRequest(request: ProductRequest, categories: Category[], 
       .map(({ label }) => label)
       .join(", "),
     condition: request.condition,
-    budget: request.budget,
     city: request.city,
     image: request.image ? listingImageUrl(request.image) : null,
     postedAgo: postedAgo(request.createdAt),

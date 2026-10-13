@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 import {
-  Bell,
   ChevronDown,
   CircleHelp,
   FileText,
@@ -33,7 +32,6 @@ const groups: MenuLink[][] = [
     { href: "/profile/search", label: "Търся", icon: Search },
     { href: "/profile/messages", label: "Съобщения", icon: MessageSquare },
     { href: "/profile/favorites", label: "Любими", icon: Heart },
-    { href: "/profile/notifications", label: "Известия", icon: Bell },
   ],
   [
     { href: "/profile/settings", label: "Настройки", icon: Settings },

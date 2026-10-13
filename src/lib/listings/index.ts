@@ -1,14 +1,15 @@
 import { createHash } from "node:crypto";
+import { contactFor, missingForListing } from "@/lib/auth/profile";
 import { getCategories } from "@/lib/categories";
 import { sql } from "@/lib/db";
+import type { Delivery } from "@/lib/listings/delivery";
 import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
 import { LISTING_IMAGE_PATTERN, MAX_LISTING_PHOTOS, listingImageKey } from "@/lib/listings/images";
 import { deleteImage } from "@/lib/storage/deleteImage";
-import { isPhone, PHONE_ERROR } from "@/lib/phone";
 
 // The same limits the form in src/components/sell/ListingForm.tsx checks before sending.
-const CONDITIONS = ["new", "used"] as const;
-const DELIVERIES = ["pickup", "speedy", "econt", "boxnow", "pigeon"] as const;
+// "mixed" is for a set with both new and used products in it.
+const CONDITIONS = ["new", "used", "mixed"] as const;
 const PRICE_MAX = 100000;
 const DESCRIPTION_MIN = 20;
 const DESCRIPTION_MAX_HTML = 20000;
@@ -27,7 +28,8 @@ export type Listing = {
   condition: (typeof CONDITIONS)[number];
   price: number;
   color: string;
-  delivery: (typeof DELIVERIES)[number][];
+  // These three are the seller's, from the profile settings (see syncContact in src/lib/auth/profile.ts).
+  delivery: Delivery[];
   phone: string;
   city: string;
   // Already cleaned by sanitizeDescription, so it can be put on the page as HTML.
@@ -89,13 +91,9 @@ async function readListing(input: Record<string, unknown>) {
   const chosen = categories.map(({ value }) => value).filter((value) => picked.includes(value));
   const condition = text("condition");
   const color = text("color").slice(0, 40);
-  const phone = text("phone");
-  const city = text("city");
   // A listing marked as free has no price to check; it is stored as 0.
   const free = input.free === true;
   const price = free ? 0 : Math.round(Number(text("price").replace(",", ".")) * 100) / 100;
-  const offered = list("delivery");
-  const delivery = DELIVERIES.filter((value) => offered.includes(value));
   const images = [...new Set(list("images"))];
   const html = text("description");
   const description = html.length <= DESCRIPTION_MAX_HTML ? sanitizeDescription(html) : "";
@@ -108,9 +106,6 @@ async function readListing(input: Record<string, unknown>) {
   if (brand.length < 2 || brand.length > 60) errors.brand = "Въведи марката на продукта.";
   if (chosen.length === 0) errors.categories = "Избери поне една категория.";
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
-  if (delivery.length === 0) errors.delivery = "Избери поне един начин на доставка.";
-  if (!isPhone(phone)) errors.phone = PHONE_ERROR;
-  if (!city || city.length > 60) errors.city = "Въведи град.";
   if (images.length > MAX_LISTING_PHOTOS || images.some((file) => !LISTING_IMAGE_PATTERN.test(file))) {
     errors.photos = "Снимките не можаха да бъдат приети. Добави ги отново.";
   }
@@ -118,14 +113,17 @@ async function readListing(input: Record<string, unknown>) {
 
   return {
     ok: true as const,
-    values: { title, brand, categories: chosen, condition, price, color: color || null, delivery, phone, city, description, images },
+    values: { title, brand, categories: chosen, condition, price, color: color || null, description, images },
   };
 }
 
+// The phone, the town and the ways of handing over come from the seller's profile.
 export async function createListing(userId: string, input: Record<string, unknown>): Promise<SaveResult> {
   const read = await readListing(input);
   if (!read.ok) return read;
-  const v = read.values;
+  const v = { ...read.values, ...(await contactFor(userId)) };
+  const missing = missingForListing(v);
+  if (missing) return { ok: false, errors: { contact: missing } };
 
   const [row] = await sql`
     insert into listings (user_id, title, brand, category, categories, condition, price, color, delivery, phone, city,
@@ -154,7 +152,8 @@ export type ListingEditor = { id: string; role: string };
 const anyOwner = (editor: ListingEditor) => editor.role === "admin";
 
 // Saves the changes to a listing, made by its owner or by an administrator. Answers null when
-// there is no such listing the editor may change.
+// there is no such listing the editor may change. The phone, the town and the ways of handing
+// over are not changed here but in the owner's profile.
 export async function updateListing(
   editor: ListingEditor,
   id: string,
@@ -171,8 +170,8 @@ export async function updateListing(
   await sql`
     update listings
     set title = ${v.title}, brand = ${v.brand}, category = ${v.categories[0]}, categories = ${v.categories}::text[],
-        condition = ${v.condition}, price = ${v.price}, color = ${v.color}, delivery = ${v.delivery}::text[], phone = ${v.phone},
-        city = ${v.city}, description = ${v.description}, images = ${v.images}::text[]
+        condition = ${v.condition}, price = ${v.price}, color = ${v.color}, description = ${v.description},
+        images = ${v.images}::text[]
     where id = ${id}`;
   // The photos the owner took out of the listing are no longer needed.
   await discardImages((before.images as string[]).filter((file) => !v.images.includes(file)));
@@ -180,12 +179,18 @@ export async function updateListing(
 }
 
 // Deletes a listing for good, with its photos, views and hearts, for its owner or for an
-// administrator. Answers false when there is no such listing the editor may delete.
-export async function deleteListing(editor: ListingEditor, id: string) {
+// administrator. Answers false when there is no such listing the editor may delete. With `sold`,
+// the owner says the product was sold: its title and price go into the owner's sales. Only the
+// owner can say so; an administrator's deletion is never counted as a sale.
+export async function deleteListing(editor: ListingEditor, id: string, sold = false) {
   if (!LISTING_ID_PATTERN.test(id)) return false;
   const [removed] = await sql`
-    delete from listings where id = ${id} and (user_id = ${editor.id} or ${anyOwner(editor)}) returning images`;
+    delete from listings where id = ${id} and (user_id = ${editor.id} or ${anyOwner(editor)})
+    returning user_id, title, price, images`;
   if (!removed) return false;
+  if (sold && removed.user_id === editor.id) {
+    await sql`insert into sales (user_id, title, price) values (${editor.id}, ${removed.title}, ${removed.price})`;
+  }
   await discardImages(removed.images as string[]);
   return true;
 }
@@ -244,11 +249,15 @@ export async function getUserListings(userId: string, activeOnly = false) {
   return rows.map(toListing);
 }
 
-// How many listings the user has on sale. A listing whose product is gone is deleted by its
-// owner, so there is no count of sold ones: `sold` stays 0 for the profile's tiles.
+// How many listings the user has on sale, how many products they sold, and how much those sales
+// made in euro. A sold product's listing is deleted; what it sold for is kept in `sales` (see
+// deleteListing).
 export async function countUserListings(userId: string) {
-  const [row] = await sql`select count(*)::int as active from listings where status = 'active' and user_id = ${userId}`;
-  return { active: row.active as number, sold: 0 };
+  const [row] = await sql`
+    select (select count(*)::int from listings where status = 'active' and user_id = ${userId}) as active,
+           (select count(*)::int from sales where user_id = ${userId}) as sold,
+           (select coalesce(sum(price), 0) from sales where user_id = ${userId}) as earned`;
+  return { active: row.active as number, sold: row.sold as number, earned: Number(row.earned) };
 }
 
 // What tells one visitor's device from another's: its network address and browser. Only a hash of

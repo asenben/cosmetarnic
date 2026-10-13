@@ -287,6 +287,9 @@ export default function SettingsForm({ profile, sessions }: SettingsFormProps) {
                 )}
               </div>
             </div>
+            <p className="mt-3 text-xs text-brand-ink/60">
+              Дали телефонът и градът се виждат в обявите, и как изпращаш, се избира в „Моят профил“.
+            </p>
           </Card>
 
           {linkSections.map(({ group, icon, title, hint }) => (

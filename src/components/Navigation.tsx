@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Bell, Heart, Plus, User } from "lucide-react";
+import { Heart, Plus, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavoriteCount } from "@/components/FavoritesProvider";
 import MessagesMenu from "@/components/messages/MessagesMenu";
@@ -161,6 +161,7 @@ export default function Navigation() {
 
           <SearchBox />
 
+          {/* The same buttons as on phones: the messages, then the favourites. */}
           <div className="flex items-center gap-1 md:grow md:justify-center">
             <MessagesMenu className="hidden sm:block" />
             <Link
@@ -180,14 +181,6 @@ export default function Navigation() {
                 </span>
               )}
             </Link>
-            <Link
-              href="/profile/notifications"
-              aria-label="Известия"
-              onClick={guardLink}
-              className={`${iconButton} hidden sm:flex`}
-            >
-              <Bell className="size-5.5" aria-hidden />
-            </Link>
             <span className="mx-2 hidden h-6 w-px bg-brand-ink/15 sm:block" aria-hidden />
             {isLoggedIn ? (
               <UserMenu />
@@ -204,12 +197,15 @@ export default function Navigation() {
             )}
           </div>
 
+          {/* "Добави обява" as a round button with a plus, as on phones. */}
           <Link
             href="/sell"
+            aria-label="Добави обява"
+            title="Добави обява"
             onClick={guardLink}
-            className="shrink-0 rounded-xl bg-brand-rose px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand sm:px-6"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-rose text-white transition-colors hover:bg-brand"
           >
-            Добави обява
+            <Plus className="size-5.5" aria-hidden />
           </Link>
         </nav>
       </div>

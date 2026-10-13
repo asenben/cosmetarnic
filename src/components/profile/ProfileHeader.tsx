@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, Truck } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import LinkMark from "@/components/profile/LinkMark";
 import { profileLinks, type ProfileLinks } from "@/lib/auth/profileLinks";
@@ -13,13 +13,15 @@ type ProfileHeaderProps = {
   city: string;
   memberSince: Date;
   links: ProfileLinks;
+  // The ways of handing over set in the settings, as they are named: "Еконт", "Спиди".
+  delivery?: string[];
   // What stands beside the name: the edit button on the owner's own page, nothing on the public one.
   action?: ReactNode;
 };
 
 // The top of a profile: the picture, the name, the town, the date of joining and the public links.
 // The same on the owner's own page and on the page everybody sees.
-export default function ProfileHeader({ username, avatar, city, memberSince, links, action }: ProfileHeaderProps) {
+export default function ProfileHeader({ username, avatar, city, memberSince, links, delivery = [], action }: ProfileHeaderProps) {
   // Only the links that were filled in and left switched to "public" in the settings.
   const shownLinks = profileLinks.filter(({ key }) => links[key].url && links[key].public);
 
@@ -50,6 +52,17 @@ export default function ProfileHeader({ username, avatar, city, memberSince, lin
             <CalendarDays className="size-5 shrink-0" aria-hidden />
             Член от {fullDate.format(memberSince)}
           </li>
+          {delivery.length > 0 && (
+            <>
+              <li aria-hidden className="hidden text-brand-ink/30 sm:block">
+                |
+              </li>
+              <li className="flex items-center gap-2">
+                <Truck className="size-5 shrink-0" aria-hidden />
+                {delivery.join(", ")}
+              </li>
+            </>
+          )}
         </ul>
 
         {/* The public links sit right under the name, with no box around them. */}

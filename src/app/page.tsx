@@ -13,8 +13,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   // What was typed in the search field of the navigation, if the visitor came from there.
-  const { q } = await searchParams;
+  const { q, condition: conditionParam } = await searchParams;
   const search = (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
+  // The condition the footer's "Нови" and "Използвани" links open the listings with.
+  const condition = conditionParam === "new" || conditionParam === "used" ? conditionParam : "all";
 
   const listings: MarketplaceListing[] = (await getListings(search)).map((listing) => ({
     id: listing.id,
@@ -32,8 +34,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
       <div className="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 py-6 sm:px-6">
-        {/* A new search starts with the filters cleared. */}
-        <Marketplace key={search} listings={listings} search={search} />
+        {/* A new search, or a link from the footer, starts with the filters cleared. */}
+        <Marketplace key={`${search}|${condition}`} listings={listings} search={search} condition={condition} />
       </div>
     </main>
   );

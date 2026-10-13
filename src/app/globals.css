@@ -20,6 +20,31 @@
   --color-footer: #2f2b2d;
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+
+  /* The footer's motto: its little stars flicker and turn, and a light runs across its words. */
+  --animate-twinkle: twinkle 2.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 5s linear infinite;
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.6) rotate(0deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15) rotate(45deg);
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% center;
+    }
+    to {
+      background-position: -200% center;
+    }
+  }
 }
 
 /* A slim, rounded scrollbar in the site's pink for small scrolling lists such as dropdowns. The thumb

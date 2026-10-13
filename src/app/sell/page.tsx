@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react";
 import PaymentModal from "@/components/payments/PaymentModal";
 import PaymentNotice, { type PaymentOutcome } from "@/components/payments/PaymentNotice";
 import ListingForm from "@/components/sell/ListingForm";
-import { getProfile } from "@/lib/auth/profile";
+import { contactFor, missingForListing } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
 import { canCreateListing, getListingFee } from "@/lib/payments/canCreateListing";
 import { checkoutOutcome } from "@/lib/payments/createCheckout";
@@ -27,7 +27,8 @@ export default async function SellPage({ searchParams }: PageProps<"/sell">) {
   const { payment_intent: paid, payment } = await searchParams;
   if (typeof paid === "string") redirect(`/sell?payment=${await checkoutOutcome(user, paid)}`);
   const outcome = OUTCOMES.find((known) => known === payment);
-  const [profile, allowance, fee] = await Promise.all([getProfile(user.id), canCreateListing(user), getListingFee()]);
+  // The phone, the town and the ways of handing over are set once on "Моят профил".
+  const [contact, allowance, fee] = await Promise.all([contactFor(user.id), canCreateListing(user), getListingFee()]);
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -47,7 +48,7 @@ export default async function SellPage({ searchParams }: PageProps<"/sell">) {
         </nav>
 
         {allowance.allowed && outcome && <PaymentNotice outcome={outcome} className="mt-4" />}
-        <ListingForm phone={profile?.phone} />
+        <ListingForm contact={contact} missing={missingForListing(contact)} />
         {/* A seller who has used up the free listings is shown what the next one costs instead. */}
         {!allowance.allowed && (
           <PaymentModal

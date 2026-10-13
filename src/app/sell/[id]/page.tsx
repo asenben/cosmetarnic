@@ -52,12 +52,11 @@ export default async function EditListingPage({ params }: PageProps<"/sell/[id]"
             categories: listing.categories,
             condition: listing.condition,
             color: listing.color,
-            delivery: listing.delivery,
-            phone: listing.phone,
-            city: listing.city,
             description: listing.description,
             images: listing.images,
           }}
+          // The owner's, as the listing shows them; they are changed in the owner's profile.
+          contact={{ phone: listing.phone, city: listing.city, delivery: listing.delivery }}
         />
       </div>
     </main>

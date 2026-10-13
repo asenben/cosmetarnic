@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { SearchX, X } from "lucide-react";
+import { Plus, SearchX, X } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
 import ProductCard, { type Product } from "@/components/ProductCard";
 import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
@@ -13,7 +14,10 @@ export type MarketplaceListing = Product & { categories: string[] };
 
 function matches(listing: MarketplaceListing, filters: Filters) {
   if (filters.categories.length > 0 && !listing.categories.some((value) => filters.categories.includes(value))) return false;
-  if (filters.condition !== "all" && listing.condition !== filters.condition) return false;
+  // A mixed set has both new and used products in it, so it matches both choices.
+  if (filters.condition !== "all" && listing.condition !== "mixed" && listing.condition !== filters.condition) {
+    return false;
+  }
   // A price left at null does not limit anything (see Filters).
   if (filters.priceMin !== null && listing.price < filters.priceMin) return false;
   if (filters.priceMax !== null && listing.price > filters.priceMax) return false;
@@ -27,6 +31,8 @@ type MarketplaceProps = {
   search?: string;
   // What to say when there are no listings at all.
   emptyText?: string;
+  // The condition the filters start with, when the visitor came from a link to new or used listings.
+  condition?: Filters["condition"];
 };
 
 // The listings with the filters beside them. `listings` arrive newest first.
@@ -34,8 +40,10 @@ export default function Marketplace({
   listings,
   search = "",
   emptyText = "Все още няма публикувани обяви.",
+  condition = "all",
 }: MarketplaceProps) {
-  const [filters, setFilters] = useState(noFilters);
+  const { requireAuth } = useAuth();
+  const [filters, setFilters] = useState<Filters>({ ...noFilters, condition });
   const [sort, setSort] = useState<SortOrder>("newest");
   // Whether the filters cover the page, on the narrow screens where they are not at its side.
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -54,6 +62,20 @@ export default function Marketplace({
         sort={sort}
         onSortChange={setSort}
         filters={{ active: activeFilterCount(filters), onOpen: () => setFiltersOpen(true) }}
+        action={
+          // The same button as "Добави търсене" on the "Търся" page. Signed-out visitors get the
+          // login form instead.
+          <Link
+            href="/sell"
+            onClick={(event) => {
+              if (!requireAuth()) event.preventDefault();
+            }}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-brand-rose px-3 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand"
+          >
+            <Plus className="size-4" aria-hidden />
+            Качи обява
+          </Link>
+        }
         // Two listings across on phones, so more of them are seen at once, and four on wide screens.
         gridClassName="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
       >

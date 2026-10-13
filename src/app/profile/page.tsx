@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { FileText, Heart, Package, Pencil, ShoppingBag, Tag } from "lucide-react";
+import { FileText, Heart, Package, Pencil, ShoppingBag, Tag, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import ContactCard from "@/components/profile/ContactCard";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import { getProfile } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
+import { formatAmount } from "@/lib/format";
 import { countUserListings } from "@/lib/listings";
+import { deliveryLabels } from "@/lib/listings/delivery";
 import { getFavoriteIds } from "@/lib/listings/favorites";
 
 export const metadata: Metadata = {
@@ -48,6 +51,7 @@ export default async function ProfilePage() {
           city={profile.city}
           memberSince={new Date(account.created_at)}
           links={profile.links}
+          delivery={deliveryLabels(profile.delivery)}
           action={
             <Link
               href="/profile/settings"
@@ -92,6 +96,21 @@ export default async function ProfilePage() {
         )}
       </section>
 
+      {/* What the products the user sold made: a listing deleted as "Да, продадено" counts with its price. */}
+      <section className={`${card} flex items-center gap-4 p-5 sm:p-6`}>
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+          <Wallet className="size-6" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm text-brand-ink/60">Изкарани от продажби</p>
+          <p className="text-3xl leading-9 font-bold text-brand-ink tabular-nums">{formatAmount(listingCounts.earned)}</p>
+          <p className="mt-0.5 text-xs text-brand-ink/60">
+            {listingCounts.sold === 1 ? "от 1 продаден продукт" : `от ${listingCounts.sold} продадени продукта`} · броят
+            се обявите, изтрити като продадени
+          </p>
+        </div>
+      </section>
+
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon }) => (
           <li key={label} className={`${card} flex items-center gap-3 p-3`}>
@@ -105,6 +124,8 @@ export default async function ProfilePage() {
           </li>
         ))}
       </ul>
+
+      <ContactCard profile={profile} />
     </div>
   );
 }

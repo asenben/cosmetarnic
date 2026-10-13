@@ -6,3 +6,6 @@ export const FREE_LABEL = "Безплатно";
 
 // A price as the site shows it: "12,50 €", or "Безплатно" when it is 0.
 export const formatPrice = (price: number) => (price === 0 ? FREE_LABEL : euro.format(price));
+
+// An amount of money that may be nothing, like what the sales made: "0,00 €" rather than "Безплатно".
+export const formatAmount = (amount: number) => euro.format(amount);

@@ -49,6 +49,17 @@ export const schema = [
   `alter table users add column if not exists links jsonb not null default '{}'`,
   // The town the user chose in the profile settings, if any.
   `alter table users add column if not exists city text`,
+  // The ways the user hands over what they sell, chosen in the profile settings and copied onto
+  // all of their listings (see src/lib/listings/delivery.ts). Null until the settings are saved.
+  `alter table users add column if not exists delivery text[]`,
+  // Accounts from before that start with the ways and the town of their latest listing; once.
+  `update users u set delivery = l.delivery, city = coalesce(u.city, l.city)
+   from (select distinct on (user_id) user_id, delivery, city from listings order by user_id, created_at desc) l
+   where u.id = l.user_id and u.delivery is null`,
+  // Whether the phone and the town are shown on the user's listings and "Търся" posts; chosen on
+  // "Моят профил" (see syncContact in src/lib/auth/profile.ts).
+  `alter table users add column if not exists show_phone boolean not null default true`,
+  `alter table users add column if not exists show_city boolean not null default true`,
   // Whether the counts of listings, sales and favourites are shown on the user's profile.
   `alter table users add column if not exists show_stats boolean not null default true`,
   // How many listings past the free ones the seller has paid for and not published yet; each
@@ -98,6 +109,16 @@ export const schema = [
   // From when listings could be marked as sold; no longer used, since a sold product's listing
   // is deleted instead. Left in place so that nothing stored is lost.
   `alter table listings add column if not exists sold_at timestamptz`,
+  // What a seller has sold: when they delete a listing they say whether its product was sold, and
+  // if so its title and price are kept here, for the earnings on "Моят профил".
+  `create table if not exists sales (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references users (id) on delete cascade,
+    title text not null,
+    price numeric(10, 2) not null,
+    created_at timestamptz not null default now()
+  )`,
+  `create index if not exists sales_user_id_idx on sales (user_id)`,
   // A listing can be in several categories. `category` keeps the first of them, as it did when
   // there was only one.
   `alter table listings add column if not exists categories text[] not null default '{}'`,

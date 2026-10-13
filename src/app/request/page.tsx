@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import RequestForm from "@/components/search/RequestForm";
-import { getProfile } from "@/lib/auth/profile";
+import { contactFor } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -15,7 +15,8 @@ export default async function NewRequestPage() {
   // Only signed-in users can write a "Търся" post.
   const user = await getCurrentUser();
   if (!user) redirect("/search");
-  const profile = await getProfile(user.id);
+  // The phone and the town are set once on "Моят профил", each shown only if the user chose so.
+  const { phone, city } = await contactFor(user.id);
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -40,7 +41,7 @@ export default async function NewRequestPage() {
           </ol>
         </nav>
 
-        <RequestForm phone={profile?.phone} />
+        <RequestForm contact={{ phone, city }} />
       </div>
     </main>
   );

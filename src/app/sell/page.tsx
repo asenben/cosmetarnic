@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import ListingForm from "@/components/sell/ListingForm";
-import { getProfile } from "@/lib/auth/profile";
+import { contactFor, missingForListing } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -14,7 +14,8 @@ export default async function SellPage() {
   // Only signed-in users can publish listings.
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  const profile = await getProfile(user.id);
+  // The phone, the town and the ways of handing over are set once on "Моят профил".
+  const contact = await contactFor(user.id);
 
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
@@ -33,7 +34,7 @@ export default async function SellPage() {
           </ol>
         </nav>
 
-        <ListingForm phone={profile?.phone} />
+        <ListingForm contact={contact} missing={missingForListing(contact)} />
       </div>
     </main>
   );

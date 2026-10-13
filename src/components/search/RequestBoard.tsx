@@ -4,12 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Heart, Pencil, SearchX, Trash2 } from "lucide-react";
+import { Heart, Pencil, Plus, SearchX, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import FiltersSidebar, { activeFilterCount } from "@/components/FiltersSidebar";
-import ProductGrid, { type SortOrder } from "@/components/ProductGrid";
+import ProductGrid from "@/components/ProductGrid";
 import { noFilters, type Filters } from "@/components/SortBar";
-import { formatPrice } from "@/lib/format";
 
 // A "Търся" post as the page shows it: what somebody is looking for.
 export type BoardRequest = {
@@ -19,8 +18,6 @@ export type BoardRequest = {
   categories: string[];
   categoryLabel: string;
   condition: "new" | "used" | "any";
-  // The most the person would pay, in euro; null when they did not say.
-  budget: number | null;
   city: string;
   // The address of the product's picture, if the author added one.
   image: string | null;
@@ -46,11 +43,6 @@ function matches(request: BoardRequest, filters: Filters) {
   if (filters.condition !== "all" && request.condition !== "any" && request.condition !== filters.condition) {
     return false;
   }
-  // The price filter is compared with the budget; posts without one fit any price.
-  if (request.budget !== null) {
-    if (filters.priceMin !== null && request.budget < filters.priceMin) return false;
-    if (filters.priceMax !== null && request.budget > filters.priceMax) return false;
-  }
   if (filters.cities.length > 0 && !filters.cities.includes(request.city)) return false;
   return true;
 }
@@ -69,8 +61,8 @@ type RequestCardProps = {
 
 // One post, as a card like a listing's: the picture, which opens the post's own page, with the
 // heart on it; under it the same rows as on a listing's card: what is wanted with the condition
-// beside it, the budget, then the town and the time. The category, the description, the author
-// and the way to get in touch are on the post's page.
+// beside it, the category where a listing has its price, then the town and the time. The
+// description, the author and the way to get in touch are on the post's page.
 export function RequestCard({ request, manageable = false, onUnfavorite }: RequestCardProps) {
   const router = useRouter();
   const { requireAuth } = useAuth();
@@ -79,7 +71,6 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string>();
   const condition = conditions[request.condition];
-  const budget = request.budget === null ? "По договаряне" : formatPrice(request.budget);
 
   const toggleFavorite = async () => {
     // Signed-out visitors get the login form instead.
@@ -116,7 +107,7 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
         {/* Only the picture opens the post; the details under it are not a link. */}
         <Link
           href={`/search/${request.id}`}
-          aria-label={`${request.title}, ${budget}`}
+          aria-label={request.title}
           className="group/image relative block size-full overflow-hidden bg-brand-pale listview:rounded-xl"
         >
           {request.image ? (
@@ -158,7 +149,9 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
           </span>
         </div>
 
-        <p className="text-base font-bold text-brand-ink listview:text-xl">{budget}</p>
+        <p title={request.categoryLabel} className="truncate text-sm font-semibold text-brand-rose listview:text-base">
+          {request.categoryLabel}
+        </p>
 
         <div className="flex items-center justify-between gap-2 text-xs text-brand-ink/60">
           <span className="min-w-0 truncate">{request.city}</span>
@@ -219,34 +212,44 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
   );
 }
 
-// The "Търся" page: everybody's posts with the same filters, sorting and views as the marketplace.
-// Writing a post is done from the profile (/profile/search). `requests` arrive newest first.
+// The "Търся" page: everybody's posts with the same filters and views as the marketplace, less the
+// price and the sorting by it, as the posts have no price. Writing a post is done from the "Добави
+// търсене" button above the posts (/request). `requests` arrive newest first.
 export default function RequestBoard({ requests }: { requests: BoardRequest[] }) {
+  const { requireAuth } = useAuth();
   const [filters, setFilters] = useState(noFilters);
-  const [sort, setSort] = useState<SortOrder>("newest");
   // Whether the filters cover the page, on the narrow screens where they are not at its side.
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const shown = requests.filter((request) => matches(request, filters));
-  if (sort !== "newest") {
-    const direction = sort === "price-asc" ? 1 : -1;
-    // Posts without a budget go last whichever way the rest are ordered.
-    shown.sort((a, b) => {
-      if (a.budget === null || b.budget === null) return Number(a.budget === null) - Number(b.budget === null);
-      return (a.budget - b.budget) * direction;
-    });
-  }
 
   return (
     <>
-      <FiltersSidebar filters={filters} onChange={setFilters} open={filtersOpen} onOpenChange={setFiltersOpen} />
+      <FiltersSidebar
+        filters={filters}
+        onChange={setFilters}
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        price={false}
+      />
       <ProductGrid
         count={shown.length}
-        sort={sort}
-        onSortChange={setSort}
         label="Публикации"
         countLabel={shown.length === 1 ? "Намерена публикация" : "Намерени публикации"}
         filters={{ active: activeFilterCount(filters), onOpen: () => setFiltersOpen(true) }}
+        action={
+          // Signed-out visitors get the login form instead.
+          <Link
+            href="/request"
+            onClick={(event) => {
+              if (!requireAuth()) event.preventDefault();
+            }}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-brand-rose px-3 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand"
+          >
+            <Plus className="size-4" aria-hidden />
+            Добави търсене
+          </Link>
+        }
       >
         {shown.map((request) => (
           <RequestCard key={request.id} request={request} />

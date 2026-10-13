@@ -9,10 +9,11 @@ import { formatPrice } from "@/lib/format";
 const conditions = {
   new: { label: "Ново", className: "bg-emerald-50 text-emerald-700" },
   used: { label: "Използвано", className: "bg-amber-100 text-amber-800" },
+  mixed: { label: "Комбинирано", className: "bg-violet-50 text-violet-700" },
 };
 
 // The ways a seller can hand over the product, in the order the cards show them.
-const couriers = { speedy: "Спиди", econt: "Еконт", boxnow: "BoxNow", pigeon: "Pigeon" };
+const couriers = { econt: "Еконт", speedy: "Спиди", boxnow: "BoxNow", pigeon: "Pigeon", other: "Друго" };
 type Delivery = "pickup" | keyof typeof couriers;
 
 // One entry for handing over in person and one for shipping, however many couriers are offered.

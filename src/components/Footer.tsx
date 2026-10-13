@@ -19,9 +19,9 @@ const columns = [
   {
     title: "Купувай",
     links: [
-      { href: "/listings", label: "Всички обяви", icon: LayoutGrid },
-      { href: "/listings?condition=new", label: "Нови", icon: Sparkles },
-      { href: "/listings?condition=used", label: "Използвани", icon: Recycle },
+      { href: "/", label: "Всички обяви", icon: LayoutGrid },
+      { href: "/?condition=new", label: "Нови", icon: Sparkles },
+      { href: "/?condition=used", label: "Използвани", icon: Recycle },
       { href: "/terms", label: "Правила и условия", icon: ScrollText },
     ],
   },

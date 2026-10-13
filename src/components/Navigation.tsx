@@ -204,12 +204,15 @@ export default function Navigation() {
             )}
           </div>
 
+          {/* "Добави обява" as a round button with a plus, as on phones. */}
           <Link
             href="/sell"
+            aria-label="Добави обява"
+            title="Добави обява"
             onClick={guardLink}
-            className="shrink-0 rounded-xl bg-brand-rose px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand sm:px-6"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-rose text-white transition-colors hover:bg-brand"
           >
-            Добави обява
+            <Plus className="size-5.5" aria-hidden />
           </Link>
         </nav>
       </div>

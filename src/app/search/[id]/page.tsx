@@ -9,7 +9,7 @@ import { avatarUrl } from "@/lib/auth/avatar";
 import { getCurrentUser } from "@/lib/auth/session";
 import { postedAgo } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
-import { getRequest } from "@/lib/requests";
+import { getRequest, getRequestPhone } from "@/lib/requests";
 
 const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "numeric" });
 
@@ -85,8 +85,8 @@ export default async function RequestPage({ params }: PageProps<"/search/[id]">)
                 .map(({ label }) => label)
                 .join(", "),
               condition: request.condition,
-              budget: request.budget,
               city: request.city,
+              hasPhone: Boolean(await getRequestPhone(request.id)),
               postedAgo: postedAgo(request.createdAt),
               author: {
                 username: request.author.username,

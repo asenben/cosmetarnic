@@ -7,7 +7,6 @@ import Avatar from "@/components/Avatar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import MessageButton from "@/components/messages/MessageButton";
 import RequestActions from "@/components/search/RequestActions";
-import { formatPrice } from "@/lib/format";
 
 // A "Търся" post as its own page shows it beside the picture.
 export type RequestDetails = {
@@ -16,9 +15,9 @@ export type RequestDetails = {
   brand: string;
   categoryLabel: string;
   condition: "new" | "used" | "any";
-  // The most the person would pay, in euro; null when they did not say.
-  budget: number | null;
   city: string;
+  // Whether there is a number to show; not when the author chose to hide it on "Моят профил".
+  hasPhone: boolean;
   postedAgo: string;
   author: { username: string; avatar: string | null; memberSince: string };
   // Whether the post is the signed-in user's own, and whether they marked it with the heart.
@@ -31,8 +30,8 @@ const conditionLabels = { new: "Ново", used: "Използвано", any: "�
 const phoneButton =
   "flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-brand-rose text-sm font-semibold text-brand-rose transition-colors hover:bg-brand-rose/10 disabled:cursor-default disabled:opacity-60";
 
-// The card beside the picture on a post's page, built like the one on a listing's page: what is
-// wanted and for how much, the details, the way to get in touch, and who is looking.
+// The card beside the picture on a post's page, built like the one on a listing's page, less the
+// price: what is wanted, the details, the way to get in touch, and who is looking.
 type RequestSidebarProps = {
   request: RequestDetails;
   // Set for an administrator looking at somebody else's post: gives the buttons for editing and
@@ -120,9 +119,6 @@ export default function RequestSidebar({ request, adminOf }: RequestSidebarProps
             Търси се{request.brand && " · "}
             {request.brand && <span className="font-medium text-brand-rose">{request.brand}</span>}
           </p>
-          <p className="mt-4 text-2xl font-bold text-brand-ink">
-            {request.budget === null ? "По договаряне" : formatPrice(request.budget)}
-          </p>
         </div>
 
         <dl className="border-t border-black/5 px-5">
@@ -152,7 +148,7 @@ export default function RequestSidebar({ request, adminOf }: RequestSidebarProps
           ) : (
             <>
               <MessageButton target={{ requestId: request.id }} className="mb-3" />
-              {phone ? (
+              {!request.hasPhone ? null : phone ? (
                 <a href={`tel:${phone.replaceAll(" ", "")}`} className={phoneButton}>
                   <Phone className="size-4.5" aria-hidden />
                   {phone}
@@ -171,10 +167,13 @@ export default function RequestSidebar({ request, adminOf }: RequestSidebarProps
             </p>
           )}
 
-          <div className="mt-3 flex h-14 items-center gap-2.5 rounded-xl bg-zinc-100 px-4 text-sm font-medium text-brand-ink">
-            <MapPin className="size-5 shrink-0" aria-hidden />
-            {request.city}
-          </div>
+          {/* The town is optional on a post. */}
+          {request.city && (
+            <div className="mt-3 flex h-14 items-center gap-2.5 rounded-xl bg-zinc-100 px-4 text-sm font-medium text-brand-ink">
+              <MapPin className="size-5 shrink-0" aria-hidden />
+              {request.city}
+            </div>
+          )}
         </div>
       </section>
 

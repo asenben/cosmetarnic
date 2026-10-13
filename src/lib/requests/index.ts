@@ -1,3 +1,4 @@
+import { contactFor } from "@/lib/auth/profile";
 import { getCategories } from "@/lib/categories";
 import { sql } from "@/lib/db";
 import { descriptionText, sanitizeDescription } from "@/lib/listings/description";
@@ -5,14 +6,15 @@ import { LISTING_IMAGE_PATTERN, listingImageKey } from "@/lib/listings/images";
 import { deleteImage } from "@/lib/storage/deleteImage";
 
 // A "Търся" post: a registered user describing a product they are looking for, so that sellers
-// who have it can get in touch. It is not a listing: nothing is on sale.
+// who have it can get in touch. It is not a listing: nothing is on sale, so it has no price. (The
+// table's `budget` column is from when it had one, and is no longer read or written.)
 
-// "any" is for somebody who does not mind whether the product is new or used.
+// "any" is for somebody who does not mind whether the product is new or used. "used" is no longer
+// offered in the form and is only on posts written before that.
 const CONDITIONS = ["new", "used", "any"] as const;
-const BUDGET_MAX = 100000;
+const PICKABLE_CONDITIONS: string[] = CONDITIONS.filter((value) => value !== "used");
 const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX_HTML = 20000;
-const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
 const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type ProductRequest = {
@@ -25,8 +27,6 @@ export type ProductRequest = {
   // The values of the categories it is in, at least one.
   categories: string[];
   condition: (typeof CONDITIONS)[number];
-  // The most the person would pay, in euro; null when they did not say.
-  budget: number | null;
   city: string;
   // Written in the same editor as a listing's description: HTML that was cleaned on the way in,
   // so it can be put on the page as it is.
@@ -57,7 +57,6 @@ const toRequest = (row: Record<string, unknown>): ProductRequest => ({
   brand: (row.brand as string | null) ?? "",
   categories: row.categories as string[],
   condition: row.condition as ProductRequest["condition"],
-  budget: row.budget === null ? null : Number(row.budget),
   city: row.city as string,
   description: asHtml(row.description as string),
   image: (row.image as string | null) ?? null,
@@ -85,23 +84,13 @@ async function readRequest(input: Record<string, unknown>) {
   const picked = Array.isArray(input.categories) ? input.categories : [];
   const chosen = categories.map(({ value }) => value).filter((value) => picked.includes(value));
   const condition = text("condition");
-  const city = text("city");
-  const phone = text("phone");
   const html = text("description");
   const description = html.length <= DESCRIPTION_MAX_HTML ? sanitizeDescription(html) : "";
   const image = text("image");
-  // The budget is optional; when given it has to be a real amount. Somebody looking to get the
-  // product for free has a budget of 0.
-  const free = input.free === true;
-  const budgetText = text("budget").replace(",", ".");
-  const budget = free ? 0 : budgetText ? Math.round(Number(budgetText) * 100) / 100 : null;
 
   if (title.length < 3 || title.length > 120) errors.title = "Напиши какво търсиш с поне 3 знака.";
   if (chosen.length === 0) errors.categories = "Избери поне една категория.";
-  if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
-  if (!free && budget !== null && !(budget > 0 && budget <= BUDGET_MAX)) errors.budget = "Въведи сума, по-голяма от 0.";
-  if (!city || city.length > 60) errors.city = "Въведи град.";
-  if (!PHONE_PATTERN.test(phone)) errors.phone = "Въведи валиден телефонен номер.";
+  if (!PICKABLE_CONDITIONS.includes(condition)) errors.condition = "Избери състояние.";
   if (descriptionText(description).length < DESCRIPTION_MIN) {
     errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
   }
@@ -110,7 +99,7 @@ async function readRequest(input: Record<string, unknown>) {
 
   return {
     ok: true as const,
-    values: { title, brand: brand || null, categories: chosen, condition, budget, city, phone, description, image: image || null },
+    values: { title, brand: brand || null, categories: chosen, condition, description, image: image || null },
   };
 }
 
@@ -128,14 +117,15 @@ async function discardImage(file: string | null) {
   }
 }
 
+// The phone and the town come from the author's profile, when the author chose to show them.
 export async function createRequest(userId: string, input: Record<string, unknown>): Promise<SaveResult> {
   const read = await readRequest(input);
   if (!read.ok) return read;
-  const v = read.values;
+  const v = { ...read.values, ...(await contactFor(userId)) };
 
   const [row] = await sql`
-    insert into requests (user_id, title, brand, category, categories, condition, budget, city, phone, description, image)
-    values (${userId}, ${v.title}, ${v.brand}, ${v.categories[0]}, ${v.categories}::text[], ${v.condition}, ${v.budget},
+    insert into requests (user_id, title, brand, category, categories, condition, city, phone, description, image)
+    values (${userId}, ${v.title}, ${v.brand}, ${v.categories[0]}, ${v.categories}::text[], ${v.condition},
             ${v.city}, ${v.phone},
             ${v.description}, ${v.image})
     returning id`;
@@ -147,7 +137,8 @@ export type RequestEditor = { id: string; role: string };
 const anyAuthor = (editor: RequestEditor) => editor.role === "admin";
 
 // Saves the changes to a post, made by its author or by an administrator. Answers null when
-// there is no such post the editor may change.
+// there is no such post the editor may change. The phone and the town are changed in the
+// author's profile instead.
 export async function updateRequest(
   editor: RequestEditor,
   id: string,
@@ -164,7 +155,7 @@ export async function updateRequest(
   await sql`
     update requests
     set title = ${v.title}, brand = ${v.brand}, category = ${v.categories[0]}, categories = ${v.categories}::text[],
-        condition = ${v.condition}, budget = ${v.budget}, city = ${v.city}, phone = ${v.phone}, description = ${v.description}, image = ${v.image}
+        condition = ${v.condition}, description = ${v.description}, image = ${v.image}
     where id = ${id}`;
   // A picture the author replaced or took out is no longer needed.
   if (before.image !== v.image) await discardImage(before.image as string | null);
@@ -202,7 +193,7 @@ export async function getRequests({
   includeBlocked = false,
 }: RequestQuery = {}) {
   const rows = await sql`
-    select r.id, r.user_id, r.title, r.brand, r.categories, r.condition, r.budget, r.city, r.description,
+    select r.id, r.user_id, r.title, r.brand, r.categories, r.condition, r.city, r.description,
            r.image, r.created_at, u.username, u.avatar, f.user_id is not null as favorite
     from requests r
     join users u on u.id = r.user_id
@@ -220,7 +211,7 @@ export async function getRequests({
 export async function getRequest(id: string, viewerId: string | null = null, includeBlocked = false) {
   if (!ID_PATTERN.test(id)) return null;
   const [row] = await sql`
-    select r.id, r.user_id, r.title, r.brand, r.categories, r.condition, r.budget, r.city, r.description,
+    select r.id, r.user_id, r.title, r.brand, r.categories, r.condition, r.city, r.description,
            r.image, r.created_at, u.username, u.avatar, u.created_at as author_created_at,
            exists (select 1 from request_favorites f where f.request_id = r.id and f.user_id = ${viewerId}) as favorite
     from requests r join users u on u.id = r.user_id

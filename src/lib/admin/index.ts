@@ -8,7 +8,7 @@ import {
   text,
 } from "@/lib/auth/accountFields";
 import { avatarKey } from "@/lib/auth/avatar";
-import { BIO_MAX } from "@/lib/auth/profile";
+import { BIO_MAX, syncContact } from "@/lib/auth/profile";
 import { getCurrentUser } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
 import { listingImageKey } from "@/lib/listings/images";
@@ -174,7 +174,10 @@ export async function updateUser(id: string, input: Record<string, unknown>): Pr
       set username = ${username.value}, full_name = ${fullName || null}, phone = ${phone.value || null},
           city = ${city || null}, bio = ${bio || null}
       where id = ${id} returning id`;
-    return changed.length > 0 ? { ok: true } : NOT_FOUND;
+    if (changed.length === 0) return NOT_FOUND;
+    // The account's listings and posts show its phone and town.
+    await syncContact(id);
+    return { ok: true };
   } catch (error) {
     if (isUniqueViolation(error)) {
       return { ok: false, message: "Провери отбелязаните полета.", errors: { username: USERNAME_TAKEN } };

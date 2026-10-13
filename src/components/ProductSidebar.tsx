@@ -20,15 +20,16 @@ import MessageButton from "@/components/messages/MessageButton";
 import type { ProductDetails } from "@/data/product";
 import { formatPrice } from "@/lib/format";
 
-const conditionLabels = { new: "Ново", used: "Използвано" };
+const conditionLabels = { new: "Ново", used: "Използвано", mixed: "Комбинирано" };
 
 const deliveryLabels = {
   // Short, so that the ways fit beside "Изпращане"; the map pin says the rest.
   pickup: "Лично",
-  speedy: "Спиди",
   econt: "Еконт",
+  speedy: "Спиди",
   boxnow: "BoxNow",
   pigeon: "Pigeon",
+  other: "Друго",
 };
 
 const phoneButton =
@@ -116,7 +117,8 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
         <div className="border-t border-black/5 p-5">
           <MessageButton target={{ listingId: product.id }} />
 
-          {phoneVisible ? (
+          {/* No number when the seller chose to hide it on "Моят профил"; a message still reaches them. */}
+          {!phone ? null : phoneVisible ? (
             <a href={`tel:${phone.replaceAll(" ", "")}`} className={phoneButton}>
               <Phone className="size-4.5" aria-hidden />
               {phone}
@@ -134,6 +136,8 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             </button>
           )}
 
+          {/* No town when the seller chose to hide it on "Моят профил". */}
+          {city && (
           <div className="relative mt-3 flex h-14 items-center gap-2.5 overflow-hidden rounded-xl bg-zinc-100 px-4 text-sm font-medium text-brand-ink">
             {/* Decorative street map that fades in from the left; it is not the real location. */}
             <svg
@@ -159,6 +163,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             <MapPin className="relative size-5 shrink-0" aria-hidden />
             <span className="relative">{city}</span>
           </div>
+          )}
         </div>
       </section>
 

@@ -14,7 +14,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getListingTitle, postedAgo, viewerKey, viewListing, type Listing } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
 
-const conditionLabels = { new: "Ново", used: "Използвано" };
+const conditionLabels = { new: "Ново", used: "Използвано", mixed: "Комбинирано" };
 
 const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "numeric" });
 
@@ -144,7 +144,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
                       {listing.seller.username}
                     </Link>
                   </p>
-                  <ListingActions id={listing.id} afterDelete="/admin/listings" className="mt-3" />
+                  <ListingActions id={listing.id} afterDelete="/admin/listings" askSold={false} className="mt-3" />
                 </section>
               )
             )}

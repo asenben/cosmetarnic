@@ -52,11 +52,10 @@ export default async function EditRequestPage({ params }: PageProps<"/request/[i
             categories: request.categories,
             brand: request.brand,
             condition: request.condition,
-            budget: request.budget,
-            city: request.city,
-            phone: request.phone,
             image: request.image,
           }}
+          // The author's, as the post shows them; they are changed in the author's profile.
+          contact={{ phone: request.phone, city: request.city }}
         />
       </div>
     </main>

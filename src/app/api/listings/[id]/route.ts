@@ -32,13 +32,18 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/lis
   }
 }
 
-// Deletes a listing for good, for its owner or for an administrator.
-export async function DELETE(_request: Request, { params }: RouteContext<"/api/listings/[id]">) {
+// Deletes a listing for good, for its owner or for an administrator. The body may say
+// `{ sold: true }`: the owner sold the product, and its price counts towards their earnings.
+export async function DELETE(request: Request, { params }: RouteContext<"/api/listings/[id]">) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ message: "Влез в профила си." }, { status: 401 });
 
+  // A request without a body is a deletion of a product that was not sold.
+  const body: unknown = await request.json().catch(() => null);
+  const sold = typeof body === "object" && body !== null && (body as { sold?: unknown }).sold === true;
+
   try {
-    if (!(await deleteListing(user, (await params).id))) {
+    if (!(await deleteListing(user, (await params).id, sold))) {
       return Response.json({ message: NOT_FOUND }, { status: 404 });
     }
     return Response.json({ ok: true });

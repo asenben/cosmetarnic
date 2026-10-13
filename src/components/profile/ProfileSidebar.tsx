@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   CircleHelp,
   CirclePlus,
   Heart,
@@ -23,7 +22,6 @@ const links = [
   { href: "/profile/search", label: "Търся", icon: Search },
   { href: "/profile/messages", label: "Съобщения", icon: MessageSquare },
   { href: "/profile/favorites", label: "Любими", icon: Heart },
-  { href: "/profile/notifications", label: "Известия", icon: Bell },
   // `divided` starts a new group, with a line above it.
   { href: "/profile/settings", label: "Настройки", icon: Settings, divided: true },
   { href: "/faq", label: "Помощ и поддръжка", icon: CircleHelp },

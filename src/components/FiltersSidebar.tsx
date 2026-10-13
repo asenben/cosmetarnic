@@ -55,6 +55,8 @@ type FiltersSidebarProps = {
   // it is in the list's header (see ProductGrid). Wide screens always show the panel at the side.
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // Left out for what has no price, like the "Търся" posts.
+  price?: boolean;
 };
 
 // How many of the four filters are narrowing the list, for the number on the "Филтри" button.
@@ -64,7 +66,7 @@ export const activeFilterCount = (filters: Filters) =>
   Number(filters.priceMin !== null || filters.priceMax !== null) +
   Number(filters.cities.length > 0);
 
-export default function FiltersSidebar({ filters, onChange, open, onOpenChange }: FiltersSidebarProps) {
+export default function FiltersSidebar({ filters, onChange, open, onOpenChange, price = true }: FiltersSidebarProps) {
   // Bumping the key also clears what was typed in the town search box.
   const [resetKey, setResetKey] = useState(0);
 
@@ -123,13 +125,15 @@ export default function FiltersSidebar({ filters, onChange, open, onOpenChange }
       <FilterSection title="Състояние">
         <ConditionFilter selected={filters.condition} onChange={(condition) => onChange({ ...filters, condition })} />
       </FilterSection>
-      <FilterSection title="Цена">
-        <PriceFilter
-          min={filters.priceMin}
-          max={filters.priceMax}
-          onChange={(priceMin, priceMax) => onChange({ ...filters, priceMin, priceMax })}
-        />
-      </FilterSection>
+      {price && (
+        <FilterSection title="Цена">
+          <PriceFilter
+            min={filters.priceMin}
+            max={filters.priceMax}
+            onChange={(priceMin, priceMax) => onChange({ ...filters, priceMin, priceMax })}
+          />
+        </FilterSection>
+      )}
       <FilterSection title="Град">
         <CityFilter key={resetKey} selected={filters.cities} onChange={(cities) => onChange({ ...filters, cities })} />
       </FilterSection>

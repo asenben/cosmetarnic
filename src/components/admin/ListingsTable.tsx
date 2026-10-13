@@ -68,7 +68,7 @@ export default function ListingsTable({ listings, showSeller = true }: ListingsT
           </p>
           <p className="w-20 shrink-0 text-right text-sm font-bold text-brand-ink">{formatPrice(listing.price)}</p>
 
-          <ListingActions id={listing.id} className="w-56 shrink-0" />
+          <ListingActions id={listing.id} askSold={false} className="w-56 shrink-0" />
         </li>
       ))}
     </ul>

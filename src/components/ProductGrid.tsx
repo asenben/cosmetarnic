@@ -20,8 +20,9 @@ type View = (typeof views)[number]["value"];
 
 type ProductGridProps = {
   count?: number;
-  sort: SortOrder;
-  onSortChange: (sort: SortOrder) => void;
+  // The sorting is by price, so it is left out for what has none, like the "Търся" posts.
+  sort?: SortOrder;
+  onSortChange?: (sort: SortOrder) => void;
   // What the grid holds, for screen readers, and the words before the count. Both are about
   // listings unless a page shows something else in the grid.
   label?: string;
@@ -31,6 +32,8 @@ type ProductGridProps = {
   // Shows the "Филтри" button on narrow screens, where the filters are not at the side: how
   // many filters are on, and what opens them.
   filters?: { active: number; onOpen: () => void };
+  // A button of the page's own, at the start of the controls on the right.
+  action?: ReactNode;
   children?: ReactNode;
 };
 
@@ -154,6 +157,7 @@ export default function ProductGrid({
   // One card across on phones, two from there up, three on wide screens.
   gridClassName = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
   filters,
+  action,
   children,
 }: ProductGridProps) {
   const [view, setView] = useState<View>("grid");
@@ -188,7 +192,8 @@ export default function ProductGrid({
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          <SortDropdown value={sort} onChange={onSortChange} />
+          {action}
+          {sort && onSortChange && <SortDropdown value={sort} onChange={onSortChange} />}
 
           {/* Phones show the cards one way only. */}
           <div role="group" aria-label="Изглед" className="hidden items-center gap-1 sm:flex">

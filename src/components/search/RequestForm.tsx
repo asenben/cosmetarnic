@@ -3,31 +3,29 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode, type SubmitEvent } from "react";
-import { CircleCheck, Gift, ImagePlus, LayoutGrid, MapPin, Phone, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
-import Combobox from "@/components/Combobox";
+import { CircleCheck, ImagePlus, LayoutGrid, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
 import MultiSelect from "@/components/MultiSelect";
+import ContactSummary from "@/components/sell/ContactSummary";
 import DescriptionField from "@/components/sell/DescriptionField";
 import { uploadPhoto } from "@/components/sell/toJpeg";
-import { useCategories, useCities } from "@/components/SiteOptionsProvider";
+import { useCategories } from "@/components/SiteOptionsProvider";
 import { listingImageUrl } from "@/lib/listings/images";
 
 const conditions = [
-  { value: "any", label: "Без значение" },
   { value: "new", label: "Ново" },
-  { value: "used", label: "Използвано" },
+  { value: "any", label: "Без значение" },
 ];
 
 const DESCRIPTION_MIN = 10;
 const DESCRIPTION_MAX = 1000;
-const BUDGET_MAX = 100000;
-const PHONE_PATTERN = /^\+?[\d\s]{7,15}$/;
 const MAX_PHOTO_MB = 5;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // In the order they appear on the page, so the first invalid one can be focused.
-const fields = ["description", "title", "budget", "brand", "categories", "condition", "phone", "city"] as const;
+const fields = ["description", "title", "brand", "categories", "condition"] as const;
 type Field = (typeof fields)[number];
-type Errors = Partial<Record<Field, string>>;
+// `contact` is what the server says is missing in the profile for publishing.
+type Errors = Partial<Record<Field | "contact", string>>;
 
 // The picture in the form: one just picked from the device (`file`), or the one the post being
 // edited already has in the bucket (`stored`, its file name there).
@@ -41,9 +39,6 @@ export type EditedRequest = {
   categories: string[];
   brand: string;
   condition: string;
-  budget: number | null;
-  city: string;
-  phone: string;
   // The picture's file name in the bucket, if the post has one.
   image: string | null;
 };
@@ -62,20 +57,13 @@ const chip =
 function validate(data: FormData) {
   const text = (name: Field) => String(data.get(name) ?? "").trim();
   const errors: Errors = {};
-  const budget = text("budget").replace(",", ".");
 
   // The editor submits the formatted description and, next to it, its plain text for this check.
   if (String(data.get("description_text") ?? "").trim().length < DESCRIPTION_MIN) {
     errors.description = `Опиши какво търсиш с поне ${DESCRIPTION_MIN} знака.`;
   }
   if (text("title").length < 3) errors.title = "Напиши какво търсиш с поне 3 знака.";
-  // The budget may be left empty, and is not asked for at all from somebody looking for something free.
-  if (data.get("free") !== "on" && budget && !(Number(budget) > 0 && Number(budget) <= BUDGET_MAX)) {
-    errors.budget = "Въведи сума, по-голяма от 0.";
-  }
   if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
-  if (!PHONE_PATTERN.test(text("phone"))) errors.phone = "Въведи валиден телефонен номер.";
-  if (!text("city")) errors.city = "Въведи град.";
   return errors;
 }
 
@@ -117,20 +105,22 @@ function SpecRow({ icon: Icon, label, error, children }: SpecRowProps) {
 
 // The form for a "Търся" post: what the user is looking for, so that sellers can get in touch.
 // Laid out like the form for a listing: the picture and the description on the left, the rest in
-// the card on the right. With `request` it edits that post instead of making a new one.
+// the card on the right. Nothing is on sale here, so unlike a listing it has no price. With
+// `request` it edits that post instead of making a new one.
 type RequestFormProps = {
   request?: EditedRequest;
-  // The phone number from the user's profile, which a new post starts with; it can be replaced
-  // with another one.
-  phone?: string;
+  // The phone and the town from the author's profile. They are not filled in here: the post shows
+  // what the profile settings say. The town may be unset.
+  contact: { phone: string; city: string };
+  // What is still to be set in the profile before a new post can be published, if anything.
+  missing?: string;
   // Where to go once the post is saved; the user's own posts unless said otherwise.
   returnTo?: string;
 };
 
-export default function RequestForm({ request, phone, returnTo = "/profile/search" }: RequestFormProps) {
+export default function RequestForm({ request, contact, missing, returnTo = "/profile/search" }: RequestFormProps) {
   const router = useRouter();
   const categories = useCategories();
-  const cities = useCities();
   const [errors, setErrors] = useState<Errors>({});
   // "sending" while the post is on its way, "done" once it is saved.
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
@@ -139,8 +129,6 @@ export default function RequestForm({ request, phone, returnTo = "/profile/searc
     request?.image ? { stored: request.image, url: listingImageUrl(request.image) } : null,
   );
   const [photoError, setPhotoError] = useState<string>();
-  // Looking to get the product for free: the budget is 0 and its field is switched off.
-  const [free, setFree] = useState(request?.budget === 0);
 
   // The preview address holds the file in memory until it is released.
   const previewUrl = useRef<string>(undefined);
@@ -203,7 +191,6 @@ export default function RequestForm({ request, phone, returnTo = "/profile/searc
         body: JSON.stringify({
           ...Object.fromEntries(fields.map((field) => [field, data.get(field)])),
           categories: data.getAll("categories"),
-          free: data.get("free") === "on",
           image,
         }),
       });
@@ -221,7 +208,7 @@ export default function RequestForm({ request, phone, returnTo = "/profile/searc
         setErrors(result.errors);
         focusFirst(result.errors);
       }
-      setFormError(result.message ?? "Не успяхме да публикуваме. Опитай отново.");
+      setFormError(result.errors?.contact ?? result.message ?? "Не успяхме да публикуваме. Опитай отново.");
     } catch {
       setFormError("Не успяхме да публикуваме. Провери връзката си и опитай отново.");
     }
@@ -325,63 +312,6 @@ export default function RequestForm({ request, phone, returnTo = "/profile/searc
               className={`${textInput} h-11 text-lg font-bold`}
             />
             <FieldError message={errors.title} />
-
-            {/* One bordered box holding the amount and the currency, as for a listing's price. */}
-            <div className="mt-4 flex items-center gap-3">
-              <label
-                className={`flex h-11 min-w-0 flex-1 items-center overflow-hidden rounded-xl border border-black/10 transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500 ${
-                  free ? "bg-zinc-100" : "cursor-text bg-white"
-                }`}
-              >
-                <input
-                  // A text field, because a number field refuses the decimal comma in some browsers.
-                  type="text"
-                  name="budget"
-                  defaultValue={request?.budget ? String(request.budget).replace(".", ",") : undefined}
-                  // Switched off while the product is wanted for free, and so left out of what is sent.
-                  disabled={free}
-                  aria-label="Бюджет в евро"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  placeholder={free ? "Безплатно" : "Бюджет"}
-                  onInput={(event) => {
-                    // Only digits, one decimal comma and two digits after it are kept.
-                    const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
-                    event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
-                  }}
-                  aria-invalid={Boolean(errors.budget)}
-                  className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-lg font-bold text-brand-ink outline-none placeholder:text-brand-ink/30"
-                />
-                <span
-                  aria-hidden
-                  className="flex h-full items-center border-l border-black/10 bg-brand-rose/10 px-3.5 text-base font-bold text-brand-rose"
-                >
-                  €
-                </span>
-              </label>
-              {/* Looking to get it for nothing: no budget is asked for, and the post says "Безплатно". */}
-              <label className={`${chip} h-11 shrink-0 gap-2 rounded-xl px-4`}>
-                <input
-                  type="checkbox"
-                  name="free"
-                  checked={free}
-                  onChange={(event) => {
-                    setFree(event.target.checked);
-                    setErrors({ ...errors, budget: undefined });
-                  }}
-                  className="sr-only"
-                />
-                <Gift className="size-4" aria-hidden />
-                Безплатно
-              </label>
-            </div>
-            {errors.budget ? (
-              <FieldError message={errors.budget} />
-            ) : (
-              <p className="mt-1 text-xs text-brand-ink/60">
-                {free ? "Търсиш го без да плащаш." : "Най-много колко би платил – по желание."}
-              </p>
-            )}
           </div>
 
           <div className="border-t border-black/5 px-5">
@@ -425,56 +355,19 @@ export default function RequestForm({ request, phone, returnTo = "/profile/searc
           </div>
 
           <div className="border-t border-black/5 p-5">
-            <div className="relative">
-              <Phone
-                className="pointer-events-none absolute top-1/2 left-4 size-4.5 -translate-y-1/2 text-brand-rose"
-                aria-hidden
-              />
-              <input
-                type="tel"
-                name="phone"
-                defaultValue={request ? request.phone : phone}
-                aria-label="Телефон за връзка"
-                autoComplete="tel"
-                maxLength={20}
-                placeholder="Телефон за връзка"
-                aria-invalid={Boolean(errors.phone)}
-                className={`${textInput} h-12 pl-11 text-sm font-semibold`}
-              />
-            </div>
-            {errors.phone ? (
-              <FieldError message={errors.phone} />
-            ) : (
-              <p className="mt-1 text-xs text-brand-ink/60">Показва се само на влезли в профила си потребители.</p>
-            )}
-
-            <div className="relative mt-3">
-              <MapPin
-                className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-brand-ink"
-                aria-hidden
-              />
-              <Combobox
-                name="city"
-                defaultValue={request?.city}
-                label="Град"
-                options={cities}
-                maxLength={50}
-                placeholder="Град"
-                invalid={Boolean(errors.city)}
-                className="h-14 w-full rounded-xl border border-transparent bg-zinc-100 pr-4 pl-11 text-sm font-medium text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500"
-              />
-            </div>
-            <FieldError message={errors.city} />
+            {/* A post being edited already has them; a new one waits until the profile has a phone. */}
+            <ContactSummary {...contact} missing={request ? undefined : missing} />
+            <p className="mt-1 text-xs text-brand-ink/60">Телефонът се показва само на влезли в профила си потребители.</p>
 
             <FieldError message={formError} />
 
             {/* Turns green with a confirmation once the post is saved; the user's posts open right after. */}
             <button
               type="submit"
-              disabled={status !== "idle"}
+              disabled={status !== "idle" || (!request && Boolean(missing))}
               className={`mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:cursor-default ${
                 status === "done" ? "bg-emerald-600" : "bg-brand-rose hover:bg-brand disabled:hover:bg-brand-rose"
-              }`}
+              } ${!request && missing ? "opacity-60" : ""}`}
             >
               {status === "done" && <CircleCheck className="size-4.5" aria-hidden />}
               <span role="status">

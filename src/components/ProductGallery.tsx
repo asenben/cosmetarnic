@@ -15,9 +15,10 @@ const roundButton =
   "absolute flex size-10 cursor-pointer items-center justify-center rounded-full bg-white text-brand-ink shadow-sm transition-colors hover:text-brand-rose";
 
 // The arrows over the picture in the lightbox: see-through, so they hide little of it, and solid
-// under the pointer.
+// under the pointer. No blur behind them: redrawn on every move of a pinch, it can make a phone
+// run out of memory.
 const lightboxButton =
-  "absolute top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/50 text-brand-ink backdrop-blur-sm transition-colors hover:bg-white/90 hover:text-brand-rose";
+  "absolute top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/60 text-brand-ink transition-colors hover:bg-white/90 hover:text-brand-rose";
 
 export default function ProductGallery({ images, alt, badge }: ProductGalleryProps) {
   const [selected, setSelected] = useState(0);
@@ -220,19 +221,21 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
               <div
                 onClick={(event) => {
                   event.stopPropagation();
+                  // Only with a mouse: on a touch screen the picture is enlarged with two fingers,
+                  // and both at once would ask the phone for more memory than it has.
+                  if (!window.matchMedia("(pointer: fine)").matches) return;
                   setZoom(zoom ? null : zoomAt(event));
                 }}
                 onMouseMove={(event) => {
                   if (zoom) setZoom(zoomAt(event));
                 }}
-                className={`absolute inset-0 ${zoom ? "cursor-zoom-out" : "cursor-zoom-in"}`}
+                className={`absolute inset-0 ${zoom ? "pointer-fine:cursor-zoom-out" : "pointer-fine:cursor-zoom-in"}`}
               >
                 <Image
                   src={images[selected]}
                   alt={alt}
                   fill
                   sizes="100vw"
-                  quality={90}
                   style={zoom ? { transform: "scale(2.5)", transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
                   className="object-contain transition-transform duration-200 ease-out motion-reduce:transition-none"
                   onLoad={({ currentTarget: { naturalWidth, naturalHeight } }) => {
@@ -270,7 +273,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
                   </button>
                   <p
                     aria-live="polite"
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/60 px-3 py-1 text-sm font-semibold text-brand-ink tabular-nums backdrop-blur-sm"
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-brand-ink tabular-nums"
                   >
                     {selected + 1} / {images.length}
                   </p>

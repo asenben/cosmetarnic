@@ -215,7 +215,7 @@ export default function RequestForm({ request, contact, missing, returnTo = "/pr
         if (errors[name as Field]) setErrors({ ...errors, [name]: undefined });
         setFormError(undefined);
       }}
-      className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]"
+      className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]"
     >
       <div className="space-y-6">
         <div>

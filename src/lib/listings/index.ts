@@ -238,12 +238,13 @@ export async function getListings(search = "", limit: number | null = null) {
   return rows.map(toListing);
 }
 
-// All of one user's listings, newest first.
-export async function getUserListings(userId: string) {
+// All of one user's listings, newest first; with `activeOnly`, just those on sale, for the
+// public profile.
+export async function getUserListings(userId: string, activeOnly = false) {
   const rows = await sql`
     select l.*, u.username, u.avatar, u.created_at as seller_created_at, 0 as seller_listings
     from listings l join users u on u.id = l.user_id
-    where l.user_id = ${userId}
+    where l.user_id = ${userId} and (l.status = 'active' or ${!activeOnly})
     order by l.created_at desc`;
   return rows.map(toListing);
 }

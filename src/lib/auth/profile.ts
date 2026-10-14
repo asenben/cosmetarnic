@@ -8,6 +8,7 @@ import {
   samePhone,
   text,
 } from "@/lib/auth/accountFields";
+import { avatarUrl } from "@/lib/auth/avatar";
 import {
   checkProfileLink,
   profileLinks,
@@ -59,6 +60,35 @@ export async function getProfile(userId: string): Promise<ProfileDetails> {
     delivery: readDeliveries(row.delivery),
     show_phone: row.show_phone,
     show_city: row.show_city,
+    bio: row.bio ?? "",
+    links: readProfileLinks(row.links),
+    show_stats: row.show_stats,
+  };
+}
+
+export type PublicProfile = Pick<ProfileDetails, "username" | "city" | "bio" | "links" | "show_stats"> & {
+  id: string;
+  // The URL of the profile picture, or null while the account has none.
+  avatar: string | null;
+  createdAt: Date;
+};
+
+const USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// What anybody may see of an account, for its public page; null when there is no such account.
+// A blocked one is there only for an administrator. The name, email and phone stay out of it.
+export async function getPublicProfile(userId: string, admin = false): Promise<PublicProfile | null> {
+  if (!USER_ID_PATTERN.test(userId)) return null;
+  const [row] = await sql`
+    select id, username, avatar, created_at, city, bio, links, show_stats from users
+    where id = ${userId} and (blocked_at is null or ${admin})`;
+  if (!row) return null;
+  return {
+    id: row.id,
+    username: row.username,
+    avatar: avatarUrl(row.avatar),
+    createdAt: new Date(row.created_at),
+    city: row.city ?? "",
     bio: row.bio ?? "",
     links: readProfileLinks(row.links),
     show_stats: row.show_stats,

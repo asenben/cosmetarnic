@@ -8,7 +8,6 @@ import SiteOptionsProvider from "@/components/SiteOptionsProvider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCategories } from "@/lib/categories";
 import { getFavoriteIds } from "@/lib/listings/favorites";
-import { countUnreadMessages } from "@/lib/messages";
 import { getCities, getPriceRange } from "@/lib/options";
 import "./globals.css";
 
@@ -36,9 +35,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getCurrentUser();
-  const [favoriteIds, unreadMessages, categories, cities, priceRange] = await Promise.all([
+  const [favoriteIds, categories, cities, priceRange] = await Promise.all([
     user ? getFavoriteIds(user.id) : [],
-    user ? countUnreadMessages(user.id) : 0,
     getCategories(),
     getCities(),
     getPriceRange(),
@@ -50,7 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider initialUser={user}>
           <SiteOptionsProvider categories={categories} cities={cities.map(({ name }) => name)} priceRange={priceRange}>
             <FavoritesProvider initialIds={favoriteIds}>
-              <Navigation unreadMessages={unreadMessages} />
+              <Navigation />
               {children}
               <Footer />
             </FavoritesProvider>

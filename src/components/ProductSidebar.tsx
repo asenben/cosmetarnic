@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import {
   CalendarDays,
@@ -169,7 +170,7 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
 
       <section className="rounded-2xl border border-black/5 bg-white p-5">
         <h2 className="text-base font-bold text-brand-ink">Продавач</h2>
-        <button type="button" className="mt-3 flex w-full cursor-pointer items-center gap-3 text-left">
+        <Link href={`/users/${seller.id}`} className="mt-3 flex w-full items-center gap-3 text-left">
           {seller.avatar ? (
             <Image src={seller.avatar} alt="" width={56} height={56} className="size-14 rounded-full object-cover" />
           ) : (
@@ -189,18 +190,18 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
             </span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-brand-ink/60" aria-hidden />
-        </button>
+        </Link>
 
-        <button
-          type="button"
-          className="mt-4 flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl bg-zinc-50 px-3 py-3 text-left text-sm text-brand-ink transition-colors hover:bg-brand-rose/10"
+        <Link
+          href={`/users/${seller.id}`}
+          className="mt-4 flex w-full items-center justify-between gap-3 rounded-xl bg-zinc-50 px-3 py-3 text-left text-sm text-brand-ink transition-colors hover:bg-brand-rose/10"
         >
           <span className="font-medium">Други обяви от този продавач</span>
           <span className="flex items-center gap-2 text-brand-ink/60">
             {seller.listings}
             <ChevronRight className="size-4" aria-hidden />
           </span>
-        </button>
+        </Link>
       </section>
     </aside>
   );

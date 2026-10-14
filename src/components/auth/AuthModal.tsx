@@ -13,10 +13,12 @@ type AuthModalProps = {
   ref?: Ref<AuthModalHandle>;
   open: boolean;
   onClose: () => void;
+  // What the panel is, for screen readers; the sign-in forms unless said otherwise.
+  label?: string;
   children?: ReactNode;
 };
 
-export default function AuthModal({ ref, open, onClose, children }: AuthModalProps) {
+export default function AuthModal({ ref, open, onClose, label = "Вход и регистрация", children }: AuthModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -120,7 +122,7 @@ export default function AuthModal({ ref, open, onClose, children }: AuthModalPro
   return (
     <dialog
       ref={dialogRef}
-      aria-label="Вход и регистрация"
+      aria-label={label}
       // Escape should play the closing animation instead of closing instantly.
       onCancel={(event) => {
         event.preventDefault();

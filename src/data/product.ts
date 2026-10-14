@@ -1,6 +1,8 @@
 import type { Product } from "@/components/ProductCard";
 
 export type SellerProfile = {
+  // The seller's user id, which their public page is opened by.
+  id: string;
   name: string;
   handle: string;
   memberSince: string;

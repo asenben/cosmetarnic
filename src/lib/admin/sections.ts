@@ -1,16 +1,11 @@
 import {
   CreditCard,
-  FileLock,
   FileUp,
-  Image as ImageIcon,
   Inbox,
   Mail,
   MessageCircleQuestionMark,
   MessageSquare,
-  Newspaper,
-  PanelsTopLeft,
   Search,
-  Settings,
   Shapes,
   Star,
   UserCog,
@@ -47,20 +42,10 @@ export const adminGroups: { title: string; sections: AdminSection[] }[] = [
     ],
   },
   {
-    title: "Съдържание",
-    sections: [
-      { slug: "pages", label: "Страници", icon: PanelsTopLeft },
-      { slug: "blog", label: "Блог / Новини", icon: Newspaper },
-      { slug: "banners", label: "Банери", icon: ImageIcon },
-    ],
-  },
-  {
     title: "Настройки",
     sections: [
-      { slug: "settings", label: "Настройки на сайта", icon: Settings },
       { slug: "emails", label: "Имейл известия", icon: Mail },
       { slug: "roles", label: "Потребителски роли", icon: UserCog },
-      { slug: "logs", label: "Логове и сигурност", icon: FileLock },
     ],
   },
 ];

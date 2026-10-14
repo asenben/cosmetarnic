@@ -99,7 +99,7 @@ const textInput =
   "w-full rounded-xl border border-black/10 bg-white px-3.5 text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500";
 
 const specInput =
-  "h-9 w-44 rounded-lg border border-black/10 bg-white px-3 text-sm font-semibold text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500";
+  "h-9 w-full rounded-lg border border-black/10 bg-white px-3 text-sm font-semibold text-brand-ink transition-colors outline-none placeholder:font-normal placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500 sm:w-44";
 
 const chip =
   "flex h-9 cursor-pointer items-center rounded-lg border border-black/10 px-3 text-sm font-medium text-brand-ink transition-colors hover:border-brand-rose/50 has-checked:border-brand-rose has-checked:bg-brand-rose/10 has-checked:text-brand-rose has-focus-visible:ring-2 has-focus-visible:ring-brand-rose/40";
@@ -143,10 +143,11 @@ type SpecRowProps = {
 };
 
 // One line of the product's details: the name on the left, the field to fill in on the right.
+// On phones there is no room for both side by side, so the field goes under its name.
 function SpecRow({ icon: Icon, label, error, children }: SpecRowProps) {
   return (
     <div className="border-b border-black/5 py-3 text-sm last:border-b-0">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4">
         <span className="flex items-center gap-2.5 text-brand-ink/60">
           <Icon className="size-4 text-brand-rose" aria-hidden />
           {label}
@@ -154,7 +155,7 @@ function SpecRow({ icon: Icon, label, error, children }: SpecRowProps) {
         {children}
       </div>
       {error && (
-        <p role="alert" className="mt-1 text-right text-xs text-red-600">
+        <p role="alert" className="mt-1 text-xs text-red-600 sm:text-right">
           {error}
         </p>
       )}
@@ -173,9 +174,9 @@ type ChipsProps = {
 
 function Chips({ label, name, type, options, chosen = [] }: ChipsProps) {
   return (
-    <div role={type === "radio" ? "radiogroup" : "group"} aria-label={label} className="flex flex-wrap justify-end gap-2">
+    <div role={type === "radio" ? "radiogroup" : "group"} aria-label={label} className="flex flex-wrap gap-2 sm:justify-end">
       {options.map(({ value, label: text, icon: Icon }) => (
-        <label key={value} className={`${chip} gap-1.5`}>
+        <label key={value} className={`${chip} flex-1 justify-center gap-1.5 sm:flex-none`}>
           <input type={type} name={name} value={value} defaultChecked={chosen.includes(value)} className="sr-only" />
           {Icon && <Icon className="size-4" aria-hidden />}
           {text}
@@ -323,7 +324,7 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
         if (errors[name as Field]) setErrors({ ...errors, [name]: undefined });
         setFormError(undefined);
       }}
-      className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]"
+      className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]"
     >
       <div className="space-y-6">
         <div>
@@ -527,7 +528,7 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
                 label="Категория"
                 options={categories}
                 invalid={Boolean(errors.categories)}
-                className="h-9 w-44"
+                className="h-9 w-full sm:w-44"
               />
             </SpecRow>
             <SpecRow icon={Sparkles} label="Състояние" error={errors.condition}>

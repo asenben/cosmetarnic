@@ -34,6 +34,7 @@ function toProduct(listing: Listing, categories: Category[]): ProductDetails {
     title: listing.title,
     categories: ["Красота и козметика", ...(labels.length > 0 ? [labels.join(", ")] : [])],
     sellerProfile: {
+      id: listing.userId,
       name: listing.seller.username,
       handle: listing.seller.username,
       memberSince: monthAndYear.format(listing.seller.createdAt).replace(" г.", ""),

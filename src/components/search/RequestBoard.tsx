@@ -102,7 +102,9 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
   };
 
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex-row">
+    // A container, so that a card two across on a phone can make room: the title gets a line of
+    // its own and the buttons get smaller.
+    <article className="@container relative flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white transition-shadow has-[a:hover]:shadow-lg has-[a:hover]:shadow-brand-ink/10 listview:flex-row">
       <div className="relative aspect-square shrink-0 listview:m-2.5 listview:aspect-auto listview:min-h-28 listview:w-24 listview:sm:w-36">
         {/* Only the picture opens the post; the details under it are not a link. */}
         <Link
@@ -123,7 +125,7 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 text-xs font-medium text-brand-ink/60">
               <Image src="/images/logo.svg" alt="" width={64} height={64} className="size-16 rounded-full opacity-80" />
-              <span className="listview:hidden">Няма изображение</span>
+              <span className="@max-[13rem]:hidden listview:hidden">Няма изображение</span>
             </div>
           )}
         </Link>
@@ -140,11 +142,16 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3 listview:justify-center">
-        <div className="flex items-center justify-between gap-2">
-          <h3 title={request.title} className="min-w-0 truncate text-sm font-semibold text-brand-ink listview:text-lg">
+        <div className="flex items-center justify-between gap-2 @max-[13rem]:flex-col @max-[13rem]:items-start @max-[13rem]:gap-1">
+          <h3
+            title={request.title}
+            className="max-w-full min-w-0 truncate text-sm font-semibold text-brand-ink listview:text-lg"
+          >
             {request.title}
           </h3>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${condition.className}`}>
+          <span
+            className={`max-w-full shrink-0 truncate rounded-full px-2 py-0.5 text-xs font-medium @max-[13rem]:text-[0.6875rem] ${condition.className}`}
+          >
             {condition.label}
           </span>
         </div>
@@ -153,29 +160,34 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
           {request.categoryLabel}
         </p>
 
-        <div className="flex items-center justify-between gap-2 text-xs text-brand-ink/60">
-          <span className="min-w-0 truncate">{request.city}</span>
+        <div className="flex items-center justify-between gap-2 text-xs text-brand-ink/60 @max-[13rem]:flex-col @max-[13rem]:items-start @max-[13rem]:gap-0.5">
+          <span className="max-w-full min-w-0 truncate">{request.city}</span>
           <span className="shrink-0">{request.postedAgo}</span>
         </div>
 
         {/* The author's buttons, on the "Търся" page of the profile only. */}
         {manageable && request.own && (
           <div className="pt-1.5">
+            {confirming && (
+              <p role="alert" className="mb-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">
+                Сигурен ли сте, че искате да изтриете тази публикация?
+              </p>
+            )}
             {confirming ? (
               <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={busy}
                   onClick={remove}
-                  className={`${smallButton} flex-1 bg-red-600 text-white hover:bg-red-700`}
+                  className={`${smallButton} min-w-0 flex-1 bg-red-600 text-white hover:bg-red-700 @max-[13rem]:px-1.5 @max-[13rem]:text-xs`}
                 >
-                  {busy ? "Изтриване…" : "Да, изтрий"}
+                  {busy ? "Изтриване…" : "Изтрий"}
                 </button>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => setConfirming(false)}
-                  className={`${smallButton} flex-1 border border-black/10 text-brand-ink hover:border-brand-rose/50`}
+                  className={`${smallButton} min-w-0 flex-1 border border-black/10 text-brand-ink hover:border-brand-rose/50 @max-[13rem]:px-1.5 @max-[13rem]:text-xs`}
                 >
                   Отказ
                 </button>
@@ -184,10 +196,11 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
               <div className="flex gap-2">
                 <Link
                   href={`/request/${request.id}`}
-                  className={`${smallButton} min-w-0 flex-1 border border-brand-rose text-brand-rose hover:bg-brand-rose/10`}
+                  className={`${smallButton} min-w-0 flex-1 border border-brand-rose text-brand-rose hover:bg-brand-rose/10 @max-[13rem]:px-1.5 @max-[13rem]:text-xs`}
                 >
                   <Pencil className="size-4 shrink-0" aria-hidden />
-                  <span className="truncate">Редактирай</span>
+                  {/* On a narrow card the pencil alone says it; the word is kept for screen readers. */}
+                  <span className="truncate @max-[13rem]:sr-only">Редактирай</span>
                 </Link>
                 <button
                   type="button"
@@ -300,7 +313,7 @@ export function FavoriteRequests({ requests, emptyNote }: FavoriteRequestsProps)
   return (
     <section className="mt-8">
       <h2 className="text-sm font-bold tracking-wider text-brand-ink uppercase">Търсени продукти ({shown.length})</h2>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {shown.map((request) => (
           <RequestCard
             key={request.id}

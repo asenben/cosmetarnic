@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import SidebarDrawer from "@/components/SidebarDrawer";
 import { adminGroups } from "@/lib/admin/sections";
 
 const countFormat = new Intl.NumberFormat("bg-BG");
@@ -14,11 +15,8 @@ export default function AdminSidebar({ counts }: { counts: Record<string, number
   const pathname = usePathname();
   const { logout } = useAuth();
 
-  return (
-    <nav
-      aria-label="Администрация"
-      className="hidden w-72 shrink-0 self-start rounded-2xl border border-black/5 bg-white p-3 lg:block"
-    >
+  const menu = (
+    <>
       {/* The panel's first page, above the sections. */}
       <Link
         href="/admin"
@@ -74,6 +72,26 @@ export default function AdminSidebar({ counts }: { counts: Record<string, number
           Изход
         </button>
       </div>
-    </nav>
+    </>
+  );
+
+  const current = adminGroups
+    .flatMap(({ sections }) => sections)
+    .find(({ slug }) => pathname === `/admin/${slug}` || pathname.startsWith(`/admin/${slug}/`));
+
+  return (
+    <>
+      {/* On phones and tablets the same menu slides in from a bar above the page. */}
+      <SidebarDrawer label="Администрация" current={current?.label ?? "Табло"}>
+        {menu}
+      </SidebarDrawer>
+
+      <nav
+        aria-label="Администрация"
+        className="hidden w-72 shrink-0 self-start rounded-2xl border border-black/5 bg-white p-3 lg:block"
+      >
+        {menu}
+      </nav>
+    </>
   );
 }

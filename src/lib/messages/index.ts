@@ -14,7 +14,8 @@ export type ConversationSummary = {
   kind: "request" | "listing";
   // The address of the post or listing, or null once it has been deleted.
   href: string | null;
-  other: { username: string; avatar: string | null };
+  // `admin` marks an administrator of the site, whose messages the navigation lists apart.
+  other: { username: string; avatar: string | null; admin: boolean };
   // The latest message, if any has been sent yet.
   lastBody: string | null;
   lastAt: Date;
@@ -40,7 +41,11 @@ const toSummary = (row: Record<string, unknown>): ConversationSummary => {
     subject: row.subject as string,
     kind,
     href: target ? `${kind === "request" ? "/search" : "/product"}/${target}` : null,
-    other: { username: row.other_username as string, avatar: row.other_avatar as string | null },
+    other: {
+      username: row.other_username as string,
+      avatar: row.other_avatar as string | null,
+      admin: row.other_role === "admin",
+    },
     lastBody: (row.last_body as string | null) ?? null,
     lastAt: new Date(row.last_message_at as string),
     lastMine: row.last_sender_id === row.viewer_id,
@@ -85,7 +90,7 @@ export async function startConversation(
 export async function listConversations(userId: string) {
   const rows = await sql`
     select c.id, c.kind, c.request_id, c.listing_id, c.subject, c.last_message_at, ${userId}::uuid as viewer_id,
-           u.username as other_username, u.avatar as other_avatar,
+           u.username as other_username, u.avatar as other_avatar, u.role as other_role,
            last.body as last_body, last.sender_id as last_sender_id,
            (select count(*)::int from messages m
             where m.conversation_id = c.id and m.sender_id <> ${userId} and m.read_at is null) as unread
@@ -114,7 +119,7 @@ export async function openConversation(userId: string, id: string) {
   if (!ID_PATTERN.test(id)) return null;
   const [row] = await sql`
     select c.id, c.kind, c.request_id, c.listing_id, c.subject, c.last_message_at, ${userId}::uuid as viewer_id,
-           u.username as other_username, u.avatar as other_avatar
+           u.username as other_username, u.avatar as other_avatar, u.role as other_role
     from conversations c
     join users u on u.id = case when c.starter_id = ${userId} then c.owner_id else c.starter_id end
     where c.id = ${id} and (c.starter_id = ${userId} or c.owner_id = ${userId})`;

@@ -1,4 +1,5 @@
 import { deleteUser, getAdmin, setUserBlocked, setUserRole, updateUser, type ManageResult } from "@/lib/admin";
+import { addPaidListings } from "@/lib/payments/canCreateListing";
 
 const answer = (result: ManageResult) =>
   result.ok
@@ -9,7 +10,8 @@ const answer = (result: ManageResult) =>
 const hidden = () => new Response(null, { status: 404 });
 
 // Changes an account from the panel. The body says what: `details` to save its fields,
-// `blocked` to block or unblock it, `role` to make it an administrator or an ordinary user.
+// `blocked` to block or unblock it, `role` to make it an administrator or an ordinary user,
+// `paidListings` to add that many paid listings to the seller, or take them away when negative.
 export async function PATCH(request: Request, { params }: RouteContext<"/api/admin/users/[id]">) {
   const admin = await getAdmin();
   if (!admin) return hidden();
@@ -29,6 +31,11 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/adm
     const { id } = await params;
     if (typeof change.blocked === "boolean") return answer(await setUserBlocked(admin.id, id, change.blocked));
     if ("role" in change) return answer(await setUserRole(admin.id, id, change.role));
+    if (typeof change.paidListings === "number") {
+      return answer(
+        (await addPaidListings(id, change.paidListings)) ? { ok: true } : { ok: false, message: "Профилът не е намерен." },
+      );
+    }
     if (typeof change.details === "object" && change.details !== null) {
       return answer(await updateUser(id, change.details as Record<string, unknown>));
     }

@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const owner = (await getCurrentUser())?.username ?? SITE_NAME;
   return {
     title: { default: owner, template: `%s | ${owner}` },
-    description: "Твоят свят на козметични находки",
+    description: "Козметарник - продавалник за козметика",
   };
 }
 

@@ -30,6 +30,16 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
   // The spot the lightbox's picture is enlarged around, in percent of its size; null while it is
   // shown whole. Turning to another picture or closing the lightbox shows it whole again.
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
+  // Whether the lightbox is open: only then are the pictures beside the shown one loaded ahead.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const openLightbox = () => {
+    lightboxRef.current?.showModal();
+    setLightboxOpen(true);
+  };
+  // Remembers a picture's proportions once it has loaded, so the lightbox's frame fits it at once.
+  const rememberRatio = (src: string, { naturalWidth, naturalHeight }: HTMLImageElement) => {
+    if (naturalHeight > 0) setRatios((known) => ({ ...known, [src]: naturalWidth / naturalHeight }));
+  };
   const zoomAt = (event: MouseEvent<HTMLElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     return { x: ((event.clientX - box.left) / box.width) * 100, y: ((event.clientY - box.top) / box.height) * 100 };
@@ -85,7 +95,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
                     tabIndex={distance > 1 ? -1 : 0}
                     onClick={() => {
                       if (swiped.current) return;
-                      if (offset === 0) lightboxRef.current?.showModal();
+                      if (offset === 0) openLightbox();
                       else setSelected(index);
                     }}
                     initial={false}
@@ -181,7 +191,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           <button
             type="button"
             aria-label="Виж на цял екран"
-            onClick={() => lightboxRef.current?.showModal()}
+            onClick={openLightbox}
             className={`${roundButton} right-4 bottom-4 z-20`}
           >
             <Maximize2 className="size-4.5" aria-hidden />
@@ -196,7 +206,10 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           // A click on the dimmed area around the picture closes the lightbox; one on the picture
           // enlarges it instead (see below).
           onClick={() => lightboxRef.current?.close()}
-          onClose={() => setZoom(null)}
+          onClose={() => {
+            setZoom(null);
+            setLightboxOpen(false);
+          }}
           // The arrow keys turn to the picture before or after, as the buttons at the sides do.
           onKeyDown={(event) => {
             if (images.length < 2) return;
@@ -238,12 +251,28 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
                   sizes="100vw"
                   style={zoom ? { transform: "scale(2.5)", transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
                   className="object-contain transition-transform duration-200 ease-out motion-reduce:transition-none"
-                  onLoad={({ currentTarget: { naturalWidth, naturalHeight } }) => {
-                    const src = images[selected];
-                    if (naturalHeight > 0) setRatios((known) => ({ ...known, [src]: naturalWidth / naturalHeight }));
-                  }}
+                  onLoad={({ currentTarget }) => rememberRatio(images[selected], currentTarget)}
                 />
               </div>
+
+              {/* The pictures before and after the shown one, loaded unseen in the same size while
+                  the lightbox is open, so the arrows show them at once instead of waiting for them. */}
+              {lightboxOpen &&
+                [...new Set([-1, 1].map((offset) => images[(selected + offset + images.length) % images.length]))]
+                  .filter((src) => src !== images[selected])
+                  .map((src) => (
+                    <Image
+                      key={src}
+                      src={src}
+                      alt=""
+                      aria-hidden
+                      fill
+                      sizes="100vw"
+                      loading="eager"
+                      className="invisible"
+                      onLoad={({ currentTarget }) => rememberRatio(src, currentTarget)}
+                    />
+                  ))}
 
               {/* Turning through the pictures without leaving the lightbox: see-through buttons at
                   the picture's own edges, and which one it is at its foot. These clicks do not close it. */}

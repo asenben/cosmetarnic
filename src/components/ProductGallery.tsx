@@ -14,11 +14,10 @@ type ProductGalleryProps = {
 const roundButton =
   "absolute flex size-10 cursor-pointer items-center justify-center rounded-full bg-white text-brand-ink shadow-sm transition-colors hover:text-brand-rose";
 
-// The arrows over the picture in the lightbox: see-through, so they hide little of it, and solid
-// under the pointer. No blur behind them: redrawn on every move of a pinch, it can make a phone
-// run out of memory.
-const lightboxButton =
-  "absolute top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/60 text-brand-ink transition-colors hover:bg-white/90 hover:text-brand-rose";
+// The buttons under the pictures, apart from them on the page's own background, so they never
+// melt into a photo.
+const controlButton =
+  "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black/10 bg-white text-brand-ink transition-colors hover:border-brand-rose hover:text-brand-rose";
 
 export default function ProductGallery({ images, alt, badge }: ProductGalleryProps) {
   const [selected, setSelected] = useState(0);
@@ -52,6 +51,8 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
 
   // Set by a swipe, so the tap that ends it is not also taken as a click on a picture.
   const swiped = useRef(false);
+  // Where a one-finger touch on the lightbox's picture started, for telling a swipe.
+  const touchStart = useRef<number | null>(null);
   const onSwipe = (distance: number) => {
     if (Math.abs(distance) < 50) return;
     swiped.current = true;
@@ -166,28 +167,8 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           </span>
         )}
 
-        {images.length > 1 && (
-          <>
-            <button
-              type="button"
-              aria-label="Предишно изображение"
-              onClick={() => step(-1)}
-              className={`${roundButton} top-1/2 left-4 z-20 -translate-y-1/2`}
-            >
-              <ChevronLeft className="size-5" aria-hidden />
-            </button>
-            <button
-              type="button"
-              aria-label="Следващо изображение"
-              onClick={() => step(1)}
-              className={`${roundButton} top-1/2 right-4 z-20 -translate-y-1/2`}
-            >
-              <ChevronRight className="size-5" aria-hidden />
-            </button>
-          </>
-        )}
-
-        {images.length > 0 && (
+        {/* A single picture keeps its button for the full screen on it; with several it is under them. */}
+        {images.length === 1 && (
           <button
             type="button"
             aria-label="Виж на цял екран"
@@ -198,6 +179,53 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           </button>
         )}
       </div>
+
+      {/* With several pictures: a dot for each under them, the one shown drawn long, with the
+          arrows to turn on either side and the full screen at the end. */}
+      {images.length > 1 && (
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <span aria-hidden />
+          <div className="flex items-center gap-3">
+            <button type="button" aria-label="Предишно изображение" onClick={() => step(-1)} className={controlButton}>
+              <ChevronLeft className="size-4.5" aria-hidden />
+            </button>
+            <ul className="flex items-center gap-1.5">
+              {images.map((src, index) => (
+                <li key={src} className="flex">
+                  <button
+                    type="button"
+                    aria-label={`Изображение ${index + 1} от ${images.length}`}
+                    aria-current={index === selected}
+                    onClick={() => {
+                      setZoom(null);
+                      setSelected(index);
+                    }}
+                    // A larger area to tap than the dot itself.
+                    className="group flex h-6 cursor-pointer items-center px-0.5"
+                  >
+                    <span
+                      className={`block h-2 rounded-full transition-all duration-300 motion-reduce:transition-none ${
+                        index === selected ? "w-6 bg-brand-rose" : "w-2 bg-brand-ink/20 group-hover:bg-brand-ink/40"
+                      }`}
+                    />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" aria-label="Следващо изображение" onClick={() => step(1)} className={controlButton}>
+              <ChevronRight className="size-4.5" aria-hidden />
+            </button>
+          </div>
+          <button
+            type="button"
+            aria-label="Виж на цял екран"
+            onClick={openLightbox}
+            className={`${controlButton} justify-self-end`}
+          >
+            <Maximize2 className="size-4" aria-hidden />
+          </button>
+        </div>
+      )}
 
       {images.length > 0 && (
         <dialog
@@ -210,7 +238,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
             setZoom(null);
             setLightboxOpen(false);
           }}
-          // The arrow keys turn to the picture before or after, as the buttons at the sides do.
+          // The arrow keys turn to the picture before or after, as a swipe does on a touch screen.
           onKeyDown={(event) => {
             if (images.length < 2) return;
             if (event.key === "ArrowLeft") step(-1);
@@ -218,97 +246,110 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           }}
           className="fixed inset-0 m-0 size-full max-h-none max-w-none bg-brand-ink/80 p-4 backdrop:bg-transparent sm:p-10"
         >
-          <div className="flex size-full items-center justify-center [container-type:size]">
-            {/* Once the image's proportions are known the frame shrinks to fit it, so the rounded
-                corners follow the picture instead of the whole screen. */}
+          <div className="flex size-full flex-col gap-3 sm:gap-4">
+            {/* On a touch screen a swipe turns to the picture before or after; not while two
+                fingers enlarge it, nor while the page is zoomed in. */}
             <div
-              className="relative overflow-hidden rounded-2xl"
-              style={
-                ratio
-                  ? { aspectRatio: ratio, width: `min(100cqw, 100cqh * ${ratio})` }
-                  : { width: "100%", height: "100%" }
-              }
+              onTouchStart={(event) => {
+                touchStart.current = event.touches.length === 1 ? event.touches[0].clientX : null;
+              }}
+              onTouchEnd={(event) => {
+                const start = touchStart.current;
+                touchStart.current = null;
+                if (start === null || images.length < 2 || (window.visualViewport?.scale ?? 1) > 1.01) return;
+                const distance = event.changedTouches[0].clientX - start;
+                if (Math.abs(distance) > 50) step(distance < 0 ? 1 : -1);
+              }}
+              className="flex min-h-0 flex-1 items-center justify-center [container-type:size]"
             >
-              {/* A click enlarges the picture around the spot clicked, and the enlarged part then
-                  follows the pointer; another click shows it whole again. */}
+              {/* Once the image's proportions are known the frame shrinks to fit it, so the rounded
+                  corners follow the picture instead of the whole screen. */}
               <div
-                onClick={(event) => {
-                  event.stopPropagation();
-                  // Only with a mouse: on a touch screen the picture is enlarged with two fingers,
-                  // and both at once would ask the phone for more memory than it has.
-                  if (!window.matchMedia("(pointer: fine)").matches) return;
-                  setZoom(zoom ? null : zoomAt(event));
-                }}
-                onMouseMove={(event) => {
-                  if (zoom) setZoom(zoomAt(event));
-                }}
-                className={`absolute inset-0 ${zoom ? "pointer-fine:cursor-zoom-out" : "pointer-fine:cursor-zoom-in"}`}
+                className="relative overflow-hidden rounded-2xl"
+                style={
+                  ratio
+                    ? { aspectRatio: ratio, width: `min(100cqw, 100cqh * ${ratio})` }
+                    : { width: "100%", height: "100%" }
+                }
               >
-                <Image
-                  src={images[selected]}
-                  alt={alt}
-                  fill
-                  sizes="100vw"
-                  style={zoom ? { transform: "scale(2.5)", transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
-                  className="object-contain transition-transform duration-200 ease-out motion-reduce:transition-none"
-                  onLoad={({ currentTarget }) => rememberRatio(images[selected], currentTarget)}
-                />
+                {/* A click enlarges the picture around the spot clicked, and the enlarged part then
+                    follows the pointer; another click shows it whole again. */}
+                <div
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    // Only with a mouse: on a touch screen the picture is enlarged with two fingers,
+                    // and both at once would ask the phone for more memory than it has.
+                    if (!window.matchMedia("(pointer: fine)").matches) return;
+                    setZoom(zoom ? null : zoomAt(event));
+                  }}
+                  onMouseMove={(event) => {
+                    if (zoom) setZoom(zoomAt(event));
+                  }}
+                  className={`absolute inset-0 ${zoom ? "pointer-fine:cursor-zoom-out" : "pointer-fine:cursor-zoom-in"}`}
+                >
+                  <Image
+                    src={images[selected]}
+                    alt={alt}
+                    fill
+                    sizes="100vw"
+                    style={zoom ? { transform: "scale(2.5)", transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
+                    className="object-contain transition-transform duration-200 ease-out motion-reduce:transition-none"
+                    onLoad={({ currentTarget }) => rememberRatio(images[selected], currentTarget)}
+                  />
+                </div>
+
+                {/* The pictures before and after the shown one, loaded unseen in the same size while
+                    the lightbox is open, so turning to them shows them at once instead of waiting. */}
+                {lightboxOpen &&
+                  [...new Set([-1, 1].map((offset) => images[(selected + offset + images.length) % images.length]))]
+                    .filter((src) => src !== images[selected])
+                    .map((src) => (
+                      <Image
+                        key={src}
+                        src={src}
+                        alt=""
+                        aria-hidden
+                        fill
+                        sizes="100vw"
+                        loading="eager"
+                        className="invisible"
+                        onLoad={({ currentTarget }) => rememberRatio(src, currentTarget)}
+                      />
+                    ))}
               </div>
-
-              {/* The pictures before and after the shown one, loaded unseen in the same size while
-                  the lightbox is open, so the arrows show them at once instead of waiting for them. */}
-              {lightboxOpen &&
-                [...new Set([-1, 1].map((offset) => images[(selected + offset + images.length) % images.length]))]
-                  .filter((src) => src !== images[selected])
-                  .map((src) => (
-                    <Image
-                      key={src}
-                      src={src}
-                      alt=""
-                      aria-hidden
-                      fill
-                      sizes="100vw"
-                      loading="eager"
-                      className="invisible"
-                      onLoad={({ currentTarget }) => rememberRatio(src, currentTarget)}
-                    />
-                  ))}
-
-              {/* Turning through the pictures without leaving the lightbox: see-through buttons at
-                  the picture's own edges, and which one it is at its foot. These clicks do not close it. */}
-              {images.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    aria-label="Предишно изображение"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      step(-1);
-                    }}
-                    className={`${lightboxButton} left-3`}
-                  >
-                    <ChevronLeft className="size-6" aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Следващо изображение"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      step(1);
-                    }}
-                    className={`${lightboxButton} right-3`}
-                  >
-                    <ChevronRight className="size-6" aria-hidden />
-                  </button>
-                  <p
-                    aria-live="polite"
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-brand-ink tabular-nums"
-                  >
-                    {selected + 1} / {images.length}
-                  </p>
-                </>
-              )}
             </div>
+
+            {/* Under the picture, apart from it: which one it is, and a small copy of every picture
+                to turn straight to. Nothing is drawn over the picture itself. */}
+            {images.length > 1 && (
+              <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                <p aria-live="polite" className="text-center text-sm font-semibold text-white/80 tabular-nums">
+                  {selected + 1} / {images.length}
+                </p>
+                <ul className="mx-auto mt-2 flex w-fit max-w-full gap-2 overflow-x-auto p-1 [scrollbar-width:none]">
+                  {images.map((src, index) => (
+                    <li key={src} className="shrink-0">
+                      <button
+                        type="button"
+                        aria-label={`Изображение ${index + 1} от ${images.length}`}
+                        aria-current={index === selected}
+                        onClick={() => {
+                          setZoom(null);
+                          setSelected(index);
+                        }}
+                        className={`relative block size-12 cursor-pointer overflow-hidden rounded-lg bg-white/10 transition sm:size-14 ${
+                          index === selected
+                            ? "opacity-100 ring-2 ring-white"
+                            : "opacity-50 ring-1 ring-white/20 hover:opacity-90"
+                        }`}
+                      >
+                        <Image src={src} alt="" fill sizes="56px" className="object-cover" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <button
             type="button"

@@ -14,8 +14,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getListingTitle, postedAgo, viewerKey, viewListing, type Listing } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
 
-const conditionLabels = { new: "Ново", used: "Използвано", mixed: "Комбинирано" };
-
 const monthAndYear = new Intl.DateTimeFormat("bg-BG", { month: "long", year: "numeric" });
 
 // A published listing in the shape the page was built around.
@@ -99,7 +97,6 @@ export default async function ProductPage({ params }: PageProps<"/product/[id]">
               <ProductGallery
                 images={product.images}
                 alt={product.title}
-                badge={conditionLabels[product.condition]}
               />
             </div>
 

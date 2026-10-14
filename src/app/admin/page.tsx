@@ -68,8 +68,10 @@ export default async function AdminDashboard() {
                     : "border-black/5 bg-white text-brand-ink hover:border-brand-rose/40 hover:shadow-lg hover:shadow-brand-ink/5"
                 }`}
               >
-                <span className="flex items-start justify-between gap-1.5 sm:gap-2">
-                  <span className={`min-w-0 truncate text-[0.8125rem] leading-5 font-medium sm:text-sm ${urgent ? "text-white/90" : "text-brand-ink/60"}`}>
+                {/* The picture at the left edge with the name under it, so that a long name such as
+                    "Потребители" has the tile's whole width, five tiles to a row included. */}
+                <span className="flex flex-col-reverse items-start gap-2">
+                  <span className={`min-w-0 max-w-full truncate text-sm leading-5 font-medium ${urgent ? "text-white/90" : "text-brand-ink/60"}`}>
                     {label}
                   </span>
                   <span

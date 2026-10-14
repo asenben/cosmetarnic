@@ -73,7 +73,7 @@ const columns = [
 export default function Footer() {
   return (
     <footer className="bg-footer text-sm text-white/70">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1fr_auto_auto_auto] lg:gap-x-20">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 xl:grid-cols-[1fr_auto_auto_auto] xl:gap-x-20">
         {/* The logo, larger, with the motto under it, both centred in their column. */}
         <div className="flex flex-col items-center text-center">
           <Link href="/" aria-label="Начало" className="inline-block">

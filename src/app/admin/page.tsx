@@ -62,18 +62,18 @@ export default async function AdminDashboard() {
             <li key={href}>
               <Link
                 href={href}
-                className={`group flex h-full flex-col justify-between gap-4 rounded-2xl border p-4 transition ${
+                className={`group flex h-full flex-col justify-between gap-4 rounded-2xl border p-3 transition sm:p-4 ${
                   urgent
                     ? "border-brand-rose bg-brand-rose text-white hover:bg-brand"
                     : "border-black/5 bg-white text-brand-ink hover:border-brand-rose/40 hover:shadow-lg hover:shadow-brand-ink/5"
                 }`}
               >
-                <span className="flex items-start justify-between gap-2">
-                  <span className={`text-sm leading-5 font-medium ${urgent ? "text-white/90" : "text-brand-ink/60"}`}>
+                <span className="flex items-start justify-between gap-1.5 sm:gap-2">
+                  <span className={`min-w-0 truncate text-[0.8125rem] leading-5 font-medium sm:text-sm ${urgent ? "text-white/90" : "text-brand-ink/60"}`}>
                     {label}
                   </span>
                   <span
-                    className={`flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                    className={`flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors sm:size-9 ${
                       urgent ? "bg-white/20" : "bg-brand-rose/10 text-brand-rose group-hover:bg-brand-rose group-hover:text-white"
                     }`}
                   >
@@ -113,7 +113,9 @@ export default async function AdminDashboard() {
         </section>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      {/* One column of the screen's width on phones: without it the column grows as wide as the
+          longest title, which does not wrap, and the page with it. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <section className={card}>
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-brand-ink">Нови потребители</h2>

@@ -103,7 +103,7 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
         onBlur={() => setOpen(false)}
-        className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border bg-white pr-2 pl-2.5 text-[0.8125rem] font-medium sm:gap-2 sm:pr-2.5 sm:pl-3 sm:text-sm text-brand-ink transition-colors outline-none focus-visible:border-brand-rose ${
+        className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border bg-white pr-2 pl-2.5 text-[0.8125rem] font-medium whitespace-nowrap sm:gap-2 sm:pr-2.5 sm:pl-3 sm:text-sm text-brand-ink transition-colors outline-none focus-visible:border-brand-rose ${
           open ? "border-brand-rose" : "border-black/10 hover:border-brand-rose/50"
         }`}
       >
@@ -164,16 +164,17 @@ export default function ProductGrid({
 
   return (
     <section aria-label={label} className="min-w-0 flex-1">
-      {/* On narrow phones, where the buttons do not fit on one line, those on the right move under
-          the others instead of sliding over them. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 sm:gap-x-4">
-        <div className="flex items-center gap-3">
+      {/* Below wide screens the main button (e.g. "Качи обява") stands in the middle, between
+          "Филтри" on the left and the order on the right. On wide screens, with the filters at the
+          side, it goes back beside the order. */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 lg:flex lg:justify-between">
+        <div className="flex items-center gap-3 justify-self-start">
           {filters && (
             <button
               type="button"
               aria-haspopup="dialog"
               onClick={filters.onOpen}
-              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-brand-rose/10 px-2.5 text-[0.8125rem] font-semibold text-brand-rose transition-colors hover:bg-brand-rose/20 sm:gap-2 sm:px-3 sm:text-sm lg:hidden"
+              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-brand-rose/10 px-2.5 text-[0.8125rem] font-semibold whitespace-nowrap text-brand-rose transition-colors hover:bg-brand-rose/20 sm:gap-2 sm:px-3 sm:text-sm lg:hidden"
             >
               <SlidersHorizontal className="size-4" aria-hidden />
               Филтри
@@ -184,8 +185,8 @@ export default function ProductGrid({
               )}
             </button>
           )}
-          {/* The count has no room beside the buttons on phones and small tablets. */}
-          <p className={`items-center gap-2 text-sm font-medium whitespace-nowrap text-brand-ink ${filters ? "hidden md:flex" : "flex"}`}>
+          {/* The count has no room beside the buttons until the filters move to the side. */}
+          <p className={`items-center gap-2 text-sm font-medium whitespace-nowrap text-brand-ink ${filters ? "hidden lg:flex" : "flex"}`}>
             {countLabel}
             <span className="min-w-7 rounded-full bg-brand-rose/10 px-2.5 py-0.5 text-center font-semibold text-brand-rose tabular-nums">
               {count}
@@ -193,8 +194,9 @@ export default function ProductGrid({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {action}
+        <div className="justify-self-center lg:ml-auto">{action}</div>
+
+        <div className="flex items-center gap-2 justify-self-end sm:gap-3">
           {sort && onSortChange && <SortDropdown value={sort} onChange={onSortChange} />}
 
           {/* Phones show the cards one way only. */}

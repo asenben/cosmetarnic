@@ -85,7 +85,7 @@ export default function FiltersSidebar({ filters, onChange, open, onOpenChange, 
       // One panel in two shapes: beside the list on wide screens, and over the whole page on
       // narrow ones while it is open.
       className={`bg-white lg:z-auto lg:block lg:w-64 lg:shrink-0 lg:overflow-visible lg:rounded-2xl lg:border lg:border-black/5 ${
-        open ? "fixed inset-0 z-50 overflow-y-auto overscroll-contain lg:inset-auto" : "hidden"
+        open ? "fixed inset-0 z-50 scrollbar-soft overflow-y-auto overscroll-contain lg:inset-auto" : "hidden"
       }`}
     >
       {/* On narrow screens "Изчисти всички" is on the left with the cross across from it; at the

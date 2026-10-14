@@ -99,8 +99,10 @@ export default function ProductCard({
       {/* In the list view the rows become one grid: name, price and city on the left, the time on
           the right under the heart, and the delivery options on a line of their own at the bottom. */}
       <div className="space-y-1.5 p-3 @max-[13rem]:space-y-1 @max-[13rem]:p-2.5 listview:grid listview:min-w-0 listview:flex-1 listview:grid-cols-[minmax(0,1fr)_auto] listview:content-center listview:gap-x-4 listview:gap-y-1 listview:py-3 listview:pr-4 listview:pl-1.5">
-        <div className="flex items-center justify-between gap-2 listview:col-start-1 listview:row-start-1 listview:mb-0 listview:min-w-0 listview:justify-start listview:gap-3 listview:pr-10">
-          <h3 className="min-w-0 truncate text-sm font-semibold text-brand-ink listview:text-lg">
+        {/* The condition with the name under it, so that a long name is not cut short beside the
+            label; in the list view, where there is room, the name first and the label beside it. */}
+        <div className="flex flex-col-reverse items-start gap-1 listview:col-start-1 listview:row-start-1 listview:mb-0 listview:min-w-0 listview:flex-row listview:items-center listview:gap-3 listview:pr-10">
+          <h3 className="max-w-full min-w-0 truncate text-sm font-semibold text-brand-ink listview:text-lg">
             {brand}
           </h3>
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${conditionClass}`}>

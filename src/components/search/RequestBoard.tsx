@@ -257,7 +257,7 @@ export default function RequestBoard({ requests }: { requests: BoardRequest[] })
             onClick={(event) => {
               if (!requireAuth()) event.preventDefault();
             }}
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-brand-rose px-3 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand"
+            className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-brand-rose px-2.5 text-[0.8125rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand sm:gap-1.5 sm:px-3 sm:text-sm"
           >
             <Plus className="size-4" aria-hidden />
             Добави търсене

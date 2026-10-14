@@ -91,7 +91,9 @@ export default function Footer() {
               <Star key={star.className} {...star} />
             ))}
             <span className="animate-shimmer bg-linear-to-r from-brand-pale via-white to-brand-pale bg-size-[200%_auto] bg-clip-text font-medium text-transparent motion-reduce:animate-none">
-              Твоят свят на козметични находки
+              Козметарник -
+              <br />
+              продавалник за козметика
             </span>
           </p>
         </div>

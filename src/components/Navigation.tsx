@@ -12,8 +12,8 @@ import SearchBox from "@/components/SearchBox";
 import UserMenu from "@/components/UserMenu";
 
 const links = [
-  { href: "/search", label: "Търся" },
   { href: "/", label: "Продавалник" },
+  { href: "/search", label: "Търся" },
 ];
 
 const iconButton =

@@ -2,7 +2,7 @@
 
 import { MotionConfig, motion } from "motion/react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 
 type ProductGalleryProps = {
@@ -14,6 +14,12 @@ type ProductGalleryProps = {
 const roundButton =
   "absolute flex size-10 cursor-pointer items-center justify-center rounded-full bg-white text-brand-ink shadow-sm transition-colors hover:text-brand-rose";
 
+// The arrows over the picture in the lightbox: see-through, so they hide little of it, and solid
+// under the pointer. No blur behind them: redrawn on every move of a pinch, it can make a phone
+// run out of memory.
+const lightboxButton =
+  "absolute top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/60 text-brand-ink transition-colors hover:bg-white/90 hover:text-brand-rose";
+
 export default function ProductGallery({ images, alt, badge }: ProductGalleryProps) {
   const [selected, setSelected] = useState(0);
   const lightboxRef = useRef<HTMLDialogElement>(null);
@@ -21,7 +27,28 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const ratio = ratios[images[selected]];
 
-  const step = (offset: number) => setSelected((selected + offset + images.length) % images.length);
+  // The spot the lightbox's picture is enlarged around, in percent of its size; null while it is
+  // shown whole. Turning to another picture or closing the lightbox shows it whole again.
+  const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
+  // Whether the lightbox is open: only then are the pictures beside the shown one loaded ahead.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const openLightbox = () => {
+    lightboxRef.current?.showModal();
+    setLightboxOpen(true);
+  };
+  // Remembers a picture's proportions once it has loaded, so the lightbox's frame fits it at once.
+  const rememberRatio = (src: string, { naturalWidth, naturalHeight }: HTMLImageElement) => {
+    if (naturalHeight > 0) setRatios((known) => ({ ...known, [src]: naturalWidth / naturalHeight }));
+  };
+  const zoomAt = (event: MouseEvent<HTMLElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    return { x: ((event.clientX - box.left) / box.width) * 100, y: ((event.clientY - box.top) / box.height) * 100 };
+  };
+
+  const step = (offset: number) => {
+    setZoom(null);
+    setSelected((selected + offset + images.length) % images.length);
+  };
 
   // Set by a swipe, so the tap that ends it is not also taken as a click on a picture.
   const swiped = useRef(false);
@@ -68,7 +95,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
                     tabIndex={distance > 1 ? -1 : 0}
                     onClick={() => {
                       if (swiped.current) return;
-                      if (offset === 0) lightboxRef.current?.showModal();
+                      if (offset === 0) openLightbox();
                       else setSelected(index);
                     }}
                     initial={false}
@@ -164,7 +191,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           <button
             type="button"
             aria-label="Виж на цял екран"
-            onClick={() => lightboxRef.current?.showModal()}
+            onClick={openLightbox}
             className={`${roundButton} right-4 bottom-4 z-20`}
           >
             <Maximize2 className="size-4.5" aria-hidden />
@@ -176,8 +203,19 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
         <dialog
           ref={lightboxRef}
           aria-label="Изображение на цял екран"
-          // A click on the image or the dimmed area around it closes the lightbox.
+          // A click on the dimmed area around the picture closes the lightbox; one on the picture
+          // enlarges it instead (see below).
           onClick={() => lightboxRef.current?.close()}
+          onClose={() => {
+            setZoom(null);
+            setLightboxOpen(false);
+          }}
+          // The arrow keys turn to the picture before or after, as the buttons at the sides do.
+          onKeyDown={(event) => {
+            if (images.length < 2) return;
+            if (event.key === "ArrowLeft") step(-1);
+            if (event.key === "ArrowRight") step(1);
+          }}
           className="fixed inset-0 m-0 size-full max-h-none max-w-none bg-brand-ink/80 p-4 backdrop:bg-transparent sm:p-10"
         >
           <div className="flex size-full items-center justify-center [container-type:size]">
@@ -191,17 +229,85 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
                   : { width: "100%", height: "100%" }
               }
             >
-              <Image
-                src={images[selected]}
-                alt={alt}
-                fill
-                sizes="100vw"
-                className="object-contain"
-                onLoad={({ currentTarget: { naturalWidth, naturalHeight } }) => {
-                  const src = images[selected];
-                  if (naturalHeight > 0) setRatios((known) => ({ ...known, [src]: naturalWidth / naturalHeight }));
+              {/* A click enlarges the picture around the spot clicked, and the enlarged part then
+                  follows the pointer; another click shows it whole again. */}
+              <div
+                onClick={(event) => {
+                  event.stopPropagation();
+                  // Only with a mouse: on a touch screen the picture is enlarged with two fingers,
+                  // and both at once would ask the phone for more memory than it has.
+                  if (!window.matchMedia("(pointer: fine)").matches) return;
+                  setZoom(zoom ? null : zoomAt(event));
                 }}
-              />
+                onMouseMove={(event) => {
+                  if (zoom) setZoom(zoomAt(event));
+                }}
+                className={`absolute inset-0 ${zoom ? "pointer-fine:cursor-zoom-out" : "pointer-fine:cursor-zoom-in"}`}
+              >
+                <Image
+                  src={images[selected]}
+                  alt={alt}
+                  fill
+                  sizes="100vw"
+                  style={zoom ? { transform: "scale(2.5)", transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
+                  className="object-contain transition-transform duration-200 ease-out motion-reduce:transition-none"
+                  onLoad={({ currentTarget }) => rememberRatio(images[selected], currentTarget)}
+                />
+              </div>
+
+              {/* The pictures before and after the shown one, loaded unseen in the same size while
+                  the lightbox is open, so the arrows show them at once instead of waiting for them. */}
+              {lightboxOpen &&
+                [...new Set([-1, 1].map((offset) => images[(selected + offset + images.length) % images.length]))]
+                  .filter((src) => src !== images[selected])
+                  .map((src) => (
+                    <Image
+                      key={src}
+                      src={src}
+                      alt=""
+                      aria-hidden
+                      fill
+                      sizes="100vw"
+                      loading="eager"
+                      className="invisible"
+                      onLoad={({ currentTarget }) => rememberRatio(src, currentTarget)}
+                    />
+                  ))}
+
+              {/* Turning through the pictures without leaving the lightbox: see-through buttons at
+                  the picture's own edges, and which one it is at its foot. These clicks do not close it. */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Предишно изображение"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      step(-1);
+                    }}
+                    className={`${lightboxButton} left-3`}
+                  >
+                    <ChevronLeft className="size-6" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Следващо изображение"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      step(1);
+                    }}
+                    className={`${lightboxButton} right-3`}
+                  >
+                    <ChevronRight className="size-6" aria-hidden />
+                  </button>
+                  <p
+                    aria-live="polite"
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-brand-ink tabular-nums"
+                  >
+                    {selected + 1} / {images.length}
+                  </p>
+                </>
+              )}
             </div>
           </div>
           <button
@@ -211,6 +317,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           >
             <X className="size-5" aria-hidden />
           </button>
+
         </dialog>
       )}
     </div>

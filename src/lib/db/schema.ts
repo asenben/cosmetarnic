@@ -122,6 +122,10 @@ export const schema = [
   // A listing can be in several categories. `category` keeps the first of them, as it did when
   // there was only one.
   `alter table listings add column if not exists categories text[] not null default '{}'`,
+  // A discount: the price the listing had before it was lowered, shown crossed out beside the
+  // new one. `price` is always what the product costs now, so sorting and the price filter
+  // need nothing else. Empty while there is no discount.
+  `alter table listings add column if not exists old_price numeric(10, 2)`,
   `update listings set categories = array[category] where categories = '{}'`,
   // The "Търся" posts: what a registered user is looking for, so that sellers can get in touch.
   // Not listings: nothing is on sale and there are no photos (see src/lib/requests).

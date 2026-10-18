@@ -37,7 +37,7 @@ const phoneButton =
   "mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-brand-rose text-sm font-semibold text-brand-rose transition-colors hover:bg-brand-rose/10";
 
 export default function ProductSidebar({ product }: { product: ProductDetails }) {
-  const { title, brand, price, city, postedAgo, condition, color, phone, delivery = [], sellerProfile: seller } = product;
+  const { title, brand, price, oldPrice, city, postedAgo, condition, color, phone, delivery = [], sellerProfile: seller } = product;
 
   const { requireAuth } = useAuth();
   const { favorite, toggleFavorite } = useFavorite(product.id);
@@ -70,7 +70,16 @@ export default function ProductSidebar({ product }: { product: ProductDetails })
           <p className="mt-1 text-sm text-brand-ink/60">
             {conditionLabels[condition]} · <span className="font-medium text-brand-rose">{brand}</span>
           </p>
-          <p className="mt-4 text-2xl font-bold text-brand-ink">{formatPrice(price)}</p>
+          <p className="mt-4 flex flex-wrap items-baseline gap-x-3 text-2xl font-bold text-brand-ink">
+            {formatPrice(price)}
+            {oldPrice != null && (
+              // The price before the discount, crossed out in a faded red.
+              <s className="text-lg font-semibold text-red-500/60">
+                <span className="sr-only">Стара цена: </span>
+                {formatPrice(oldPrice)}
+              </s>
+            )}
+          </p>
         </div>
 
         <dl className="border-t border-black/5 px-5">

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type DragEvent, type ReactNode, type Submi
 import {
   CircleCheck,
   Gift,
+  Percent,
   ImagePlus,
   LayoutGrid,
   Palette,
@@ -37,7 +38,7 @@ const PRICE_MAX = 100000;
 const DESCRIPTION_MIN = 20;
 
 // In the order they appear on the page, so the first invalid one can be focused.
-const fields = ["description", "title", "price", "brand", "categories", "condition"] as const;
+const fields = ["description", "title", "price", "sale_price", "brand", "categories", "condition"] as const;
 type Field = (typeof fields)[number];
 // `contact` is what the server says is missing in the profile for publishing.
 type Errors = Partial<Record<Field | "contact", string>>;
@@ -51,6 +52,8 @@ export type EditedListing = {
   id: string;
   title: string;
   price: number;
+  // The price before a discount, when the listing has one; `price` is then the discounted one.
+  oldPrice: number | null;
   brand: string;
   categories: string[];
   condition: string;
@@ -118,6 +121,11 @@ function validate(data: FormData) {
   // A listing marked as free has no price to check.
   if (data.get("free") !== "on" && !(price > 0 && price <= PRICE_MAX)) {
     errors.price = "Въведи цена, по-голяма от 0, или отбележи „Безплатно“.";
+  }
+  // The discounted price is not required; when given, it has to be below the price.
+  const sale = text("sale_price");
+  if (data.get("free") !== "on" && sale && !(Number(sale.replace(",", ".")) > 0 && Number(sale.replace(",", ".")) < price)) {
+    errors.sale_price = "Намалената цена трябва да е по-ниска от цената.";
   }
   if (text("brand").length < 2) errors.brand = "Въведи марката на продукта.";
   if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
@@ -467,7 +475,13 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
                   // A text field, because a number field refuses the decimal comma in some browsers.
                   type="text"
                   name="price"
-                  defaultValue={listing && listing.price > 0 ? String(listing.price).replace(".", ",") : undefined}
+                  // A discounted listing shows its price from before the discount here, and the
+                  // discounted one in the field below.
+                  defaultValue={
+                    listing && listing.price > 0
+                      ? String(listing.oldPrice ?? listing.price).replace(".", ",")
+                      : undefined
+                  }
                   // Switched off while the listing is free, and so left out of what is sent.
                   disabled={free}
                   aria-label="Цена в евро"
@@ -497,7 +511,7 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
                   checked={free}
                   onChange={(event) => {
                     setFree(event.target.checked);
-                    setErrors({ ...errors, price: undefined });
+                    setErrors({ ...errors, price: undefined, sale_price: undefined });
                   }}
                   className="sr-only"
                 />
@@ -506,6 +520,38 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
               </label>
             </div>
             <FieldError message={errors.price} />
+
+            {/* A discount: the lower price buyers pay now. The price above is then shown crossed out. */}
+            {!free && (
+              <>
+                <label className="mt-3 flex h-11 cursor-text items-center overflow-hidden rounded-xl border border-black/10 bg-white transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500">
+                  <span className="flex h-full shrink-0 items-center gap-2 border-r border-black/10 bg-zinc-50 px-3.5 text-sm font-medium text-brand-ink/70">
+                    <Percent className="size-4 text-brand-rose" aria-hidden />
+                    Намалена цена
+                  </span>
+                  <input
+                    type="text"
+                    name="sale_price"
+                    defaultValue={listing?.oldPrice != null ? String(listing.price).replace(".", ",") : undefined}
+                    aria-label="Намалена цена в евро (по желание)"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="по желание"
+                    onInput={(event) => {
+                      // Only digits, one decimal comma and two digits after it are kept.
+                      const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
+                      event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
+                    }}
+                    aria-invalid={Boolean(errors.sale_price)}
+                    className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-base font-bold text-brand-ink outline-none placeholder:text-sm placeholder:font-normal placeholder:text-brand-ink/40"
+                  />
+                  <span aria-hidden className="flex h-full items-center px-3.5 text-base font-bold text-brand-rose">
+                    €
+                  </span>
+                </label>
+                <FieldError message={errors.sale_price} />
+              </>
+            )}
           </div>
 
           <div className="border-t border-black/5 px-5">

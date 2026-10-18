@@ -48,6 +48,7 @@ export default async function EditListingPage({ params }: PageProps<"/sell/[id]"
             id: listing.id,
             title: listing.title,
             price: listing.price,
+            oldPrice: listing.oldPrice,
             brand: listing.brand,
             categories: listing.categories,
             condition: listing.condition,

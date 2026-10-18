@@ -27,6 +27,8 @@ export type Listing = {
   categories: string[];
   condition: (typeof CONDITIONS)[number];
   price: number;
+  // The price before a discount, shown crossed out; null while there is none.
+  oldPrice: number | null;
   color: string;
   // These three are the seller's, from the profile settings (see syncContact in src/lib/auth/profile.ts).
   delivery: Delivery[];
@@ -51,6 +53,7 @@ const toListing = (row: Record<string, unknown>): Listing => ({
   categories: row.categories as string[],
   condition: row.condition as Listing["condition"],
   price: Number(row.price),
+  oldPrice: row.old_price == null ? null : Number(row.old_price),
   color: (row.color as string | null) ?? "",
   delivery: row.delivery as Listing["delivery"],
   phone: row.phone as string,
@@ -94,6 +97,10 @@ async function readListing(input: Record<string, unknown>) {
   // A listing marked as free has no price to check; it is stored as 0.
   const free = input.free === true;
   const price = free ? 0 : Math.round(Number(text("price").replace(",", ".")) * 100) / 100;
+  // A discounted price, if the seller gave one: it becomes the price, and the one above is kept
+  // to be shown crossed out. Not for a product given away.
+  const saleText = text("sale_price").replace(",", ".");
+  const sale = free || !saleText ? null : Math.round(Number(saleText) * 100) / 100;
   const images = [...new Set(list("images"))];
   const html = text("description");
   const description = html.length <= DESCRIPTION_MAX_HTML ? sanitizeDescription(html) : "";
@@ -103,6 +110,7 @@ async function readListing(input: Record<string, unknown>) {
   }
   if (title.length < 3 || title.length > 120) errors.title = "Заглавието трябва да е поне 3 знака.";
   if (!free && !(price > 0 && price <= PRICE_MAX)) errors.price = "Въведи цена, по-голяма от 0, или отбележи „Безплатно“.";
+  if (sale !== null && !(sale > 0 && sale < price)) errors.sale_price = "Намалената цена трябва да е по-ниска от цената.";
   if (brand.length < 2 || brand.length > 60) errors.brand = "Въведи марката на продукта.";
   if (chosen.length === 0) errors.categories = "Избери поне една категория.";
   if (!CONDITIONS.some((value) => value === condition)) errors.condition = "Избери състояние.";
@@ -113,7 +121,17 @@ async function readListing(input: Record<string, unknown>) {
 
   return {
     ok: true as const,
-    values: { title, brand, categories: chosen, condition, price, color: color || null, description, images },
+    values: {
+      title,
+      brand,
+      categories: chosen,
+      condition,
+      price: sale ?? price,
+      oldPrice: sale === null ? null : price,
+      color: color || null,
+      description,
+      images,
+    },
   };
 }
 
@@ -126,9 +144,10 @@ export async function createListing(userId: string, input: Record<string, unknow
   if (missing) return { ok: false, errors: { contact: missing } };
 
   const [row] = await sql`
-    insert into listings (user_id, title, brand, category, categories, condition, price, color, delivery, phone, city,
-                          description, images)
-    values (${userId}, ${v.title}, ${v.brand}, ${v.categories[0]}, ${v.categories}::text[], ${v.condition}, ${v.price}, ${v.color},
+    insert into listings (user_id, title, brand, category, categories, condition, price, old_price, color, delivery, phone,
+                          city, description, images)
+    values (${userId}, ${v.title}, ${v.brand}, ${v.categories[0]}, ${v.categories}::text[], ${v.condition}, ${v.price},
+            ${v.oldPrice}, ${v.color},
             ${v.delivery}::text[], ${v.phone}, ${v.city}, ${v.description}, ${v.images}::text[])
     returning id`;
   return { ok: true, id: row.id };
@@ -170,7 +189,8 @@ export async function updateListing(
   await sql`
     update listings
     set title = ${v.title}, brand = ${v.brand}, category = ${v.categories[0]}, categories = ${v.categories}::text[],
-        condition = ${v.condition}, price = ${v.price}, color = ${v.color}, description = ${v.description},
+        condition = ${v.condition}, price = ${v.price}, old_price = ${v.oldPrice}, color = ${v.color},
+        description = ${v.description},
         images = ${v.images}::text[]
     where id = ${id}`;
   // The photos the owner took out of the listing are no longer needed.

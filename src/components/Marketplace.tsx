@@ -92,7 +92,7 @@ export default function Marketplace({
             </Link>
           </p>
         )}
-        {shown.map(({ id, href, image, brand, price, city, postedAgo, condition, delivery }) => (
+        {shown.map(({ id, href, image, brand, price, oldPrice, city, postedAgo, condition, delivery }) => (
           <ProductCard
             key={id}
             id={id}
@@ -100,6 +100,7 @@ export default function Marketplace({
             image={image}
             brand={brand}
             price={price}
+            oldPrice={oldPrice}
             city={city}
             postedAgo={postedAgo}
             condition={condition}

@@ -24,6 +24,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     image: listing.images[0] && listingImageUrl(listing.images[0]),
     brand: listing.brand,
     price: listing.price,
+    oldPrice: listing.oldPrice,
     city: listing.city,
     postedAgo: postedAgo(listing.createdAt),
     condition: listing.condition,

@@ -33,6 +33,8 @@ export type Product = {
   href: string;
   brand: string;
   price: number;
+  // The price before a discount, shown crossed out beside the price; null or left out without one.
+  oldPrice?: number | null;
   city: string;
   postedAgo: string;
   condition: keyof typeof conditions;
@@ -45,6 +47,7 @@ export default function ProductCard({
   href,
   brand,
   price,
+  oldPrice,
   city,
   postedAgo,
   condition,
@@ -111,8 +114,15 @@ export default function ProductCard({
         </div>
 
         <div className="flex items-center justify-between gap-2 listview:contents">
-          <p className="text-base font-bold text-brand-ink listview:col-start-1 listview:row-start-2 listview:text-xl">
+          <p className="flex flex-wrap items-baseline gap-x-2 text-base font-bold text-brand-ink listview:col-start-1 listview:row-start-2 listview:text-xl">
             {formatPrice(price)}
+            {oldPrice != null && (
+              // The price before the discount, crossed out in a faded red.
+              <s className="text-sm font-medium text-red-500/60 listview:text-base">
+                <span className="sr-only">Стара цена: </span>
+                {formatPrice(oldPrice)}
+              </s>
+            )}
           </p>
           <ul className="hidden items-center gap-1.5 text-brand-ink/50 sm:flex listview:col-span-2 listview:row-start-4 listview:mt-2 listview:flex-wrap listview:gap-x-4 listview:gap-y-1 listview:border-t listview:border-black/5 listview:pt-3 listview:text-sm listview:text-brand-ink">
             {deliveryBadges(delivery).map(({ key, label, icon: Icon }) => (

@@ -68,6 +68,7 @@ export default async function UserProfile({ params }: PageProps<"/users/[id]">) 
                   image={listing.images[0] && listingImageUrl(listing.images[0])}
                   brand={listing.brand}
                   price={listing.price}
+                  oldPrice={listing.oldPrice}
                   city={listing.city}
                   postedAgo={postedAgo(listing.createdAt)}
                   condition={listing.condition}

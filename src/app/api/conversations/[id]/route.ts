@@ -1,5 +1,7 @@
+import { after } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { openConversation, sendMessage } from "@/lib/messages";
+import { notifyNewMessage } from "@/lib/messages/notify";
 
 const NOT_FOUND = "Разговорът не е намерен.";
 
@@ -36,6 +38,16 @@ export async function POST(request: Request, { params }: RouteContext<"/api/conv
     const result = await sendMessage(user.id, id, text);
     if (!result) return Response.json({ message: NOT_FOUND }, { status: 404 });
     if (!result.ok) return Response.json({ message: result.message }, { status: 400 });
+    // The other person is told by email once the answer has gone back, so the sender does not
+    // wait for the mail service; a failure there does not undo the message.
+    const origin = new URL(request.url).origin;
+    after(async () => {
+      try {
+        await notifyNewMessage({ conversationId: id, senderId: user.id, body: String(text).trim(), origin });
+      } catch (error) {
+        console.error("Message email failed", error);
+      }
+    });
     const opened = await openConversation(user.id, id);
     return Response.json({ messages: opened?.messages ?? [] }, { status: 201 });
   } catch (error) {

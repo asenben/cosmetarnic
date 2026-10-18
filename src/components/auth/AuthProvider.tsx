@@ -7,6 +7,7 @@ import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
 import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
+import { NEXT_PARAM, safeNextPath } from "@/lib/auth/nextPath";
 import type { SessionUser } from "@/lib/auth/session";
 
 type AuthView = "login" | "register" | "forgot";
@@ -25,6 +26,16 @@ const verificationNotices = {
 const subscribeToNothing = () => () => {};
 const readResetToken = () => new URLSearchParams(window.location.search).get(RESET_TOKEN_PARAM);
 const readEmailVerified = () => new URLSearchParams(window.location.search).get(EMAIL_VERIFIED_PARAM);
+const readNext = () => safeNextPath(new URLSearchParams(window.location.search).get(NEXT_PARAM));
+
+// Shown on the sign-in form opened by an emailed link to a page of the account.
+const nextNotice = (next: string) =>
+  ({
+    kind: "info",
+    text: next.startsWith("/profile/messages")
+      ? "Влез в профила си, за да прочетеш съобщението."
+      : "Влез в профила си, за да продължиш.",
+  }) as const;
 
 type AuthContextValue = {
   user: SessionUser | null;
@@ -67,13 +78,17 @@ export default function AuthProvider({ initialUser, children }: AuthProviderProp
   const [linkDismissed, setLinkDismissed] = useState(false);
   const resetActive = resetToken !== null && !linkDismissed;
   const verificationActive = emailVerified !== null && !linkDismissed && !resetActive && !isLoggedIn;
+  // A link to a page of the account, opened while signed out: the sign-in form, leading there.
+  const next = useSyncExternalStore(subscribeToNothing, readNext, () => null);
+  const nextActive = next !== null && !linkDismissed && !resetActive && !verificationActive && !isLoggedIn;
 
   const dismissReset = () => {
-    if (resetToken === null && emailVerified === null) return;
+    if (resetToken === null && emailVerified === null && next === null) return;
     // Drop the parameters from the address bar so a reload or a shared link doesn't reopen the form.
     const url = new URL(window.location.href);
     url.searchParams.delete(RESET_TOKEN_PARAM);
     url.searchParams.delete(EMAIL_VERIFIED_PARAM);
+    url.searchParams.delete(NEXT_PARAM);
     window.history.replaceState(null, "", url);
     setLinkDismissed(true);
   };
@@ -97,11 +112,14 @@ export default function AuthProvider({ initialUser, children }: AuthProviderProp
   };
 
   const onLoggedIn = (loggedIn: SessionUser) => {
+    // Read before the parameters are taken out of the address.
+    const target = linkDismissed ? null : next;
     dismissReset();
     setUser(loggedIn);
     setOpen(false);
-    // Re-render the server parts of the page for the signed-in user.
-    router.refresh();
+    // On to the page the emailed link was for, or else the same page re-rendered for the user.
+    if (target) router.push(target);
+    else router.refresh();
   };
 
   const logout = async () => {
@@ -125,11 +143,17 @@ export default function AuthProvider({ initialUser, children }: AuthProviderProp
     <AuthContext value={{ user, updateUser, isLoggedIn, openLogin, logout, requireAuth }}>
       {children}
 
-      <AuthModal ref={modalRef} open={open || resetActive || verificationActive} onClose={closeModal}>
+      <AuthModal ref={modalRef} open={open || resetActive || verificationActive || nextActive} onClose={closeModal}>
         {resetActive && <ResetPasswordForm token={resetToken} onLogin={() => showView("login")} />}
         {!resetActive && (verificationActive || view === "login") && (
           <LoginForm
-            notice={verificationActive ? verificationNotices[emailVerified === "1" ? "success" : "error"] : undefined}
+            notice={
+              verificationActive
+                ? verificationNotices[emailVerified === "1" ? "success" : "error"]
+                : nextActive
+                  ? nextNotice(next)
+                  : undefined
+            }
             onSuccess={onLoggedIn}
             onRegister={() => showView("register")}
             onForgotPassword={() => showView("forgot")}

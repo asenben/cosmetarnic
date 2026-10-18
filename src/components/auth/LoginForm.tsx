@@ -7,7 +7,7 @@ import type { SessionUser } from "@/lib/auth/session";
 
 type LoginFormProps = {
   // Shown above the fields, e.g. the outcome of opening an email confirmation link.
-  notice?: { kind: "success" | "error"; text: string };
+  notice?: { kind: "success" | "error" | "info"; text: string };
   onSuccess?: (user: SessionUser) => void;
   onForgotPassword?: () => void;
   onRegister?: () => void;
@@ -58,7 +58,11 @@ export default function LoginForm({ notice, onSuccess, onForgotPassword, onRegis
         <p
           role="status"
           className={`mt-3 rounded-xl px-3 py-2 text-center text-sm ${
-            notice.kind === "success" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+            notice.kind === "success"
+              ? "bg-emerald-50 text-emerald-700"
+              : notice.kind === "info"
+                ? "bg-brand-rose/10 text-brand-ink"
+                : "bg-red-50 text-red-700"
           }`}
         >
           {notice.text}

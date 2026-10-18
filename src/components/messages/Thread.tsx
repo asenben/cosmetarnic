@@ -1,35 +1,78 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from "react";
-import { Send } from "lucide-react";
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type KeyboardEvent,
+  type SubmitEvent,
+} from "react";
+import { Check, Send } from "lucide-react";
 
 // A message as the page shows it. `sentAt` is the time as text the server can also produce, so
-// both render the same.
-export type ThreadMessage = { id: string; body: string; mine: boolean; sentAt: string };
+// both render the same. `readAt`, in the same form, is when the other person saw it, if they have.
+export type ThreadMessage = {
+  id: string;
+  body: string;
+  mine: boolean;
+  sentAt: string;
+  readAt: string | null;
+};
 
 // How often the open conversation asks for new messages.
 const REFRESH_MS = 5000;
 const MESSAGE_MAX = 2000;
 
-// The time is always shown as it is in Bulgaria, whatever the reader's device is set to.
+// Times and days are always as they are in Bulgaria, whatever the reader's device is set to. Each
+// message shows its time; the day stands once above the messages written on it.
 const timeFormat = new Intl.DateTimeFormat("bg-BG", {
-  day: "numeric",
-  month: "short",
   hour: "2-digit",
   minute: "2-digit",
   timeZone: "Europe/Sofia",
 });
+const dayFormat = new Intl.DateTimeFormat("bg-BG", {
+  day: "numeric",
+  month: "long",
+  timeZone: "Europe/Sofia",
+});
+
+// The time now, for "Видяно преди 5m" to count up while the conversation is open. It moves
+// on every few seconds and is the same between moves, so the page is drawn again only when it
+// changes. On the server there is none, so the count is first drawn on the visitor's device.
+const CLOCK_STEP_MS = 10_000;
+const clockNow = () => Math.floor(Date.now() / CLOCK_STEP_MS) * CLOCK_STEP_MS;
+const subscribeToClock = (onChange: () => void) => {
+  const timer = setInterval(onChange, CLOCK_STEP_MS);
+  return () => clearInterval(timer);
+};
+
+// "Видяно" in the first minute, then how long ago, short as in Instagram: whole minutes ("5m"),
+// whole hours from the first hour ("3h"), and whole days from the first day ("1d").
+function seenAgo(readAt: string, now: number) {
+  const minutes = Math.floor((now - new Date(readAt).getTime()) / 60_000);
+  if (minutes < 1) return "Видяно";
+  if (minutes < 60) return `Видяно преди ${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Видяно преди ${hours}h`;
+  return `Видяно преди ${Math.floor(hours / 24)}d`;
+}
 
 type ThreadProps = { conversationId: string; initialMessages: ThreadMessage[] };
 
 // The messages of one conversation with the box for writing a new one. New messages from the
-// other person appear on their own every few seconds.
+// other person appear on their own every few seconds, and so do the ticks on the user's own: one
+// grey tick once a message is sent, two pink ones once the other person has seen it.
 export default function Thread({ conversationId, initialMessages }: ThreadProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
   const listRef = useRef<HTMLOListElement>(null);
+  const now = useSyncExternalStore(subscribeToClock, clockNow, () => null);
+  // As in Instagram, how long ago it was seen is written under the user's last message only.
+  const lastMine = messages.findLast(({ mine }) => mine);
 
   useEffect(() => {
     let stopped = false;
@@ -50,11 +93,11 @@ export default function Thread({ conversationId, initialMessages }: ThreadProps)
   }, [conversationId]);
 
   // Keeps the newest message in view when one arrives or is sent.
-  const count = messages.length;
+  const total = messages.length;
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
-  }, [count]);
+  }, [total]);
 
   const send = async () => {
     const body = text.trim();
@@ -107,26 +150,56 @@ export default function Thread({ conversationId, initialMessages }: ThreadProps)
             Все още няма съобщения. Напиши първото отдолу.
           </li>
         )}
-        {messages.map(({ id, body, mine, sentAt }) => (
-          <li
-            key={id}
-            className={`flex max-w-[85%] min-w-0 flex-col sm:max-w-[75%] ${mine ? "items-end self-end" : "items-start self-start"}`}
-          >
-            {/* A long word or an address with no spaces is broken wherever it has to be, so the
+        {messages.map(({ id, body, mine, sentAt, readAt }, index) => {
+          // A new day starts with its date in the middle, above its first message.
+          const day = dayFormat.format(new Date(sentAt));
+          const newDay = index === 0 || day !== dayFormat.format(new Date(messages[index - 1].sentAt));
+          return (
+            <Fragment key={id}>
+              {newDay && (
+                <li className="my-1 self-center rounded-full bg-white px-3 py-1 text-[0.6875rem] font-medium text-brand-ink/60 shadow-sm first:mt-0">
+                  {day}
+                </li>
+              )}
+              <li
+                className={`flex max-w-[85%] min-w-0 flex-col sm:max-w-[75%] ${mine ? "items-end self-end" : "items-start self-start"}`}
+              >
+                {/* A long word or an address with no spaces is broken wherever it has to be, so the
                 bubble never grows wider than the conversation. */}
-            <p
-              className={`max-w-full rounded-2xl px-3.5 py-2 text-sm leading-5 wrap-anywhere whitespace-pre-line ${
-                mine ? "rounded-br-md bg-brand-rose text-white" : "rounded-bl-md border border-black/5 bg-white text-brand-ink"
-              }`}
-            >
-              <span className="sr-only">{mine ? "Ти: " : "Събеседникът: "}</span>
-              {body}
-            </p>
-            <time dateTime={sentAt} className="mt-1 px-1 text-[0.6875rem] text-brand-ink/50">
-              {timeFormat.format(new Date(sentAt))}
-            </time>
-          </li>
-        ))}
+                <p
+                  className={`max-w-full rounded-2xl px-3.5 py-2 text-sm leading-5 wrap-anywhere whitespace-pre-line ${
+                    mine
+                      ? "rounded-br-md bg-brand-rose text-white"
+                      : "rounded-bl-md border border-black/5 bg-white text-brand-ink"
+                  }`}
+                >
+                  <span className="sr-only">{mine ? "Ти: " : "Събеседникът: "}</span>
+                  {body}
+                </p>
+                <span className="mt-1 flex items-center gap-1 px-1 text-[0.6875rem] text-brand-ink/50">
+                  <time dateTime={sentAt}>{timeFormat.format(new Date(sentAt))}</time>
+                  {mine &&
+                    (readAt ? (
+                      // Two ticks of the same size as the single one, a little apart.
+                      <span title="Видяно" className="flex text-brand-rose">
+                        <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                        <Check className="-ml-1.5 size-4" strokeWidth={2.5} aria-hidden />
+                        <span className="sr-only">Видяно</span>
+                      </span>
+                    ) : (
+                      <span title="Изпратено" className="flex">
+                        <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                        <span className="sr-only">Изпратено</span>
+                      </span>
+                    ))}
+                </span>
+                {id === lastMine?.id && readAt && now !== null && (
+                  <span className="px-1 text-[0.6875rem] font-medium text-brand-rose">{seenAgo(readAt, now)}</span>
+                )}
+              </li>
+            </Fragment>
+          );
+        })}
       </ol>
 
       <form onSubmit={onSubmit} className="mt-3 flex items-end gap-2">

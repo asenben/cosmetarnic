@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import Marketplace, { type MarketplaceListing } from "@/components/Marketplace";
+import { NEXT_PARAM, safeNextPath } from "@/lib/auth/nextPath";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getListings, postedAgo } from "@/lib/listings";
 import { listingImageUrl } from "@/lib/listings/images";
@@ -13,7 +15,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   // What was typed in the search field of the navigation, if the visitor came from there.
-  const { q, condition: conditionParam } = await searchParams;
+  const { q, condition: conditionParam, [NEXT_PARAM]: nextParam } = await searchParams;
+  // An emailed link that leads to a page of the account: someone signed in goes straight there;
+  // anyone else gets the sign-in form first (see AuthProvider).
+  const next = safeNextPath(nextParam);
+  if (next && (await getCurrentUser())) redirect(next);
   const search = (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
   // The condition the footer's "Нови" and "Използвани" links open the listings with.
   const condition = conditionParam === "new" || conditionParam === "used" ? conditionParam : "all";

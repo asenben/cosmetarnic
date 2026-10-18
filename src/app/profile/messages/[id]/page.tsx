@@ -52,7 +52,13 @@ export default async function ConversationPage({ params }: PageProps<"/profile/m
 
       <Thread
         conversationId={conversation.id}
-        initialMessages={messages.map(({ id, body, mine, sentAt }) => ({ id, body, mine, sentAt: sentAt.toISOString() }))}
+        initialMessages={messages.map(({ id, body, mine, sentAt, readAt }) => ({
+          id,
+          body,
+          mine,
+          sentAt: sentAt.toISOString(),
+          readAt: readAt?.toISOString() ?? null,
+        }))}
       />
     </div>
   );

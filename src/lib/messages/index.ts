@@ -30,6 +30,8 @@ export type Message = {
   body: string;
   mine: boolean;
   sentAt: Date;
+  // When the person it was sent to opened the conversation after it came; null until then.
+  readAt: Date | null;
 };
 
 const toSummary = (row: Record<string, unknown>): ConversationSummary => {
@@ -129,7 +131,7 @@ export async function openConversation(userId: string, id: string) {
     update messages set read_at = now()
     where conversation_id = ${id} and sender_id <> ${userId} and read_at is null`;
   const messages = await sql`
-    select id, body, sender_id, created_at from messages where conversation_id = ${id} order by created_at`;
+    select id, body, sender_id, created_at, read_at from messages where conversation_id = ${id} order by created_at`;
 
   return {
     conversation: toSummary(row),
@@ -139,6 +141,7 @@ export async function openConversation(userId: string, id: string) {
         body: message.body,
         mine: message.sender_id === userId,
         sentAt: new Date(message.created_at),
+        readAt: message.read_at ? new Date(message.read_at) : null,
       }),
     ),
   };

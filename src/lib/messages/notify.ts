@@ -1,24 +1,22 @@
 import { hasMailbox } from "@/lib/auth/accountFields";
+import { NEXT_PARAM } from "@/lib/auth/nextPath";
 import { sql } from "@/lib/db";
 import { sendEmail } from "@/lib/email/send";
-
-// How much of the message the email quotes; the rest is read on the site.
-const PREVIEW_LENGTH = 300;
 
 type NewMessage = {
   conversationId: string;
   senderId: string;
-  body: string;
   // The site's address, for the link back to the conversation, e.g. https://kosmetarnik.com.
   origin: string;
 };
 
 // Tells the other person in a conversation by email that a message has come for them, whether it
-// is from a buyer or from an administrator of the site. Only the first of several messages they
+// is from a buyer or from an administrator of the site. The email says who wrote and about what,
+// but not what: the message itself is read only on the site, behind the sign-in. Only the first of several messages they
 // have not read yet is emailed, so a quick exchange does not fill their inbox: once they have
 // read the conversation, the next message is emailed again. Accounts without a real mailbox, or
 // whose email has not been confirmed, are not written to. Answers whether an email went out.
-export async function notifyNewMessage({ conversationId, senderId, body, origin }: NewMessage) {
+export async function notifyNewMessage({ conversationId, senderId, origin }: NewMessage) {
   const [row] = await sql`
     select c.subject,
            r.username as recipient_username, r.email as recipient_email,
@@ -40,8 +38,10 @@ export async function notifyNewMessage({ conversationId, senderId, body, origin 
   const fromAdmin = row.sender_role === "admin";
   const sender = fromAdmin ? "Администраторът на Козметарник" : (row.sender_username as string);
   const subject = row.subject as string;
-  const preview = body.length > PREVIEW_LENGTH ? `${body.slice(0, PREVIEW_LENGTH).trimEnd()}…` : body;
-  const link = `${process.env.APP_URL ?? origin}/profile/messages/${conversationId}`;
+  // Through the home page: someone signed in is sent on to the conversation at once, anyone else
+  // signs in first (see src/lib/auth/nextPath.ts).
+  const conversation = `/profile/messages/${conversationId}`;
+  const link = `${process.env.APP_URL ?? origin}/?${NEXT_PARAM}=${encodeURIComponent(conversation)}`;
 
   return sendEmail({
     to: email,
@@ -49,23 +49,21 @@ export async function notifyNewMessage({ conversationId, senderId, body, origin 
     text: [
       `Здравей, ${row.recipient_username}!`,
       "",
-      `${sender} ти писа относно „${subject}“:`,
+      `${sender} ти изпрати съобщение относно „${subject}“.`,
       "",
-      preview,
-      "",
-      `Отговори тук: ${link}`,
+      `Прочети го и отговори в Козметарник: ${link}`,
       "",
       "Докато не прочетеш съобщението, няма да ти изпращаме писмо за всяко следващо в този разговор.",
     ].join("\n"),
     html: `
       <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #4a2a33;">
         <h1 style="font-size: 22px; margin: 0 0 16px;">Здравей, ${escapeHtml(row.recipient_username as string)}!</h1>
-        <p style="font-size: 15px; line-height: 24px; margin: 0 0 16px;">
-          <strong>${escapeHtml(sender)}</strong> ти писа относно „${escapeHtml(subject)}“:
+        <p style="font-size: 15px; line-height: 24px; margin: 0 0 24px;">
+          <strong>${escapeHtml(sender)}</strong> ти изпрати съобщение относно „${escapeHtml(subject)}“.
+          Прочети го и отговори в Козметарник.
         </p>
-        <p style="font-size: 15px; line-height: 24px; margin: 0 0 24px; padding: 12px 16px; background: #f9eef1; border-radius: 12px; white-space: pre-line;">${escapeHtml(preview)}</p>
         <a href="${link}" style="display: inline-block; background: #b75d71; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: bold; padding: 12px 24px; border-radius: 12px;">
-          Отговори
+          Виж съобщението
         </a>
         <p style="font-size: 13px; line-height: 20px; margin: 24px 0 0; color: #8a7479;">
           Докато не прочетеш съобщението, няма да ти изпращаме писмо за всяко следващо в този разговор.

@@ -43,7 +43,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/conv
     const origin = new URL(request.url).origin;
     after(async () => {
       try {
-        await notifyNewMessage({ conversationId: id, senderId: user.id, body: String(text).trim(), origin });
+        await notifyNewMessage({ conversationId: id, senderId: user.id, origin });
       } catch (error) {
         console.error("Message email failed", error);
       }

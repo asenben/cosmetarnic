@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, type DragEvent, type ReactNode, type Submi
 import {
   CircleCheck,
   Gift,
-  Percent,
   ImagePlus,
   LayoutGrid,
   Palette,
@@ -38,7 +37,7 @@ const PRICE_MAX = 100000;
 const DESCRIPTION_MIN = 20;
 
 // In the order they appear on the page, so the first invalid one can be focused.
-const fields = ["description", "title", "price", "sale_price", "brand", "categories", "condition"] as const;
+const fields = ["description", "title", "price", "brand", "categories", "condition"] as const;
 type Field = (typeof fields)[number];
 // `contact` is what the server says is missing in the profile for publishing.
 type Errors = Partial<Record<Field | "contact", string>>;
@@ -121,11 +120,6 @@ function validate(data: FormData) {
   // A listing marked as free has no price to check.
   if (data.get("free") !== "on" && !(price > 0 && price <= PRICE_MAX)) {
     errors.price = "Въведи цена, по-голяма от 0, или отбележи „Безплатно“.";
-  }
-  // The discounted price is not required; when given, it has to be below the price.
-  const sale = text("sale_price");
-  if (data.get("free") !== "on" && sale && !(Number(sale.replace(",", ".")) > 0 && Number(sale.replace(",", ".")) < price)) {
-    errors.sale_price = "Намалената цена трябва да е по-ниска от цената.";
   }
   if (text("brand").length < 2) errors.brand = "Въведи марката на продукта.";
   if (data.getAll("categories").length === 0) errors.categories = "Избери поне една категория.";
@@ -212,9 +206,6 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
   const categories = useCategories();
   // A listing given away for nothing: its price is 0 and the price field is switched off.
   const [free, setFree] = useState(listing?.price === 0);
-  // Whether a discounted price is typed in: the price above it is then shown crossed out, as
-  // buyers will see it.
-  const [discounted, setDiscounted] = useState(listing?.oldPrice != null);
   const [photoError, setPhotoError] = useState<string>();
   const [errors, setErrors] = useState<Errors>({});
   // "sending" while the photos and the listing are on their way, "done" once it is saved.
@@ -466,9 +457,8 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
             />
             <FieldError message={errors.title} />
 
-            {/* The price and, beside it, a discounted price, each a bordered box holding the amount
-                and the currency; the border lights up for the whole box when the amount inside is
-                focused or invalid. Once a discounted price is typed in, the price is crossed out. */}
+            {/* The price, a bordered box holding the amount and the currency; the border lights up
+                for the whole box when the amount inside is focused or invalid. */}
             <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-2.5">
               <div className="min-w-0">
                 <label
@@ -480,13 +470,9 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
                     // A text field, because a number field refuses the decimal comma in some browsers.
                     type="text"
                     name="price"
-                    // A discounted listing shows its price from before the discount here, and the
-                    // discounted one in the field below.
-                    defaultValue={
-                      listing && listing.price > 0
-                        ? String(listing.oldPrice ?? listing.price).replace(".", ",")
-                        : undefined
-                    }
+                    // The price buyers pay now. Saving drops a discount given while the form still had
+                    // a field for one.
+                    defaultValue={listing && listing.price > 0 ? String(listing.price).replace(".", ",") : undefined}
                     // Switched off while the listing is free, and so left out of what is sent.
                     disabled={free}
                     aria-label="Цена в евро"
@@ -499,9 +485,7 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
                       event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
                     }}
                     aria-invalid={Boolean(errors.price)}
-                    className={`h-full min-w-0 flex-1 bg-transparent px-2.5 text-base font-bold outline-none placeholder:text-brand-ink/30 disabled:placeholder:text-sm sm:px-3 sm:text-lg disabled:sm:placeholder:text-base disabled:placeholder:text-brand-ink/50 ${
-                      discounted && !free ? "text-red-500/60 line-through" : "text-brand-ink"
-                    }`}
+                    className={`h-full min-w-0 flex-1 bg-transparent px-2.5 text-base font-bold outline-none placeholder:text-brand-ink/30 disabled:placeholder:text-sm sm:px-3 sm:text-lg disabled:sm:placeholder:text-base disabled:placeholder:text-brand-ink/50 text-brand-ink`}
                   />
                   <span
                     aria-hidden
@@ -513,54 +497,23 @@ export default function ListingForm({ listing, contact, missing }: ListingFormPr
                 <FieldError message={errors.price} />
               </div>
 
-              {/* A discount: the lower price buyers pay now, marked only by the percent sign. */}
-              {!free && (
-                <div className="min-w-0">
-                  <label className="flex h-11 cursor-text items-center overflow-hidden rounded-xl border border-black/10 bg-white transition-colors focus-within:border-brand-rose has-aria-invalid:border-red-500">
-                    <span className="flex h-full shrink-0 items-center border-r border-black/10 bg-brand-rose/10 px-2.5 text-brand-rose sm:px-3">
-                      <Percent className="size-4 sm:size-4.5" aria-hidden />
-                    </span>
-                    <input
-                      type="text"
-                      name="sale_price"
-                      defaultValue={listing?.oldPrice != null ? String(listing.price).replace(".", ",") : undefined}
-                      aria-label="Намалена цена в евро (по желание)"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      placeholder="0,00"
-                      onInput={(event) => {
-                        // Only digits, one decimal comma and two digits after it are kept.
-                        const [whole, ...rest] = event.currentTarget.value.replace(/[^\d.,]/g, "").split(/[.,]/);
-                        event.currentTarget.value = rest.length > 0 ? `${whole},${rest.join("").slice(0, 2)}` : whole;
-                        setDiscounted(event.currentTarget.value !== "");
-                      }}
-                      aria-invalid={Boolean(errors.sale_price)}
-                      className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-base font-bold text-brand-ink outline-none placeholder:text-brand-ink/30 sm:px-3 sm:text-lg"
-                    />
-                    <span aria-hidden className="flex h-full items-center pr-2.5 text-base font-bold text-brand-rose sm:pr-3">
-                      €
-                    </span>
-                  </label>
-                  <FieldError message={errors.sale_price} />
-                </div>
-              )}
+              {/* Beside the price, gives the product away: no price is asked for, and the listing
+                  says "Безплатно". */}
+              <label className={`${chip} h-11 w-full justify-center gap-2 rounded-xl px-4`}>
+                <input
+                  type="checkbox"
+                  name="free"
+                  checked={free}
+                  onChange={(event) => {
+                    setFree(event.target.checked);
+                    setErrors({ ...errors, price: undefined });
+                  }}
+                  className="sr-only"
+                />
+                <Gift className="size-4" aria-hidden />
+                Безплатно
+              </label>
             </div>
-
-            {/* Gives the product away: no price is asked for, and the listing says "Безплатно". */}
-            <label className={`${chip} mt-2.5 h-10 w-fit gap-2 rounded-xl px-4`}>
-              <input
-                type="checkbox"
-                name="free"
-                checked={free}
-                onChange={(event) => {
-                  setFree(event.target.checked);
-                  setErrors({ ...errors, price: undefined, sale_price: undefined });
-                }}
-                className="sr-only"
-              />
-              <Gift className="size-4" aria-hidden />
-              Безплатно
-            </label>
           </div>
 
           <div className="border-t border-black/5 px-5">

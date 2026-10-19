@@ -1,7 +1,6 @@
 "use client";
 
 import { BulletList } from "@tiptap/extension-list";
-import { FontSize, TextStyle } from "@tiptap/extension-text-style";
 import { CharacterCount, Placeholder } from "@tiptap/extensions";
 import { EditorContent, Extension, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -14,12 +13,6 @@ import {
   Minus,
   type LucideIcon,
 } from "lucide-react";
-import Select from "@/components/Select";
-
-// The font sizes offered in the toolbar, in pixels. DEFAULT_SIZE is what unformatted text uses:
-// 16px, the standard size of body text on the web.
-const DEFAULT_SIZE = "16px";
-const sizes = ["12", "14", "16", "18", "20", "24", "28"].map((size) => ({ value: `${size}px`, label: size }));
 
 const MAX_INDENT = 4;
 
@@ -104,8 +97,9 @@ type DescriptionFieldProps = {
   invalid?: boolean;
 };
 
-// A small word-processor for the listing's description: font size for the selected text, four
-// kinds of lists and indenting, all shown as they will look.
+// A small word-processor for the listing's description: four kinds of lists and indenting, all
+// shown as they will look. The text is always 16px: there is no size to choose, and the size of
+// pasted text is dropped, since the editor has no way to keep it.
 export default function DescriptionField({
   id,
   name,
@@ -131,8 +125,6 @@ export default function DescriptionField({
       }),
       KindBulletList,
       ParagraphIndent,
-      TextStyle,
-      FontSize,
       Placeholder.configure({ placeholder }),
       CharacterCount.configure({ limit: maxLength }),
     ],
@@ -157,30 +149,14 @@ export default function DescriptionField({
       return {
         html: editor.isEmpty ? "" : editor.getHTML(),
         text: editor.getText(),
-        fontSize: (editor.getAttributes("textStyle").fontSize as string | undefined) ?? DEFAULT_SIZE,
         activeList: editor.isActive("orderedList") ? "number" : bullets,
       };
     },
   });
 
-  const setFontSize = (size: string) => {
-    if (!editor) return;
-    const chain = editor.chain().focus();
-    if (size === DEFAULT_SIZE) chain.unsetFontSize().run();
-    else chain.setFontSize(size).run();
-  };
-
   return (
     <div className="mt-3">
       <div role="toolbar" aria-label="Оформяне на описанието" className="flex flex-wrap items-center gap-1.5">
-        <Select
-          label="Размер на шрифта"
-          options={sizes}
-          value={state?.fontSize ?? DEFAULT_SIZE}
-          onChange={setFontSize}
-          className="h-8 w-18"
-        />
-        <span className="mx-1 h-5 w-px bg-black/10" aria-hidden />
         {tools.map((tool, index) =>
           tool === "divider" ? (
             <span key={index} className="mx-1 h-5 w-px bg-black/10" aria-hidden />

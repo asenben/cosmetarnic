@@ -363,7 +363,7 @@ export default function RequestForm({ request, contact, missing, returnTo = "/pr
                       : "Публикуване…"
                     : request
                       ? "Запази промените"
-                      : "Публикувай"}
+                      : "Добави търсене"}
               </span>
             </button>
           </div>

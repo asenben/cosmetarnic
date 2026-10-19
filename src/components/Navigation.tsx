@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Heart, Plus, User } from "lucide-react";
+import { Heart, User } from "lucide-react";
+import AddMenu from "@/components/AddMenu";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFavoriteCount } from "@/components/FavoritesProvider";
 import MessagesMenu from "@/components/messages/MessagesMenu";
@@ -101,15 +102,8 @@ export default function Navigation() {
                 <User className="size-5.5" aria-hidden />
               </button>
             )}
-            {/* "Добави обява" as a round button with a plus, in the colour of the wide screens' button. */}
-            <Link
-              href="/sell"
-              aria-label="Добави обява"
-              onClick={guardLink}
-              className="ml-1.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-rose text-white transition-colors hover:bg-brand"
-            >
-              <Plus className="size-5.5" aria-hidden />
-            </Link>
+            {/* The round plus button: a listing, or a "Търся" post. */}
+            <AddMenu className="ml-1.5" />
           </div>
         </div>
         {/* Not on the page of one listing or one "Търся" post: there the photo comes first. */}
@@ -197,16 +191,8 @@ export default function Navigation() {
             )}
           </div>
 
-          {/* "Добави обява" as a round button with a plus, as on phones. */}
-          <Link
-            href="/sell"
-            aria-label="Добави обява"
-            title="Добави обява"
-            onClick={guardLink}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-rose text-white transition-colors hover:bg-brand"
-          >
-            <Plus className="size-5.5" aria-hidden />
-          </Link>
+          {/* The round plus button, as on phones. */}
+          <AddMenu />
         </nav>
       </div>
     </header>

@@ -1,9 +1,8 @@
 // The description arrives as HTML from the editor in the listing form and is later put on the
 // product page as it is, so it is rebuilt here from scratch: only the few tags the editor can
 // produce are written back, each with attributes generated from checked values. Whatever else the
-// request contained (scripts, links, event handlers, styles) is left out.
+// request contained (scripts, links, event handlers, styles, font sizes) is left out.
 
-const FONT_SIZES = ["12", "14", "16", "18", "20", "24", "28"];
 const BULLET_KINDS = ["disc", "check", "dash"];
 
 const attribute = (tag: string, name: string) =>
@@ -22,10 +21,6 @@ const openers: Record<string, (tag: string) => string> = {
   ol: (tag) => {
     const start = attribute(tag, "start");
     return /^\d{1,4}$/.test(start) ? `<ol start="${start}">` : "<ol>";
-  },
-  span: (tag) => {
-    const size = /font-size:\s*(\d+)px/i.exec(attribute(tag, "style"))?.[1] ?? "";
-    return FONT_SIZES.includes(size) ? `<span style="font-size: ${size}px">` : "<span>";
   },
   li: () => "<li>",
   strong: () => "<strong>",

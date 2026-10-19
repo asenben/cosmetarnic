@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { ScrollText } from "lucide-react";
+import { formatPrice } from "@/lib/format";
+import { getListingFee } from "@/lib/payments/canCreateListing";
 
 export const metadata: Metadata = {
   title: "Terms",
 };
 
-const rights = [
-  "Всеки потребител има право да качва до 5 безплатни обяви. След петата обява се заплащат €0.80 за всяка допълнителна обява.",
+const ordinals: Record<number, string> = { 1: "първата", 2: "втората", 3: "третата", 4: "четвъртата", 5: "петата" };
+
+// The first right is the free listings, with the number and the price set in "Плащания".
+const otherRights = [
   "Всеки посетител може да разглежда и търси обяви, без да има създаден профил. За да изпраща съобщения до продавача обаче, ще му бъде необходим профил.",
   "Личните Ви данни се пазят съгласно регламента за защита на личните данни (ЗЗЛД).",
 ];
@@ -24,7 +28,13 @@ const note = "text-brand-ink/60";
 const list =
   "mt-4 list-decimal space-y-4 pl-6 marker:font-semibold marker:text-brand-rose";
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const { freeListings, price } = await getListingFee();
+  const rights = [
+    `Всеки потребител има право да качва до ${freeListings} безплатни обяви. След ${ordinals[freeListings] ?? `${freeListings}-ата`} обява се заплащат ${formatPrice(price)} за всяка допълнителна обява.`,
+    ...otherRights,
+  ];
+
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
       <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">

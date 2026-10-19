@@ -1,20 +1,11 @@
 import type { Metadata } from "next";
 import { CreditCard, Gift, HandCoins, Info, Truck } from "lucide-react";
+import { formatPrice } from "@/lib/format";
+import { getListingFee } from "@/lib/payments/canCreateListing";
 
 export const metadata: Metadata = {
   title: "Такси и плащане",
 };
-
-const FREE_LISTINGS = 5;
-const EXTRA_LISTING_FEE = "€0.80";
-
-const free = [
-  "Разглеждане и търсене на обяви – дори без профил",
-  "Регистрация и профил",
-  "Съобщения между купувач и продавач",
-  "Любими обяви и известия",
-  `Първите ${FREE_LISTINGS} обяви на всеки потребител`,
-];
 
 const paymentWays = [
   { icon: HandCoins, title: "При лично предаване", text: "Плащате на ръка при срещата, след като купувачът види продукта." },
@@ -22,7 +13,17 @@ const paymentWays = [
   { icon: CreditCard, title: "По банков път", text: "Само ако се познавате или вече имате доверие един към друг." },
 ];
 
-export default function FeesPage() {
+// The number of free listings and the price come from what the administrator set in "Плащания".
+export default async function FeesPage() {
+  const { freeListings, price } = await getListingFee();
+  const free = [
+    "Разглеждане и търсене на обяви – дори без профил",
+    "Регистрация и профил",
+    "Съобщения между купувач и продавач",
+    "Любими обяви и известия",
+    `Първите ${freeListings} обяви на всеки потребител`,
+  ];
+
   return (
     <main className="flex flex-col flex-1 bg-zinc-50 font-sans">
       <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
@@ -36,13 +37,13 @@ export default function FeesPage() {
           {/* The two prices side by side, like a small price list. */}
           <section className="mt-10 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-black/5 bg-white p-6">
-              <p className="text-sm font-semibold tracking-wider text-brand-rose uppercase">Обяви 1 – {FREE_LISTINGS}</p>
+              <p className="text-sm font-semibold tracking-wider text-brand-rose uppercase">Обяви 1 – {freeListings}</p>
               <p className="mt-2 text-4xl font-bold text-brand-ink">€0</p>
-              <p className="mt-2 text-sm leading-6">Всеки потребител публикува първите си {FREE_LISTINGS} обяви безплатно.</p>
+              <p className="mt-2 text-sm leading-6">Всеки потребител публикува първите си {freeListings} обяви безплатно.</p>
             </div>
             <div className="rounded-2xl bg-brand-ink p-6 text-white">
               <p className="text-sm font-semibold tracking-wider text-brand-pale uppercase">Всяка следваща обява</p>
-              <p className="mt-2 text-4xl font-bold">{EXTRA_LISTING_FEE}</p>
+              <p className="mt-2 text-4xl font-bold">{formatPrice(price)}</p>
               <p className="mt-2 text-sm leading-6 text-white/70">Еднократно, за публикуването. Без такса от продажбата.</p>
             </div>
           </section>

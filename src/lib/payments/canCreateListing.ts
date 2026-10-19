@@ -18,7 +18,7 @@ export type ListingFee = {
 
 export const DEFAULT_FEE: ListingFee = {
   enabled: false,
-  freeListings: 5,
+  freeListings: 3,
   price: 0.8,
   title: "Платена обява",
   description: "Първите ти обяви са безплатни. Всяка следваща се заплаща, преди да бъде качена.",

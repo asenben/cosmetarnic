@@ -18,7 +18,7 @@ type NewMessage = {
 // whose email has not been confirmed, are not written to. Answers whether an email went out.
 export async function notifyNewMessage({ conversationId, senderId, origin }: NewMessage) {
   const [row] = await sql`
-    select c.subject,
+    select c.subject, c.owner_id,
            r.username as recipient_username, r.email as recipient_email,
            r.email_verified_at is not null as recipient_verified, r.blocked_at is not null as recipient_blocked,
            s.username as sender_username, s.role as sender_role,
@@ -35,7 +35,9 @@ export async function notifyNewMessage({ conversationId, senderId, origin }: New
   if ((row.unread as number) > 1) return false;
   if (!hasMailbox(email) || !row.recipient_verified || row.recipient_blocked) return false;
 
-  const fromAdmin = row.sender_role === "admin";
+  // An administrator who answers about their own listing or post writes as its seller, under
+  // their name; only one writing about somebody else's is introduced as the administrator.
+  const fromAdmin = row.sender_role === "admin" && row.owner_id !== senderId;
   const sender = fromAdmin ? "Администраторът на Козметарник" : (row.sender_username as string);
   const subject = row.subject as string;
   // Through the home page: someone signed in is sent on to the conversation at once, anyone else

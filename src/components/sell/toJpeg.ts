@@ -1,7 +1,6 @@
 // Photos are shrunk to this many pixels on their longer side before they are sent.
-const PHOTO_SIDE = 1280;
-// JPEG quality: as low as it goes before cosmetics' colours and labels start to look worse.
-const PHOTO_QUALITY = 0.75;
+const PHOTO_SIDE = 1600;
+const PHOTO_QUALITY = 0.85;
 
 // Shrinks the photo and turns it into a JPEG, so uploads are small whatever the camera produced.
 export async function toJpeg(file: File) {

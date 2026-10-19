@@ -135,14 +135,28 @@ export default function Footer() {
             </a>
             . Всички права запазени.
           </p>
-          <span className="inline-flex items-center gap-2 self-center">
-            <svg viewBox="0 0 20 14" className="h-3.5 w-5 rounded-xs" aria-hidden>
-              <rect width="20" height="14" fill="#fff" />
-              <rect y="4.67" width="20" height="4.67" fill="#00966e" />
-              <rect y="9.33" width="20" height="4.67" fill="#d62612" />
-            </svg>
-            Български
-          </span>
+          {/* The site's Facebook group, quietly, then the language. */}
+          <div className="flex items-center gap-5 self-center">
+            <a
+              href="https://www.facebook.com/groups/632843235759285"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-brand-pale"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="size-3.5" aria-hidden>
+                <path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21h3Z" />
+              </svg>
+              Facebook
+            </a>
+            <span className="inline-flex items-center gap-2">
+              <svg viewBox="0 0 20 14" className="h-3.5 w-5 rounded-xs" aria-hidden>
+                <rect width="20" height="14" fill="#fff" />
+                <rect y="4.67" width="20" height="4.67" fill="#00966e" />
+                <rect y="9.33" width="20" height="4.67" fill="#d62612" />
+              </svg>
+              Български
+            </span>
+          </div>
         </div>
       </div>
     </footer>

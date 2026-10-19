@@ -124,7 +124,7 @@ export function RequestCard({ request, manageable = false, onUnfavorite }: Reque
             />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 text-xs font-medium text-brand-ink/60">
-              <Image src="/images/logo.svg" alt="" width={64} height={64} className="size-16 rounded-full opacity-80" />
+              <Image src="/images/logo.png" alt="" width={64} height={64} className="size-16 rounded-full opacity-80" />
               <span className="@max-[13rem]:hidden listview:hidden">Няма изображение</span>
             </div>
           )}

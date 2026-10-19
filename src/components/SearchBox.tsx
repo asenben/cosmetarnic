@@ -162,7 +162,7 @@ export default function SearchBox({
                         {result.image ? (
                           <Image src={result.image} alt="" fill sizes="48px" className="object-cover" />
                         ) : (
-                          <Image src="/images/logo.svg" alt="" fill sizes="48px" className="p-2 opacity-80" />
+                          <Image src="/images/logo.png" alt="" fill sizes="48px" className="p-2 opacity-80" />
                         )}
                       </span>
                       <span className="min-w-0 flex-1">

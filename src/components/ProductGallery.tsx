@@ -156,7 +156,7 @@ export default function ProductGallery({ images, alt, badge }: ProductGalleryPro
           </>
         ) : (
           <div className="flex size-full flex-col items-center justify-center gap-3 text-sm font-medium text-brand-ink/60">
-            <Image src="/images/logo.svg" alt="" width={96} height={96} className="size-24 rounded-full opacity-80" />
+            <Image src="/images/logo.png" alt="" width={96} height={96} className="size-24 rounded-full opacity-80" />
             Няма изображение
           </div>
         )}

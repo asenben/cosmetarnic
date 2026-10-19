@@ -38,7 +38,7 @@ export default function ListingsTable({ listings, showSeller = true }: ListingsT
             {listing.image ? (
               <Image src={listingImageUrl(listing.image)} alt="" fill sizes="56px" className="object-cover" />
             ) : (
-              <Image src="/images/logo.svg" alt="" fill sizes="56px" className="p-2.5 opacity-80" />
+              <Image src="/images/logo.png" alt="" fill sizes="56px" className="p-2.5 opacity-80" />
             )}
           </Link>
 

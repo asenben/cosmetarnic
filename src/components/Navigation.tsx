@@ -68,7 +68,7 @@ export default function Navigation() {
         {/* The logo, and across from it the messages, the favourites and the account. */}
         <div className="flex items-center justify-between gap-3">
           <Link href="/" aria-label="Начало" className="shrink-0">
-            <Image src="/images/logo.svg" alt="Cosmetarnic" width={44} height={44} priority className="size-11 rounded-full object-cover" />
+            <Image src="/images/logo.png" alt="Cosmetarnic" width={44} height={44} priority className="size-11 rounded-full object-cover" />
           </Link>
 
           <div className="flex items-center gap-1">
@@ -117,7 +117,7 @@ export default function Navigation() {
         >
           <Link href="/" aria-label="Начало" className="shrink-0">
             <Image
-              src="/images/logo.svg"
+              src="/images/logo.png"
               alt="Cosmetarnic"
               width={48}
               height={48}

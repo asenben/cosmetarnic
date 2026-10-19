@@ -78,7 +78,7 @@ export default function Footer() {
         <div className="flex flex-col items-center text-center">
           <Link href="/" aria-label="Начало" className="inline-block">
             <Image
-              src="/images/logo.svg"
+              src="/images/logo.png"
               alt="Cosmetarnic"
               width={64}
               height={64}

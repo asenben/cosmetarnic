@@ -81,7 +81,7 @@ export default function ProfileListings({ listings, counts }: ProfileListingsPro
                     <Image src={listing.image} alt="" fill sizes="180px" className="object-cover" />
                   ) : (
                     <Image
-                      src="/images/logo.svg"
+                      src="/images/logo.png"
                       alt=""
                       width={48}
                       height={48}

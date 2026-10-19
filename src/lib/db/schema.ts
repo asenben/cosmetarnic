@@ -267,4 +267,12 @@ export const schema = [
     primary key (user_id, listing_id)
   )`,
   `create index if not exists favorites_listing_id_idx on favorites (listing_id)`,
+  // Who opened the site on each day, for "Статистика" in the administration: one row per device a
+  // day, with the pages it opened that day. `visitor` is a hash, not an address (see src/lib/stats.ts).
+  `create table if not exists site_visits (
+    day date not null,
+    visitor text not null,
+    views int not null default 1,
+    primary key (day, visitor)
+  )`,
 ];

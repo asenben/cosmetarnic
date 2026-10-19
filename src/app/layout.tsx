@@ -5,6 +5,7 @@ import FavoritesProvider from "@/components/FavoritesProvider";
 import Footer from "@/components/Footer";
 import Navigation from "@/components/Navigation";
 import SiteOptionsProvider from "@/components/SiteOptionsProvider";
+import VisitTracker from "@/components/VisitTracker";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCategories } from "@/lib/categories";
 import { getFavoriteIds } from "@/lib/listings/favorites";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <Navigation />
               {children}
               <Footer />
+              <VisitTracker />
             </FavoritesProvider>
           </SiteOptionsProvider>
         </AuthProvider>

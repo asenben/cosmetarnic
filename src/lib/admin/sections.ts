@@ -1,4 +1,5 @@
 import {
+  ChartColumn,
   CreditCard,
   FileUp,
   Inbox,
@@ -25,6 +26,7 @@ export const adminGroups: { title: string; sections: AdminSection[] }[] = [
   {
     title: "Основни",
     sections: [
+      { slug: "statistics", label: "Статистика", icon: ChartColumn },
       { slug: "users", label: "Потребители", icon: Users },
       { slug: "listings", label: "Обяви", icon: FileUp },
       { slug: "requests", label: "Търся", icon: Search },

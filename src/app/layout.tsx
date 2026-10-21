@@ -29,8 +29,11 @@ const SITE_NAME = "Козметарник";
 export async function generateMetadata(): Promise<Metadata> {
   const owner = (await getCurrentUser())?.username ?? SITE_NAME;
   return {
+    // Makes the share image (opengraph-image.png, the logo) an absolute link that Facebook can fetch.
+    metadataBase: new URL("https://www.kosmetarnik.com"),
     title: { default: owner, template: `%s | ${owner}` },
     description: "Козметарник - продавалник за козметика",
+    openGraph: { siteName: SITE_NAME, type: "website", locale: "bg_BG" },
   };
 }
 

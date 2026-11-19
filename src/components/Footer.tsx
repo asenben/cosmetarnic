@@ -143,8 +143,19 @@ export default function Footer() {
               rel="noopener"
               className="inline-flex items-center gap-1.5 transition-colors hover:text-brand-pale"
             >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="size-3.5" aria-hidden>
-                <path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21h3Z" />
+              {/* Facebook's round logo, drawn here with a white "f" (the icon sets leave it cut
+                  out, and the dark footer would show through). The circle trims the "f" at the
+                  bottom, as in the real logo. */}
+              <svg viewBox="0 0 24 24" className="size-4.5 shrink-0 text-facebook" aria-hidden>
+                <clipPath id="footer-facebook-logo">
+                  <circle cx="12" cy="12" r="12" />
+                </clipPath>
+                <circle cx="12" cy="12" r="12" fill="currentColor" />
+                <path
+                  clipPath="url(#footer-facebook-logo)"
+                  fill="white"
+                  d="M16.67 15.47 17.2 12h-3.33V9.75c0-.95.47-1.88 1.95-1.88h1.51V4.92s-1.37-.23-2.68-.23c-2.74 0-4.53 1.66-4.53 4.66V12H7.08v3.47h3.04V24h3.75v-8.53h2.8Z"
+                />
               </svg>
               Facebook
             </a>

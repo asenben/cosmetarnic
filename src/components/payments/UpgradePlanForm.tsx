@@ -9,8 +9,8 @@ const field =
   "w-full rounded-xl border border-black/10 bg-white px-3.5 text-sm text-brand-ink transition-colors outline-none placeholder:text-brand-ink/40 focus:border-brand-rose aria-invalid:border-red-500";
 
 // The form in "Плащания" where the administrator sets the paid listings: whether the limit is on,
-// how many listings are free, what each one after them costs, and what the seller is told. The
-// payment itself is made by card, through Stripe.
+// how many listings are free, what each one after them costs, what the seller is told, and the
+// bank account the seller transfers the money to.
 export default function UpgradePlanForm({ fee }: { fee: ListingFee }) {
   const router = useRouter();
   const [errors, setErrors] = useState<FeeErrors>({});
@@ -111,6 +111,50 @@ export default function UpgradePlanForm({ fee }: { fee: ListingFee }) {
           className={`${field} resize-y py-2.5 leading-6`}
         />
       </label>
+
+      {/* The platform's account the sellers transfer the money to. */}
+      <fieldset className="space-y-4 rounded-2xl bg-brand-rose/5 p-4">
+        <legend className="float-left mb-1 text-sm font-bold text-brand-ink">Банкова сметка за преводи</legend>
+        <label className="clear-left block">
+          {label("Получател", errors.recipient)}
+          <input
+            name="recipient"
+            defaultValue={fee.recipient}
+            maxLength={100}
+            placeholder="Козметарник ЕООД"
+            aria-invalid={Boolean(errors.recipient)}
+            className={`${field} h-11`}
+          />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <label className="block">
+            {label("IBAN", errors.iban)}
+            <input
+              name="iban"
+              defaultValue={fee.iban.replace(/(.{4})(?=.)/g, "$1 ")}
+              maxLength={42}
+              placeholder="BG80 BNBG 9661 1020 3456 78"
+              autoCapitalize="characters"
+              spellCheck={false}
+              aria-invalid={Boolean(errors.iban)}
+              className={`${field} h-11 uppercase`}
+            />
+          </label>
+          <label className="block">
+            {label("BIC (по желание)", errors.bic)}
+            <input
+              name="bic"
+              defaultValue={fee.bic}
+              maxLength={11}
+              placeholder="BNBGBGSD"
+              autoCapitalize="characters"
+              spellCheck={false}
+              aria-invalid={Boolean(errors.bic)}
+              className={`${field} h-11 uppercase`}
+            />
+          </label>
+        </div>
+      </fieldset>
 
       <div className="flex flex-wrap items-center gap-3">
         <button

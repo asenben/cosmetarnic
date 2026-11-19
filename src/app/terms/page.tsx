@@ -31,7 +31,7 @@ const list =
 export default async function TermsPage() {
   const { freeListings, price } = await getListingFee();
   const rights = [
-    `Всеки потребител има право да качва до ${freeListings} безплатни обяви. След ${ordinals[freeListings] ?? `${freeListings}-ата`} обява се заплащат ${formatPrice(price)} за всяка допълнителна обява.`,
+    `Всеки потребител има право да качва до ${freeListings} безплатни обяви. След ${ordinals[freeListings] ?? `${freeListings}-ата`} обява се заплащат ${formatPrice(price)} за всяка допълнителна обява чрез банков превод по сметката на платформата.`,
     ...otherRights,
   ];
 

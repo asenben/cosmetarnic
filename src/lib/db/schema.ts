@@ -231,9 +231,9 @@ export const schema = [
     key text primary key,
     value jsonb not null
   )`,
-  // The card payments for listings past the free ones, one row per Stripe payment that
-  // was made. The payment's id is the key, so a payment is counted once however many times
-  // Stripe or the buyer's browser reports it (see src/lib/payments).
+  // The card payments for listings past the free ones, from when they were paid through Stripe.
+  // Listings are now paid by bank transfer and added by the administrator, so nothing is written
+  // here any more; the table is kept for the payments already made.
   `create table if not exists payments (
     id text primary key,
     user_id uuid references users (id) on delete set null,

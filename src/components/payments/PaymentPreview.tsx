@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { Eye } from "lucide-react";
-import PaymentModal from "@/components/payments/PaymentModal";
+import PaymentModal, { type BankTransferFee } from "@/components/payments/PaymentModal";
 
 type PaymentPreviewProps = {
-  fee: { title: string; description: string; price: number };
+  fee: BankTransferFee;
   limit: number;
+  // The reason for the transfer as the administrator's own would read.
+  reference: string;
 };
 
 // Lets the administrator see the window a seller gets past the free listings, as it is saved
 // now. Administrators are never asked to pay, so they would not meet it otherwise.
-export default function PaymentPreview({ fee, limit }: PaymentPreviewProps) {
+export default function PaymentPreview({ fee, limit, reference }: PaymentPreviewProps) {
   const [shown, setShown] = useState(false);
 
   return (
@@ -24,7 +26,7 @@ export default function PaymentPreview({ fee, limit }: PaymentPreviewProps) {
         <Eye className="size-4" aria-hidden />
         Виж прозореца, както го вижда продавачът
       </button>
-      {shown && <PaymentModal fee={fee} limit={limit} onClosed={() => setShown(false)} />}
+      {shown && <PaymentModal fee={fee} limit={limit} reference={reference} onClosed={() => setShown(false)} />}
     </>
   );
 }
